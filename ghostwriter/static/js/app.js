@@ -158,7 +158,7 @@ async function loadStories() {
   $("#greeting").textContent = voice().greeting(ready);
   $("#story-list").replaceChildren(...stories.map((s) => el("li", {},
     el("a", { href: `#/story/${s.id}`, textContent: statusText(s) }),
-    el("div", { className: "meta", textContent: [localTime(s.created_at), s.mood, s.language].filter(Boolean).join(" · ") }),
+    el("div", { className: "meta", textContent: [localTime(s.created_at), s.mood, s.language, s.is_sample && "fictional sample"].filter(Boolean).join(" · ") }),
   )));
   return stories;
 }
@@ -205,13 +205,14 @@ function renderStory(s) {
   const v = voice();
   return present([
     el("h2", { textContent: statusText(s) }),
+    s.is_sample && el("p", { className: "meta", textContent: "A fictional sample story, written for the demo." }),
     s.answers && el("p", { className: "meta" }, "An answer to: ",
       el("a", { href: `#/story/${s.answers.story_id}`, textContent: s.answers.text })),
     s.status === "failed" && el("p", { className: "error", textContent: s.error }),
     s.status === "failed" && el("button", { textContent: v.tryAgain, onclick: () => retry(s.id) }),
     reactionBlock(s),
     s.summary && el("p", { textContent: s.summary }),
-    el("audio", { controls: true, preload: "none", src: `/api/stories/${s.id}/audio` }),
+    s.audio_original && el("audio", { controls: true, preload: "none", src: `/api/stories/${s.id}/audio` }),
     el("dl", { className: "details" },
       ...entityRow("People", e.person),
       ...entityRow("Places", e.place),

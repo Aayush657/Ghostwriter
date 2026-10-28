@@ -1,0 +1,25 @@
+{
+  "note": "FICTIONAL SAMPLE STORIES, written for the Ghostwriter demo. None of these people, places or events are real memories. They are kept apart from real data and are only loaded into the demo archive.",
+  "stories": [
+    {
+      "key": "clock",
+      "language": "en",
+      "transcript": "When I was nine, we spent the winter at my grandmother's house in Shimla. Every night at eleven, the old wall clock in the corridor would stop, and my grandmother would say, the clock is listening. One night I stayed awake to watch it. At exactly eleven the pendulum stopped, and I heard someone humming an old song in the kitchen. When I went to look, there was only a cup of tea on the table, still warm. My grandmother never told me who made it. The next morning the clock was running again, and she gave me her silver thimble and said, keep this, so they know you are family."
+    },
+    {
+      "key": "hostel",
+      "language": "hi",
+      "transcript": "हमारे hostel में third floor पर एक room था, 307, जो हमेशा बंद रहता था. Seniors कहते थे कि वहाँ कोई रहता है जो सिर्फ़ exams के time पर आता है. एक रात, December की exams से पहले, light चली गई और हम चार दोस्त corridor में बैठे थे. तभी 307 के अंदर से किसी के पन्ने पलटने की आवाज़ आई. Rohan ने दरवाज़ा खटखटाया तो आवाज़ बंद हो गई. सुबह door के नीचे एक पुरानी physics की notebook रखी थी, और उसमें हर सवाल का answer लिखा था, बहुत सुंदर handwriting में. हमने वो notebook आज तक किसी को नहीं दिखाई."
+    },
+    {
+      "key": "kadhi",
+      "language": "hi",
+      "transcript": "नानी की कढ़ी पूरे लखनऊ में मशहूर थी. वो पीतल के एक बड़े पतीले में बनाती थीं, जो उनकी शादी में आया था. नानी कहती थीं, धीमी आँच और धीरज, यही असली मसाला है. कढ़ी को कम से कम एक घंटा पकाना होता था और बीच में कोई ढक्कन नहीं उठा सकता था. अस्सी के दशक में, एक बार मामा ने जल्दी में ढक्कन उठा दिया, और नानी ने कहा, अब पकौड़े रूठ जाएँगे. सच में उस दिन पकौड़े डूब गए. नानी के जाने के बाद वो पतीला किसके पास गया, ये मुझे नहीं पता."
+    },
+    {
+      "key": "trunk",
+      "language": "en",
+      "transcript": "In my grandfather's trunk there is a bundle of letters tied with red thread. They were written by his father from Rangoon in 1942, just before the family walked back to India. Most of the letters are about ordinary things, the price of rice, the monsoon, a dog called Moti. But the last letter only says, if the lamp on the verandah is lit, I am still coming home. My grandfather kept a lamp lit on his verandah every evening until he died. Nobody in the family knows if his father ever came back."
+    }
+  ]
+}

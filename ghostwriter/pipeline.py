@@ -37,15 +37,13 @@ def _run(story_id: int) -> None:
     story = db.get_story(story_id)
     data_dir = settings.data_dir
 
-    if not story["audio_wav"]:
+    if not story["transcript"]:  # text-only stories (the samples) skip both audio steps
         db.update_story(story_id, status="transcribing", error=None)
-        wav = f"audio/{story_id}.wav"
-        duration = normalise(data_dir / story["audio_original"], data_dir / wav)
-        db.update_story(story_id, audio_wav=wav, duration_s=duration)
-        story = db.get_story(story_id)
-
-    if not story["transcript"]:
-        db.update_story(story_id, status="transcribing", error=None)
+        if not story["audio_wav"]:
+            wav = f"audio/{story_id}.wav"
+            duration = normalise(data_dir / story["audio_original"], data_dir / wav)
+            db.update_story(story_id, audio_wav=wav, duration_s=duration)
+            story = db.get_story(story_id)
         result = transcribe.transcribe(data_dir / story["audio_wav"])
         log.info("story %s: %.1fs of audio transcribed in %.1fs (%s)", story_id,
                  story["duration_s"], result.seconds_taken, result.language)

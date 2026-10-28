@@ -30,7 +30,8 @@ CREATE TABLE IF NOT EXISTS stories (
     title               TEXT,
     summary             TEXT,
     mood                TEXT,
-    reaction            TEXT    -- the Archivist's first words about the story
+    reaction            TEXT,   -- the Archivist's first words about the story
+    is_sample           INTEGER NOT NULL DEFAULT 0  -- 1 for the fictional demo stories
 );
 
 CREATE TABLE IF NOT EXISTS entities (
@@ -72,7 +73,7 @@ END;
 """
 
 # Columns added after a database may already exist. init_db() adds any that are missing.
-ADDED_COLUMNS = {"reaction": "TEXT"}
+ADDED_COLUMNS = {"reaction": "TEXT", "is_sample": "INTEGER NOT NULL DEFAULT 0"}
 
 # Columns update_story() may touch. Column names can't be SQL parameters, so we whitelist them.
 UPDATABLE = {"status", "error", "audio_original", "audio_wav", "duration_s", "language",
@@ -108,9 +109,10 @@ def init_db() -> None:
                 con.execute(f"ALTER TABLE stories ADD COLUMN {name} {sql_type}")
 
 
-def create_story(answers_question_id: int | None = None) -> int:
+def create_story(answers_question_id: int | None = None, is_sample: bool = False) -> int:
     with connect() as con:
-        cur = con.execute("INSERT INTO stories (answers_question_id) VALUES (?)", (answers_question_id,))
+        cur = con.execute("INSERT INTO stories (answers_question_id, is_sample) VALUES (?, ?)",
+                          (answers_question_id, int(is_sample)))
         return cur.lastrowid
 
 
@@ -174,7 +176,7 @@ def list_stories() -> list[dict]:
     with connect() as con:
         rows = [dict(r) for r in con.execute(
             """SELECT id, created_at, last_visited_at, status, error, title, summary, mood,
-                      duration_s, language, answers_question_id
+                      duration_s, language, answers_question_id, is_sample
                FROM stories ORDER BY created_at DESC, id DESC"""
         )]
         entities = _entities(con, [r["id"] for r in rows])
