@@ -1,6 +1,8 @@
 # PROGRESS
 
-_Last updated: Wed Oct 28, 2026, 17:25 IST_
+_Last updated: Wed Oct 28, 2026, 17:50 IST_
+
+**Name decided: Ghostwriter**, subtitle "the ghost that keeps your stories" (user's choice, Oct 28).
 
 ## Current stage
 
@@ -8,9 +10,12 @@ _Last updated: Wed Oct 28, 2026, 17:25 IST_
 - **Stage 1 (core pipeline): DONE with a synthetic clip.** Waiting on one thing only the user can do:
   a **real recording** (ideally Hindi or mixed), to close Stage 1 formally and test the mic.
 - **Stage 2 (Seance, Archivist, handwriting stream, Unfinished Business): DONE**, verified with real Gemma.
-- **Stage 3 (candle wall, whispers, browser recording, polish): MOSTLY DONE.** Candle wall, whispers,
-  recording UI built and checked in the browser pane. Recording itself is unverified (the pane blocks the
-  mic). Polish pass still to do.
+- **Stage 3 (candle wall, whispers, browser recording, polish): DONE**, except a real mic test (the
+  browser pane blocks the mic). Polish: subtitle, favicon, back link, processing hint, samples fade by
+  days unvisited; no horizontal overflow at 375 px; every request goes to localhost.
+- **Stage 5: haunted retelling DONE** (verified with real Gemma: faithful, eerie, no invented tragedy;
+  stored in its own column, original untouched; read aloud as ~60 s of ghost voice).
+  Export and the .tech landing page still to do.
 - **Stage 4 (ghost voice): DONE.** Piper + ffmpeg effects, cached, optional; "Let the Archivist speak"
   buttons on Seance answers and reactions. `/api/speak` returns 200 in the browser pane; **how it sounds
   is not verified** (no audio here) -> user to listen and judge.
@@ -38,11 +43,11 @@ _Last updated: Wed Oct 28, 2026, 17:25 IST_
 1. **User**: record a real 1-2 min story in their own browser (`scripts\run.ps1`, then
    http://127.0.0.1:8000, "Speak, and the ghost will listen"). Then check `data\` result together,
    measure Whisper on real Hindi/mixed speech, and consider `medium` if accuracy is poor.
-2. **User**: choose the name (Ghostwick / Inkwraith / keep Ghostwriter).
-3. **User**: listen to the ghost voice and say if the effect is too strong or too weak
+2. **User**: listen to the ghost voice and say if the effect is too strong or too weak
    (knob: `GHOST_EFFECTS` in `ghostwriter/tts.py`).
-4. Stage 3 polish pass (layout on narrow screens, empty states, loading states).
-5. Stage 5: haunted retelling, export, .tech landing page.
+3. Stage 5: export the memory book (printable HTML, browser "Save as PDF"), then the static .tech
+   landing page (`site/`).
+4. Stage 6: README (screenshots placeholders, architecture diagram), DEMO_SCRIPT.md, POST_DRAFT.md.
 
 ## Known issues
 
@@ -126,3 +131,4 @@ powershell -ExecutionPolicy Bypass -File scripts\demo.ps1           # demo archi
 | Downloads | Gemma 6.6 GB took ~35 min at ~3.9 MB/s | setup cost, once |
 | Piper synthesis | real-time factor 0.066 (9.6 s of speech in 0.63 s) | plain voice |
 | Ghost voice end to end | 11.2 s of speech in 1.22 s (Piper + ffmpeg effects); cached repeat 0.00 s | |
+| Haunted retelling | ~25-30 s to write 140 words (streamed); read aloud as 60.5 s of ghost voice | browser pane timing |
