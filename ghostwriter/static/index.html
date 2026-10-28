@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ghostwriter</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <h1><a href="#/">Ghostwriter</a></h1>
+    <p class="tagline">Tell it your stories. It will keep them.</p>
+    <ul id="health" aria-label="Local services"></ul>
+  </header>
+
+  <main>
+    <section id="new-story">
+      <h2>Give the ghost a story</h2>
+      <form id="upload-form">
+        <input type="file" name="file" accept=".wav,.mp3,.m4a,.webm,.ogg" required>
+        <button type="submit">Offer it</button>
+      </form>
+      <p id="upload-status" role="status"></p>
+    </section>
+
+    <section id="archive">
+      <h2>The archive</h2>
+      <ul id="story-list"></ul>
+    </section>
+
+    <article id="story" hidden></article>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>

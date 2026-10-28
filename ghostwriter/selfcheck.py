@@ -51,10 +51,11 @@ def check_fts5() -> Check:
 
 
 def check_ffmpeg() -> Check:
-    path = shutil.which("ffmpeg")
+    path = shutil.which(settings.ffmpeg_bin)
     if not path:
-        return Check("ffmpeg", False, "not found on PATH",
-                     "winget install --id Gyan.FFmpeg -e, then open a new terminal.")
+        return Check("ffmpeg", False, f"'{settings.ffmpeg_bin}' not found",
+                     "winget install --id Gyan.FFmpeg -e, then open a new terminal "
+                     "(or set GW_FFMPEG_BIN to the full path of ffmpeg.exe).")
     out = subprocess.run([path, "-version"], capture_output=True, text=True, check=False).stdout
     return Check("ffmpeg", True, out.splitlines()[0] if out else path)
 

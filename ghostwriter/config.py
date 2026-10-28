@@ -18,8 +18,11 @@ class Settings(BaseSettings):
     data_dir: Path = PROJECT_ROOT / "data"
     models_dir: Path = PROJECT_ROOT / "models"
 
+    ffmpeg_bin: str = "ffmpeg"  # a full path works too, if ffmpeg isn't on PATH
+
     ollama_url: str = "http://127.0.0.1:11434"
     llm_model: str = "gemma4:e4b"
+    llm_num_ctx: int = 8192  # Ollama's smaller default would silently cut long transcripts
 
     whisper_model: str = "small"
     whisper_compute_type: str = "int8"
@@ -32,6 +35,10 @@ class Settings(BaseSettings):
     def _anchor_to_project(cls, path: Path) -> Path:
         """Relative paths in .env mean 'inside the project', not 'wherever you ran it from'."""
         return path if path.is_absolute() else PROJECT_ROOT / path
+
+    @property
+    def db_path(self) -> Path:
+        return self.data_dir / "ghostwriter.db"
 
     @property
     def whisper_path(self) -> Path:
