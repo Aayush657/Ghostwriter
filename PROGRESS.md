@@ -1,6 +1,6 @@
 # PROGRESS
 
-_Last updated: Wed Oct 28, 2026, 18:05 IST_
+_Last updated: Wed Oct 28, 2026, 18:30 IST_
 
 **Name decided: Ghostwriter**, subtitle "the ghost that keeps your stories" (user's choice, Oct 28).
 
@@ -20,7 +20,10 @@ _Last updated: Wed Oct 28, 2026, 18:05 IST_
     prints to PDF; checked in the browser pane, Hindi renders.
   - Landing page in `docs/` for GitHub Pages + .tech domain; no external requests, fine at 375 px.
     **User TODOs in `docs/index.html`**: `YOUR_GITHUB_REPO_URL` (x2) and the demo-video box.
-- **Stage 6 (README, DEMO_SCRIPT.md, POST_DRAFT.md): NEXT.**
+- **Stage 6: DONE (drafts).** README complete (quick start **verified on a fresh clone**: setup.ps1 OK in
+  43 s, 47 tests pass + 1 skipped without Piper). DEMO_SCRIPT.md (2:00 + 1:30 cut). POST_DRAFT.md in the
+  official template (~2,270 words, 13 `PLACEHOLDER`s only the user can fill). HOW_IT_WORKS.md updated.
+- **Remaining work is the user's** (see next actions). Code is feature-complete for P0-P2.
 - **Stage 4 (ghost voice): DONE.** Piper + ffmpeg effects, cached, optional; "Let the Archivist speak"
   buttons on Seance answers and reactions. `/api/speak` returns 200 in the browser pane; **how it sounds
   is not verified** (no audio here) -> user to listen and judge.
@@ -50,8 +53,13 @@ _Last updated: Wed Oct 28, 2026, 18:05 IST_
    measure Whisper on real Hindi/mixed speech, and consider `medium` if accuracy is poor.
 2. **User**: listen to the ghost voice and say if the effect is too strong or too weak
    (knob: `GHOST_EFFECTS` in `ghostwriter/tts.py`).
-3. Stage 6: README (screenshots placeholders, architecture diagram), DEMO_SCRIPT.md, POST_DRAFT.md.
-4. **User**: push to GitHub, enable Pages from `/docs`, claim the .tech domain (README > Landing page).
+3. **User**: record the demo video (DEMO_SCRIPT.md), take 3 screenshots, and if possible the "real
+   moment" with a family member.
+4. **User**: push to GitHub, enable Pages from `/docs`, claim the .tech domain (README > Landing page);
+   fill `YOUR_GITHUB_REPO_URL` and the video box in `docs/index.html`.
+5. **User**: fill every `PLACEHOLDER` in POST_DRAFT.md, re-read it aloud in your own voice, publish.
+6. Me, after the user's recording: measure Whisper on real Hindi/Hinglish, try `medium` if needed, put
+   the numbers in README / POST_DRAFT / docs, tune the ghost voice if asked.
 
 ## Known issues
 

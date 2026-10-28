@@ -61,7 +61,10 @@ Triggers keep the index in step with the `stories` table automatically. Results 
 **BM25**, weighting title hits 3x and summary hits 2x over transcript hits.
 
 Gemma writes titles and summaries **in English** even for Hindi stories. That gives an English
-question something to match even when the transcript is in Devanagari.
+question something to match even when the transcript is in Devanagari. The people, places, eras and
+keepsakes Gemma extracts are also indexed, as a `tags` column. Without that, "What did Nani cook?"
+found nothing: the transcript said नानी and the summary said "grandmother". When the indexed columns
+change, `init_db()` drops and rebuilds the index (it only mirrors the table, so nothing is lost).
 
 ## 6. Seance: grounding as a story mechanic
 
@@ -90,14 +93,47 @@ system prompt (old-fashioned, gently dramatic, warm, never cruel). **Plain mode*
 neutral one and switches the page's wording and fonts. Follow-up questions are stored neutrally, and
 the Archivist's voice is applied only when they're presented, so plain mode stays plain.
 
-## 9. Graceful degradation
+Two persona bugs taught the most. The Seance kept saying "the speaker" because Gemma copied the
+third-person summaries it was shown, so summaries are now written to "you". And once the ghost
+mentioned its "memory banks", so the persona now forbids machine words.
+
+## 9. The candle wall and whispers
+
+A candle's brightness is `1 - days_since_visit / 30`, never below 0.12, passed to CSS as a custom
+property `--life` that scales the flame and the glow. Registering it with `@property` makes it
+animatable, so opening a story (which records the visit) lets the flame grow back smoothly.
+Whispers need no model: they are one sentence of the storyteller's own words, picked from the three
+least recently visited stories, which nudges you back toward what you've forgotten.
+
+## 10. The ghost's voice
+
+Piper (open-source neural text-to-speech) runs as a separate program and writes raw audio to its
+standard output, which is piped straight into ffmpeg: `rubberband` lowers the pitch without changing
+the speed, `lowpass` softens it, a three-tap `aecho` makes a stone room, and `chorus` adds a faint
+doubling. No temporary files (Piper couldn't write to a very long path). The WAV is cached by a hash
+of the text, so a line is only ever made once. Citation marks are removed before speaking.
+
+## 11. Things Gemma writes once: reactions and retellings
+
+The Archivist's reaction to a story and the haunted retelling share one helper: if the text is
+already stored, replay it; otherwise stream it from Gemma and store it at the end. The retelling has
+its own column, so the original transcript and summary can never be overwritten by it (a test checks).
+
+## 12. The memory book
+
+`/api/book` renders every finished story into one HTML page with the fonts embedded as base64 and
+print-friendly CSS (one story per page). It needs no server and no internet, so the saved file keeps
+working even if Ghostwriter doesn't. All text goes through `html.escape`, because transcripts and
+Gemma's output are untrusted.
+
+## 13. Graceful degradation
 
 `selfcheck.py` checks Python, SQLite FTS5, ffmpeg, Ollama, the Gemma model, Whisper weights and
 Piper. The same checks run at startup, on the command line and behind `/api/health`, and the page
 shows a banner with a plain fix for anything required that's missing ("Run: ollama pull gemma4:e4b").
 Errors from Ollama are translated into actionable messages instead of stack traces.
 
-## 10. Small choices worth knowing
+## 14. Small choices worth knowing
 
 - **Config** lives in one pydantic-settings class (`config.py`), read from `.env` with the `GW_`
   prefix. Relative paths are resolved against the project folder, not the current directory.
