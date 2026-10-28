@@ -11,10 +11,10 @@ from dataclasses import asdict
 from pathlib import Path
 
 from fastapi import FastAPI, Request, Response
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from ghostwriter import db, selfcheck, whispers
+from ghostwriter import db, export, selfcheck, whispers
 from ghostwriter.api import seance, stories, voice
 from ghostwriter.config import settings
 
@@ -60,6 +60,12 @@ def whisper() -> Response:
     """A line from an old, faded story, or 204 if the archive has nothing to whisper yet."""
     found = whispers.pick()
     return JSONResponse(found) if found else Response(status_code=204)
+
+
+@app.get("/api/book", response_class=HTMLResponse)
+def memory_book() -> str:
+    """Every finished story as one self-contained, printable page (see export.py)."""
+    return export.memory_book_html()
 
 
 @app.get("/api/settings")
