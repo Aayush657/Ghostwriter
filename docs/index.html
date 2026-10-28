@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ghostwriter: the ghost that keeps your stories</title>
+  <meta name="description" content="Tell a memory out loud. A ghost in your laptop writes it down, keeps it, and haunts you with it later. Fully offline, built on Gemma 4 and Whisper.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <style>
+    /* Everything is in this folder: fonts are bundled (SIL OFL, see fonts/), nothing loads from elsewhere. */
+    @font-face { font-family: "Caveat"; src: url("fonts/Caveat.ttf") format("truetype"); font-weight: 400 700; font-display: swap; }
+    @font-face { font-family: "IM Fell English"; src: url("fonts/IMFellEnglish-Regular.ttf") format("truetype"); font-display: swap; }
+
+    :root {
+      --bg: #0e0c10; --panel: #17141b; --line: #2a2530;
+      --text: #e9e1d4; --muted: #a39887; --ink: #efe3c8; --marigold: #f2a33a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; color: var(--text);
+      background: radial-gradient(ellipse at top, #1d1722 0%, var(--bg) 55%) fixed, var(--bg);
+      font: 17px/1.65 Georgia, "Times New Roman", serif;
+    }
+    main, footer { max-width: 900px; margin: 0 auto; padding: 0 16px; }
+    h1, h2, h3 { font-family: "IM Fell English", Georgia, serif; font-weight: normal; }
+    h2 { color: var(--marigold); font-size: 1.9rem; margin: 64px 0 8px; }
+    h3 { color: var(--ink); font-size: 1.25rem; margin: 0 0 4px; }
+    a { color: var(--marigold); }
+    .hand { font-family: "Caveat", "Segoe Print", cursive; color: var(--ink); }
+
+    /* ---------- hero ---------- */
+    .hero { text-align: center; padding: 72px 0 24px; }
+    .hero h1 { margin: 0; font-size: clamp(2.8rem, 9vw, 4.6rem); color: var(--marigold); letter-spacing: 0.02em; }
+    .hero .subtitle { margin: 0; font-family: "IM Fell English", Georgia, serif; font-style: italic; color: var(--muted); font-size: 1.25rem; }
+    .hero .pitch { max-width: 620px; margin: 28px auto; font-size: 1.15rem; }
+    .hero .whisper { font-size: 1.6rem; margin: 8px 0 0; text-shadow: 0 0 12px rgba(242, 163, 58, 0.2); }
+    .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 28px; }
+    .button {
+      display: inline-block; padding: 10px 22px; border: 1px solid var(--marigold); border-radius: 4px;
+      text-decoration: none; font-size: 1.05rem;
+    }
+    .button.primary { background: var(--marigold); color: var(--bg); }
+
+    /* ---------- three candles ---------- */
+    .candles { display: flex; justify-content: center; align-items: flex-end; gap: 36px; margin: 40px 0 0; }
+    .candle { display: flex; flex-direction: column; align-items: center; }
+    .flame {
+      width: 16px; height: 34px; border-radius: 50% 50% 45% 45% / 65% 65% 35% 35%;
+      background: radial-gradient(ellipse at 50% 78%, #fffbe8 0 12%, #ffd77d 30%, var(--marigold) 58%, rgba(230, 90, 20, 0) 76%);
+      filter: drop-shadow(0 0 12px rgba(242, 163, 58, 0.9)); transform-origin: 50% 100%;
+      animation: dance 2.4s ease-in-out infinite alternate;
+    }
+    .wax { width: 34px; border-radius: 5px 5px 2px 2px; background: linear-gradient(90deg, #cdbf9f, #f4ecd9 45%, #c4b593); }
+    .candle:nth-child(1) .wax { height: 60px; }
+    .candle:nth-child(2) .wax { height: 84px; }
+    .candle:nth-child(3) .wax { height: 48px; filter: brightness(0.6); }
+    .candle:nth-child(3) .flame { transform: scale(0.55); opacity: 0.45; }
+    @keyframes dance {
+      0% { rotate: -2deg; } 40% { rotate: 1.5deg; scale: 1 1.06; } 70% { rotate: -1deg; scale: 1 0.96; } 100% { rotate: 2deg; }
+    }
+
+    /* ---------- sections ---------- */
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 18px 20px; }
+    .card p { margin: 0; color: #d6cdbf; }
+    .quote { font-size: 1.35rem; margin: 10px 0 0; }
+
+    .todo {
+      border: 2px dashed var(--muted); border-radius: 8px; padding: 32px; text-align: center; color: var(--muted);
+      background: var(--panel);
+    }
+    .video { position: relative; aspect-ratio: 16 / 9; }
+    .video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; border-radius: 8px; }
+
+    .pipeline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; list-style: none; padding: 0; }
+    .pipeline li { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; font-size: 0.95rem; }
+    .pipeline li strong { color: var(--marigold); font-weight: normal; display: block; font-family: "IM Fell English", Georgia, serif; font-size: 1.05rem; }
+    .pipeline .arrow { background: none; border: 0; padding: 0; color: var(--muted); }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.98rem; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--muted); font-weight: normal; }
+
+    pre { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; overflow-x: auto; font-size: 0.9rem; }
+    code { font-family: Consolas, "Courier New", monospace; }
+
+    footer { margin-top: 72px; padding: 24px 16px 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.9rem; }
+
+    @media (prefers-reduced-motion: reduce) { .flame { animation: none; } }
+  </style>
+</head>
+<body>
+<main>
+
+  <section class="hero">
+    <h1>Ghostwriter</h1>
+    <p class="subtitle">The ghost that keeps your stories.</p>
+    <p class="pitch">
+      Tell it a memory out loud: your grandmother's kitchen, a strange night in the hostel, the letter
+      nobody in the family can explain. A ghost living in your laptop writes it down, keeps it, and haunts
+      you with it later.
+    </p>
+    <p class="hand whisper">&ldquo;That memory was never given to me.&rdquo;</p>
+    <div class="candles" aria-hidden="true">
+      <div class="candle"><div class="flame"></div><div class="wax"></div></div>
+      <div class="candle"><div class="flame"></div><div class="wax"></div></div>
+      <div class="candle"><div class="flame"></div><div class="wax"></div></div>
+    </div>
+    <div class="actions">
+      <a class="button primary" href="#demo">Watch the ghost work</a>
+      <!-- TODO(you): replace YOUR_GITHUB_REPO_URL with the public repository link. -->
+      <a class="button" href="YOUR_GITHUB_REPO_URL">Read the code</a>
+    </div>
+  </section>
+
+  <h2 id="demo">See it with the Wi-Fi off</h2>
+  <!-- TODO(you): replace this box with the demo video, e.g.
+       <div class="video"><iframe src="https://www.youtube-nocookie.com/embed/VIDEO_ID" title="Ghostwriter demo" allowfullscreen></iframe></div> -->
+  <div class="todo">Demo video goes here.</div>
+
+  <h2>What the ghost does</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>It listens</h3>
+      <p>Record in the browser or drop in a voice note. Whisper writes down every word, in Hindi, in English, or in the mix most of us actually speak.</p>
+    </div>
+    <div class="card">
+      <h3>It remembers</h3>
+      <p>Gemma 4 gives each story a title and a short summary, and notes who was there, where and when, and the objects, recipes and sayings worth keeping.</p>
+    </div>
+    <div class="card">
+      <h3>It notices what you left out</h3>
+      <p>After every story the ghost raises its unfinished business. Answer out loud, and your answer is kept beside the story it completes.</p>
+      <p class="hand quote">&ldquo;You never told me where the brass pot went...&rdquo;</p>
+    </div>
+    <div class="card">
+      <h3>It holds a s&eacute;ance</h3>
+      <p>Ask the archive anything. The ghost answers only from what you told it, cites the story it drew on, and admits what it was never told rather than make something up.</p>
+    </div>
+    <div class="card">
+      <h3>It lights a candle for each memory</h3>
+      <p>Your stories stand as candles on a wall strung with marigolds. The ones you haven't visited in a while burn low. Open one, and it flares back to life.</p>
+    </div>
+    <div class="card">
+      <h3>It speaks, and it retells</h3>
+      <p>The Archivist can read its answers aloud in a low, echoing voice, and retell any memory as a campfire bhoot-kahani: always labelled as a retelling, never replacing what you said.</p>
+    </div>
+  </div>
+
+  <h2>Nothing leaves the laptop</h2>
+  <div class="grid">
+    <div class="card"><h3>Your voice stays home</h3><p>Recordings, transcripts and stories live in one folder on your disk. There is no cloud, no account and no analytics.</p></div>
+    <div class="card"><h3>The lights can go out</h3><p>Every model runs locally, so it works with the internet switched off. The page doesn't even load fonts from the web.</p></div>
+    <div class="card"><h3>No bill, no expiry</h3><p>No API keys and no subscription. Export the whole archive as one file that any browser can open, years from now.</p></div>
+    <div class="card"><h3>Swap the brains</h3><p>Model names are one line in a settings file. Use a smaller Gemma on an older laptop, or a larger Whisper for better Hindi.</p></div>
+  </div>
+
+  <h2>How it works</h2>
+  <ol class="pipeline" aria-label="Pipeline">
+    <li><strong>Your voice</strong>browser recording</li>
+    <li class="arrow" aria-hidden="true">&rarr;</li>
+    <li><strong>ffmpeg</strong>16 kHz audio</li>
+    <li class="arrow" aria-hidden="true">&rarr;</li>
+    <li><strong>Whisper</strong>transcript</li>
+    <li class="arrow" aria-hidden="true">&rarr;</li>
+    <li><strong>Gemma 4</strong>validated JSON</li>
+    <li class="arrow" aria-hidden="true">&rarr;</li>
+    <li><strong>SQLite FTS5</strong>searchable archive</li>
+    <li class="arrow" aria-hidden="true">&rarr;</li>
+    <li><strong>S&eacute;ance</strong>grounded answers</li>
+    <li class="arrow" aria-hidden="true">&rarr;</li>
+    <li><strong>Piper</strong>the ghost's voice</li>
+  </ol>
+  <p>
+    Gemma runs through Ollama and streams its words to the page as they are written, so the answer
+    appears like ink from an invisible hand. Search is SQLite's built-in full-text index, which finds
+    Hindi and English alike. When nothing in your stories matches a question, Gemma isn't asked at all.
+  </p>
+
+  <h2>Real numbers, ordinary laptop</h2>
+  <p>Measured on an Intel i7-13620H with 16 GB of RAM and no graphics card doing the work:</p>
+  <table>
+    <tr><th>Writing down a recording (Whisper small)</th><td>about 35 seconds per minute of audio</td></tr>
+    <tr><th>Understanding a story (Gemma 4 e4b)</th><td>about 30 seconds</td></tr>
+    <tr><th>Gemma's writing speed</th><td>11 to 14 tokens (pieces of words) a second</td></tr>
+    <tr><th>A s&eacute;ance answer</th><td>first words in 7 to 19 seconds</td></tr>
+    <tr><th>The ghost's voice</th><td>11 seconds of speech made in 1.2 seconds</td></tr>
+  </table>
+
+  <h2>Built on open work</h2>
+  <table>
+    <tr><th>Gemma 4 (e4b)</th><td>Google DeepMind, Apache 2.0</td></tr>
+    <tr><th>Whisper, via faster-whisper</th><td>OpenAI and SYSTRAN, MIT</td></tr>
+    <tr><th>Ollama</th><td>MIT</td></tr>
+    <tr><th>Piper text-to-speech</th><td>Rhasspy, MIT (with espeak-ng, GPL-3.0)</td></tr>
+    <tr><th>Voice: northern_english_male</th><td>Piper voices, trained on OpenSLR 83, CC BY-SA 4.0</td></tr>
+    <tr><th>SQLite, FastAPI, ffmpeg</th><td>public domain, MIT, GPL-3.0 (build used)</td></tr>
+    <tr><th>Caveat and IM Fell English fonts</th><td>SIL Open Font License 1.1</td></tr>
+  </table>
+
+  <h2>Run it yourself</h2>
+  <p>Windows, Python 3.11, ffmpeg and Ollama. The full steps are in the README.</p>
+  <pre><code>ollama pull gemma4:e4b
+powershell -ExecutionPolicy Bypass -File scripts\setup.ps1
+powershell -ExecutionPolicy Bypass -File scripts\demo.ps1</code></pre>
+  <!-- TODO(you): replace YOUR_GITHUB_REPO_URL with the public repository link. -->
+  <p><a href="YOUR_GITHUB_REPO_URL">The code, the README and the credits are on GitHub.</a></p>
+
+</main>
+<footer>
+  Ghostwriter was built for the DEV Hacktoberfest Open-Source AI Challenge, Week 4: &ldquo;Ghost in the Machine&rdquo;.
+  MIT licensed. Built with AI assistance.
+</footer>
+</body>
+</html>

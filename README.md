@@ -61,6 +61,25 @@ your network can't reach it.
   recommendations from ollama.com and logs a warning if it can't. That's Ollama's own behaviour, not
   Ghostwriter's, and it has no effect on Ghostwriter with the network off.
 
+## Export
+
+"Open the memory book" on the candle wall (or `/api/book`) gives every finished story as one
+self-contained HTML page: fonts embedded, nothing fetched from anywhere. Print it, save it as a PDF,
+or keep the file; it opens in any browser without Ghostwriter. Recordings stay in `data\audio\`.
+
+## Landing page (.tech)
+
+`docs/` is a small static site (no build step, fonts bundled) for the project's .tech domain.
+
+1. In `docs/index.html`, replace `YOUR_GITHUB_REPO_URL` (twice) and the demo-video box (`TODO(you)`).
+2. Push the repo to GitHub, then **Settings > Pages > Deploy from a branch > `main` / `/docs`**.
+3. Claim the free .tech domain at hacktoberfest.com/my/promos (free for the first year; it renews at a
+   cost, so check the auto-renew setting).
+4. In **Settings > Pages > Custom domain**, enter the domain (GitHub adds `docs/CNAME`). At the
+   domain's DNS, point `www` (CNAME) to `<your-username>.github.io` and the bare domain (A records) to
+   GitHub Pages' addresses `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`.
+   Then tick **Enforce HTTPS**.
+
 ## Where your data lives
 
 Everything stays in this project folder on your disk:
