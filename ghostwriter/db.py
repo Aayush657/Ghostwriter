@@ -14,7 +14,7 @@ from typing import Any
 from ghostwriter.config import settings
 from ghostwriter.models import StoryAnalysis
 
-SCHEMA = """
+TABLES = """
 CREATE TABLE IF NOT EXISTS stories (
     id                  INTEGER PRIMARY KEY,
     created_at          TEXT NOT NULL DEFAULT (datetime('now')),
@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS stories (
     title               TEXT,
     summary             TEXT,
     mood                TEXT,
+    tags                TEXT,   -- people, places, eras, keepsakes as one searchable line
     reaction            TEXT,   -- the Archivist's first words about the story
     is_sample           INTEGER NOT NULL DEFAULT 0  -- 1 for the fictional demo stories
 );
@@ -47,33 +48,36 @@ CREATE TABLE IF NOT EXISTS questions (
     story_id INTEGER NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
     text     TEXT NOT NULL
 );
-
--- Full-text index over the stories table. 'trigram' matches substrings in any script,
--- so Hindi (Devanagari) and English both work, and "haunt" also finds "haunted".
-CREATE VIRTUAL TABLE IF NOT EXISTS stories_fts USING fts5(
-    title, summary, transcript,
-    content='stories', content_rowid='id', tokenize='trigram'
-);
-
--- Triggers keep the index in step with the table.
-CREATE TRIGGER IF NOT EXISTS stories_fts_insert AFTER INSERT ON stories BEGIN
-    INSERT INTO stories_fts(rowid, title, summary, transcript)
-    VALUES (new.id, new.title, new.summary, new.transcript);
-END;
-CREATE TRIGGER IF NOT EXISTS stories_fts_delete AFTER DELETE ON stories BEGIN
-    INSERT INTO stories_fts(stories_fts, rowid, title, summary, transcript)
-    VALUES ('delete', old.id, old.title, old.summary, old.transcript);
-END;
-CREATE TRIGGER IF NOT EXISTS stories_fts_update AFTER UPDATE OF title, summary, transcript ON stories BEGIN
-    INSERT INTO stories_fts(stories_fts, rowid, title, summary, transcript)
-    VALUES ('delete', old.id, old.title, old.summary, old.transcript);
-    INSERT INTO stories_fts(rowid, title, summary, transcript)
-    VALUES (new.id, new.title, new.summary, new.transcript);
-END;
 """
 
+# Full-text index over the stories table. 'trigram' matches substrings in any script,
+# so Hindi (Devanagari) and English both work, and "haunt" also finds "haunted".
+# Tags make names searchable in Latin script even when the transcript is in Devanagari.
+# Triggers keep the index in step with the table.
+SEARCH_INDEX = """
+CREATE VIRTUAL TABLE IF NOT EXISTS stories_fts USING fts5(
+    title, summary, tags, transcript,
+    content='stories', content_rowid='id', tokenize='trigram'
+);
+CREATE TRIGGER IF NOT EXISTS stories_fts_insert AFTER INSERT ON stories BEGIN
+    INSERT INTO stories_fts(rowid, title, summary, tags, transcript)
+    VALUES (new.id, new.title, new.summary, new.tags, new.transcript);
+END;
+CREATE TRIGGER IF NOT EXISTS stories_fts_delete AFTER DELETE ON stories BEGIN
+    INSERT INTO stories_fts(stories_fts, rowid, title, summary, tags, transcript)
+    VALUES ('delete', old.id, old.title, old.summary, old.tags, old.transcript);
+END;
+CREATE TRIGGER IF NOT EXISTS stories_fts_update AFTER UPDATE OF title, summary, tags, transcript ON stories BEGIN
+    INSERT INTO stories_fts(stories_fts, rowid, title, summary, tags, transcript)
+    VALUES ('delete', old.id, old.title, old.summary, old.tags, old.transcript);
+    INSERT INTO stories_fts(rowid, title, summary, tags, transcript)
+    VALUES (new.id, new.title, new.summary, new.tags, new.transcript);
+END;
+"""
+SEARCH_COLUMNS = ["title", "summary", "tags", "transcript"]
+
 # Columns added after a database may already exist. init_db() adds any that are missing.
-ADDED_COLUMNS = {"reaction": "TEXT", "is_sample": "INTEGER NOT NULL DEFAULT 0"}
+ADDED_COLUMNS = {"reaction": "TEXT", "is_sample": "INTEGER NOT NULL DEFAULT 0", "tags": "TEXT"}
 
 # Columns update_story() may touch. Column names can't be SQL parameters, so we whitelist them.
 UPDATABLE = {"status", "error", "audio_original", "audio_wav", "duration_s", "language",
@@ -102,11 +106,32 @@ def init_db() -> None:
     (settings.data_dir / "audio").mkdir(parents=True, exist_ok=True)
     with connect() as con:
         con.execute("PRAGMA journal_mode = WAL")  # readers don't block the background writer
-        con.executescript(SCHEMA)
+        con.executescript(TABLES)
         existing = {row["name"] for row in con.execute("PRAGMA table_info(stories)")}
         for name, sql_type in ADDED_COLUMNS.items():
             if name not in existing:
                 con.execute(f"ALTER TABLE stories ADD COLUMN {name} {sql_type}")
+        _upgrade_search_index(con)
+
+
+def _upgrade_search_index(con: sqlite3.Connection) -> None:
+    """Create the search index, or rebuild it if an older version has different columns.
+
+    The index only mirrors the stories table, so dropping and rebuilding it loses nothing.
+    """
+    indexed = [row["name"] for row in con.execute("PRAGMA table_info(stories_fts)")]
+    if indexed == SEARCH_COLUMNS:
+        return
+    if indexed:
+        con.execute("DROP TABLE stories_fts")
+        for trigger in ("insert", "delete", "update"):
+            con.execute(f"DROP TRIGGER IF EXISTS stories_fts_{trigger}")
+    # Stories saved before tags existed get them from the entities table.
+    con.execute("""UPDATE stories SET tags =
+                       (SELECT group_concat(value, ' · ') FROM entities WHERE story_id = stories.id)
+                   WHERE tags IS NULL""")
+    con.executescript(SEARCH_INDEX)
+    con.execute("INSERT INTO stories_fts(stories_fts) VALUES ('rebuild')")
 
 
 def create_story(answers_question_id: int | None = None, is_sample: bool = False) -> int:
@@ -132,10 +157,12 @@ def delete_story(story_id: int) -> None:
 
 def save_analysis(story_id: int, analysis: StoryAnalysis) -> None:
     """Store Gemma's findings and mark the story ready, all in one transaction."""
+    tags = " · ".join(v.strip() for field in ENTITY_KINDS for v in getattr(analysis, field) if v.strip())
     with connect() as con:
         con.execute(
-            "UPDATE stories SET title = ?, summary = ?, mood = ?, status = 'ready', error = NULL WHERE id = ?",
-            (analysis.title, analysis.summary, analysis.mood, story_id),
+            "UPDATE stories SET title = ?, summary = ?, mood = ?, tags = ?, status = 'ready', error = NULL "
+            "WHERE id = ?",
+            (analysis.title, analysis.summary, analysis.mood, tags, story_id),
         )
         con.execute("DELETE FROM entities WHERE story_id = ?", (story_id,))
         con.execute("DELETE FROM questions WHERE story_id = ?", (story_id,))

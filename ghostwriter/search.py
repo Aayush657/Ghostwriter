@@ -34,7 +34,7 @@ def keywords(question: str) -> list[str]:
 
 
 def find_stories(question: str, limit: int = 3) -> list[dict]:
-    """The best-matching finished stories. Title hits count most, then summary, then transcript."""
+    """The best-matching finished stories. Title and tag hits count most, then summary, then transcript."""
     words = keywords(question)
     if not words:
         return []
@@ -44,7 +44,7 @@ def find_stories(question: str, limit: int = 3) -> list[dict]:
             """SELECT s.id, s.title, s.summary, s.transcript
                FROM stories_fts JOIN stories s ON s.id = stories_fts.rowid
                WHERE stories_fts MATCH ? AND s.status = 'ready'
-               ORDER BY bm25(stories_fts, 3.0, 2.0, 1.0)
+               ORDER BY bm25(stories_fts, 3.0, 2.0, 3.0, 1.0)  -- title, summary, tags, transcript
                LIMIT ?""",
             (match, limit),
         )]

@@ -40,7 +40,14 @@ your network can't reach it.
 
 ## Offline proof
 
-<!-- TODO Stage 6 -->
+<!-- TODO Stage 6: Wi-Fi-off demo clip + self-check output -->
+- Ghostwriter itself makes no requests outside `127.0.0.1`: no CDNs (fonts, JS and CSS are bundled),
+  no analytics, no external APIs.
+- Run `.venv\Scripts\python.exe -m ghostwriter.selfcheck --ping` with Wi-Fi off to see every local
+  service answer.
+- Honest note: the **Ollama** server program, when it is online, tries to fetch model
+  recommendations from ollama.com and logs a warning if it can't. That's Ollama's own behaviour, not
+  Ghostwriter's, and it has no effect on Ghostwriter with the network off.
 
 ## Where your data lives
 
