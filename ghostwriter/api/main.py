@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 from dataclasses import asdict
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 
 from ghostwriter import db, selfcheck
@@ -34,6 +34,15 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Ghostwriter", lifespan=lifespan)
 app.include_router(stories.router)
+
+
+@app.middleware("http")
+async def always_fresh_ui(request: Request, call_next):
+    """Make browsers re-check UI files every time, so an updated page never shows stale code."""
+    response = await call_next(request)
+    if not request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
 
 
 @app.get("/api/health")

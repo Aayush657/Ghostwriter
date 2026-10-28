@@ -12,12 +12,18 @@ const STATUS_TEXT = {
 };
 
 // Build DOM nodes. Text always goes in via textContent, so stories can never inject HTML.
+// Empty children (null, false, "") are skipped, which keeps `condition && el(...)` readable.
+const present = (children) => children.filter((c) => c !== null && c !== undefined && c !== false && c !== "");
+
 function el(tag, props = {}, ...children) {
   const node = document.createElement(tag);
   Object.assign(node, props);
-  node.append(...children.filter((c) => c !== null && c !== undefined && c !== false));
+  node.append(...present(children));
   return node;
 }
+
+// SQLite stores UTC ("2026-10-28 10:47:38"); show it in the viewer's own time zone.
+const localTime = (utc) => new Date(utc.replace(" ", "T") + "Z").toLocaleString();
 
 async function api(path, options) {
   const res = await fetch(path, options);
@@ -43,7 +49,7 @@ async function loadStories() {
   const stories = await api("/api/stories");
   $("#story-list").replaceChildren(...stories.map((s) => el("li", {},
     el("a", { href: `#/story/${s.id}`, textContent: storyLabel(s) }),
-    el("div", { className: "meta", textContent: [s.created_at, s.mood, s.language].filter(Boolean).join(" · ") }),
+    el("div", { className: "meta", textContent: [localTime(s.created_at), s.mood, s.language].filter(Boolean).join(" · ") }),
   )));
   return stories;
 }
@@ -58,7 +64,7 @@ async function showStory(id) {
   const page = $("#story");
   const e = s.entities || {};
   page.hidden = false;
-  page.replaceChildren(
+  page.replaceChildren(...present([
     el("h2", { textContent: storyLabel(s) }),
     s.status === "failed" && el("p", { className: "error", textContent: s.error }),
     s.status === "failed" && el("button", { textContent: "Try again", onclick: () => retry(s.id) }),
@@ -77,7 +83,7 @@ async function showStory(id) {
       el("summary", { textContent: `Transcript (${s.language || "?"})` }),
       el("p", { className: "transcript", textContent: s.transcript }),
     ),
-  );
+  ]));
   return s;
 }
 

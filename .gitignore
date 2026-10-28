@@ -6,6 +6,7 @@ __pycache__/
 
 # Local settings
 .env
+.claude/
 
 # Private user data: recordings, database, exports. Never commit.
 data/
