@@ -29,7 +29,8 @@ CREATE TABLE IF NOT EXISTS stories (
     transcript          TEXT,
     title               TEXT,
     summary             TEXT,
-    mood                TEXT
+    mood                TEXT,
+    reaction            TEXT    -- the Archivist's first words about the story
 );
 
 CREATE TABLE IF NOT EXISTS entities (
@@ -70,9 +71,12 @@ CREATE TRIGGER IF NOT EXISTS stories_fts_update AFTER UPDATE OF title, summary, 
 END;
 """
 
+# Columns added after a database may already exist. init_db() adds any that are missing.
+ADDED_COLUMNS = {"reaction": "TEXT"}
+
 # Columns update_story() may touch. Column names can't be SQL parameters, so we whitelist them.
 UPDATABLE = {"status", "error", "audio_original", "audio_wav", "duration_s", "language",
-             "transcript", "last_visited_at"}
+             "transcript", "last_visited_at", "reaction"}
 
 ENTITY_KINDS = {"people": "person", "places": "place", "eras": "era", "keepsakes": "keepsake"}
 
@@ -98,6 +102,10 @@ def init_db() -> None:
     with connect() as con:
         con.execute("PRAGMA journal_mode = WAL")  # readers don't block the background writer
         con.executescript(SCHEMA)
+        existing = {row["name"] for row in con.execute("PRAGMA table_info(stories)")}
+        for name, sql_type in ADDED_COLUMNS.items():
+            if name not in existing:
+                con.execute(f"ALTER TABLE stories ADD COLUMN {name} {sql_type}")
 
 
 def create_story(answers_question_id: int | None = None) -> int:

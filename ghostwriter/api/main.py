@@ -14,7 +14,8 @@ from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 
 from ghostwriter import db, selfcheck
-from ghostwriter.api import stories
+from ghostwriter.api import seance, stories
+from ghostwriter.config import settings
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
@@ -34,6 +35,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Ghostwriter", lifespan=lifespan)
 app.include_router(stories.router)
+app.include_router(seance.router)
 
 
 @app.middleware("http")
@@ -49,6 +51,12 @@ async def always_fresh_ui(request: Request, call_next):
 def health() -> list[dict]:
     """Which local services are available right now. The UI shows this."""
     return [asdict(check) for check in selfcheck.run_checks()]
+
+
+@app.get("/api/settings")
+def ui_settings() -> dict:
+    """The defaults the page starts with (the visitor can still flip plain mode)."""
+    return {"plain_mode_default": settings.plain_mode_default, "tts_enabled": settings.tts_enabled}
 
 
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")

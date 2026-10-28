@@ -53,4 +53,5 @@ def _run(story_id: int) -> None:
         story = db.get_story(story_id)
 
     db.update_story(story_id, status="thinking", error=None)
-    db.save_analysis(story_id, llm.analyse_story(story["transcript"]))
+    answering = story["answers"]["text"] if story.get("answers") else None
+    db.save_analysis(story_id, llm.analyse_story(story["transcript"], answering))

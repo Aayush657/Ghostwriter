@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 
-from ghostwriter import db, pipeline
+from ghostwriter import db, llm, pipeline, prompts
+from ghostwriter.api.sse import sse, stream
 from ghostwriter.audio import ALLOWED_EXTENSIONS
 from ghostwriter.config import settings
+from ghostwriter.llm import LLMError
 
 router = APIRouter(prefix="/api/stories", tags=["stories"])
 
@@ -83,6 +86,32 @@ def retry_story(story_id: int, background: BackgroundTasks) -> dict:
     db.update_story(story_id, status="queued", error=None)
     background.add_task(pipeline.process_story, story_id)
     return {"id": story_id}
+
+
+@router.post("/{story_id}/reaction")
+def story_reaction(story_id: int) -> StreamingResponse:
+    """The Archivist's first words about a story: written live by Gemma once, then remembered."""
+    story = _story_or_404(story_id)
+    if story["status"] != "ready":
+        raise HTTPException(409, "The ghost hasn't finished reading this one yet.")
+    return stream(_reaction_events(story))
+
+
+def _reaction_events(story: dict) -> Iterator[str]:
+    if story["reaction"]:
+        yield sse("token", {"text": story["reaction"]})
+        yield sse("done", {})
+        return
+    pieces = []
+    try:
+        for piece in llm.stream_chat(prompts.reaction_messages(story), temperature=0.8):
+            pieces.append(piece)
+            yield sse("token", {"text": piece})
+    except LLMError as exc:
+        yield sse("error", {"message": str(exc)})
+        return
+    db.update_story(story["id"], reaction="".join(pieces).strip())
+    yield sse("done", {})
 
 
 def _story_or_404(story_id: int) -> dict:
