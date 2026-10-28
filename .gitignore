@@ -1,0 +1,25 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Local settings
+.env
+
+# Private user data: recordings, database, exports. Never commit.
+data/
+
+# Downloaded model weights
+models/
+*.onnx
+*.bin
+*.gguf
+
+# Audio files (the only exception is the fictional sample stories)
+*.wav
+*.mp3
+*.m4a
+*.webm
+*.ogg
+!samples/audio/*
