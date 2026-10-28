@@ -1,6 +1,6 @@
 # PROGRESS
 
-_Last updated: Wed Oct 28, 2026, 17:15 IST_
+_Last updated: Wed Oct 28, 2026, 17:25 IST_
 
 ## Current stage
 
@@ -11,7 +11,9 @@ _Last updated: Wed Oct 28, 2026, 17:15 IST_
 - **Stage 3 (candle wall, whispers, browser recording, polish): MOSTLY DONE.** Candle wall, whispers,
   recording UI built and checked in the browser pane. Recording itself is unverified (the pane blocks the
   mic). Polish pass still to do.
-- **Stage 4 (ghost voice): NOT STARTED.** Needs permission to download Piper (see next action).
+- **Stage 4 (ghost voice): DONE.** Piper + ffmpeg effects, cached, optional; "Let the Archivist speak"
+  buttons on Seance answers and reactions. `/api/speak` returns 200 in the browser pane; **how it sounds
+  is not verified** (no audio here) -> user to listen and judge.
 
 ## What works (verified for real)
 
@@ -37,9 +39,8 @@ _Last updated: Wed Oct 28, 2026, 17:15 IST_
    http://127.0.0.1:8000, "Speak, and the ghost will listen"). Then check `data\` result together,
    measure Whisper on real Hindi/mixed speech, and consider `medium` if accuracy is poor.
 2. **User**: choose the name (Ghostwick / Inkwraith / keep Ghostwriter).
-3. **User**: OK to download Piper (portable, MIT) + one voice into `C:\Users\aayus\Tools\piper`.
-   Then Stage 4: `tts.py` (Piper subprocess -> ffmpeg `rubberband` pitch-down + `aecho` + `chorus`),
-   `/api/tts` endpoint, "hear the Archivist" button, graceful fallback.
+3. **User**: listen to the ghost voice and say if the effect is too strong or too weak
+   (knob: `GHOST_EFFECTS` in `ghostwriter/tts.py`).
 4. Stage 3 polish pass (layout on narrow screens, empty states, loading states).
 5. Stage 5: haunted retelling, export, .tech landing page.
 
@@ -76,7 +77,14 @@ _Last updated: Wed Oct 28, 2026, 17:15 IST_
 - **Samples are text-only and live in `demo-data\`**; the seeder refuses to touch `data\`.
 - **Whispers use the storyteller's own words** (no LLM), from the 3 most faded stories.
 - **Fonts bundled locally** (Caveat, IM Fell English, both SIL OFL 1.1, licence files beside them).
-- **Dev testing uses a separate data folder** (scratchpad `dev.env`), never `data\`.
+- **Dev testing uses a separate data folder** (scratchpad `dev.env`), never `data\`. My preview
+  servers use ports 8001/8002 so they never clash with the user's `run.ps1` on 8000.
+- **Piper voice `en_GB-northern_english_male-medium`**: chosen for its clear CC BY-SA 4.0 licence
+  (ryan and semaine are non-commercial; alan's licence is unclear). Piper 2023.11.14-2 (MIT, archived
+  repo) runs as a separate program; espeak-ng inside it is GPL-3.0, credited.
+- **Piper's raw audio is piped straight into ffmpeg** (no temp files: Piper failed to write to a
+  ~250-character path). Results cached in `data\tts\` by text hash; citation marks are stripped.
+- **The Archivist must never sound like a machine** (Gemma once said "memory banks").
 
 ## Environment
 
@@ -89,6 +97,8 @@ _Last updated: Wed Oct 28, 2026, 17:15 IST_
 | Ollama | 0.40.12, `C:\Users\aayus\Tools\Ollama`, models in `C:\Users\aayus\Tools\ollama-models` |
 | LLM | `gemma4:e4b` (6.6 GB on disk, Apache 2.0) |
 | Whisper | faster-whisper 1.2.1, `small`, int8, `models/whisper/small` |
+| Piper | 2023.11.14-2, `C:\Users\aayus\Tools\piper\piper.exe` (zip SHA256 F3C58906...EFCEA) |
+| Voice | `models/piper/en_GB-northern_english_male-medium.onnx` (CC BY-SA 4.0) |
 
 ## Commands
 
@@ -114,3 +124,5 @@ powershell -ExecutionPolicy Bypass -File scripts\demo.ps1           # demo archi
 | Seance | first word 7-19 s, full answer 11-26 s | up to 3 stories as context |
 | Seance, same stories again | first word 0.7 s | Ollama prompt cache |
 | Downloads | Gemma 6.6 GB took ~35 min at ~3.9 MB/s | setup cost, once |
+| Piper synthesis | real-time factor 0.066 (9.6 s of speech in 0.63 s) | plain voice |
+| Ghost voice end to end | 11.2 s of speech in 1.22 s (Piper + ffmpeg effects); cached repeat 0.00 s | |
