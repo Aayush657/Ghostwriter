@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     whisper_compute_type: str = "int8"
 
     tts_enabled: bool = True
+    piper_bin: str = "piper"  # or the full path to piper.exe
+    piper_voice: str = "en_GB-northern_english_male-medium"  # file name in models/piper/
+
     plain_mode_default: bool = False
 
     @field_validator("data_dir", "models_dir")
@@ -44,6 +47,11 @@ class Settings(BaseSettings):
     def whisper_path(self) -> Path:
         """Plain folder holding the faster-whisper weights, e.g. models/whisper/small/model.bin."""
         return self.models_dir / "whisper" / self.whisper_model
+
+    @property
+    def piper_voice_path(self) -> Path:
+        """The Piper voice model, e.g. models/piper/en_GB-northern_english_male-medium.onnx (+ .onnx.json)."""
+        return self.models_dir / "piper" / f"{self.piper_voice}.onnx"
 
 
 settings = Settings()

@@ -25,4 +25,15 @@ print('Whisper weights:', p)
 "@
 if ($LASTEXITCODE) { Write-Error "Whisper download failed"; exit 1 }
 
+# The ghost voice model for Piper (optional feature; the app works without it). CC BY-SA 4.0.
+$voiceDir = "models\piper"
+$voice = "en_GB-northern_english_male-medium"
+$voiceUrl = "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_GB/northern_english_male/medium"
+New-Item -ItemType Directory -Force $voiceDir | Out-Null
+foreach ($file in "$voice.onnx", "$voice.onnx.json", "MODEL_CARD") {
+    if (-not (Test-Path "$voiceDir\$file")) {
+        curl.exe -sSfL --retry 8 --retry-all-errors -o "$voiceDir\$file" "$voiceUrl/$file"
+    }
+}
+
 & $py -m ghostwriter.selfcheck

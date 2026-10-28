@@ -28,6 +28,18 @@ _[Screenshot placeholder]_
    (creates `.venv`, installs pinned packages, downloads the Whisper weights, runs the self-check)
 4. Check everything: `.venv\Scripts\python.exe -m ghostwriter.selfcheck --ping`
 
+### Ghost voice (optional)
+
+The Archivist can speak its answers with [Piper](https://github.com/rhasspy/piper), an offline
+neural text-to-speech program, followed by ffmpeg effects (lower pitch, an echoing room, a faint
+chorus). Without it, everything else works and the "speak" buttons simply don't appear.
+
+1. Download `piper_windows_amd64.zip` from the
+   [Piper 2023.11.14-2 release](https://github.com/rhasspy/piper/releases/tag/2023.11.14-2) and unzip
+   it, e.g. to `C:\Users\<you>\Tools\piper`.
+2. Put `GW_PIPER_BIN=C:\Users\<you>\Tools\piper\piper.exe` in `.env` (or add that folder to PATH).
+3. `scripts\setup.ps1` downloads the voice (`en_GB-northern_english_male-medium`) into `models\piper\`.
+
 ## Run
 
 ```powershell
@@ -81,8 +93,14 @@ Copy `.env.example` to `.env`. Model names, paths and feature flags are document
 <!-- Keep this complete: every model, library, font, sound and asset. -->
 | Piece | By | Licence |
 |---|---|---|
-| Gemma 4 | Google DeepMind | TODO: verify from `ollama show gemma4:e4b --license` |
+| Gemma 4 (`gemma4:e4b`) | Google DeepMind | Apache 2.0 (checked with `ollama show gemma4:e4b --license`) |
 | Ollama | Ollama | MIT |
+| Piper text-to-speech (release 2023.11.14-2, run as a separate program) | Michael Hansen / Rhasspy | MIT |
+| espeak-ng (bundled inside Piper, used for phonemes) | espeak-ng contributors | GPL-3.0 |
+| ONNX Runtime (bundled inside Piper) | Microsoft | MIT |
+| Voice `en_GB-northern_english_male-medium` | Piper voices (rhasspy/piper-voices), trained on [OpenSLR 83](http://www.openslr.org/83/) | CC BY-SA 4.0 |
+| Caveat font | The Caveat Project Authors | SIL Open Font License 1.1 |
+| IM Fell English font | Igino Marini | SIL Open Font License 1.1 |
 | Whisper model weights | OpenAI (CTranslate2 conversion by Systran) | MIT |
 | faster-whisper | SYSTRAN | MIT |
 | CTranslate2 | OpenNMT | MIT |

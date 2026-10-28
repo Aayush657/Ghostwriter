@@ -98,11 +98,14 @@ def check_tts() -> Check:
     """The ghost voice is optional: the app works without it."""
     if not settings.tts_enabled:
         return Check("Piper TTS", False, "turned off (GW_TTS_ENABLED=false)", required=False)
-    path = shutil.which("piper")
+    path = shutil.which(settings.piper_bin)
     if not path:
-        return Check("Piper TTS", False, "not installed", "Optional. See README > Ghost voice.",
-                     required=False)
-    return Check("Piper TTS", True, path, required=False)
+        return Check("Piper TTS", False, f"'{settings.piper_bin}' not found",
+                     "Optional. See README > Ghost voice.", required=False)
+    if not settings.piper_voice_path.exists():
+        return Check("Piper TTS", False, f"voice missing: {settings.piper_voice_path}",
+                     "Run scripts\\setup.ps1 once while online.", required=False)
+    return Check("Piper TTS", True, f"{path} with voice {settings.piper_voice}", required=False)
 
 
 def ping_gemma() -> Check:

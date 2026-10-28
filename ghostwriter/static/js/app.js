@@ -20,6 +20,7 @@ const VOICE = {
     consulting: "The candles lean. The Archivist is searching the shelves...",
     sources: "Consulted:",
     trouble: "The candle gutters. ",
+    speak: "Let the Archivist speak",
     unwell: "Something in the walls is not well. The archive may only half wake:",
     give: "Give the ghost a story",
     record: "Speak, and the ghost will listen",
@@ -53,6 +54,7 @@ const VOICE = {
     consulting: "Searching your stories...",
     sources: "Sources:",
     trouble: "Error: ",
+    speak: "Read aloud",
     unwell: "Some local services are not available:",
     give: "Add a story",
     record: "Record",
@@ -114,6 +116,7 @@ async function loadHealth() {
     title: c.ok ? c.detail : `${c.detail}. ${c.fix}`,
     textContent: c.name,
   })));
+  voiceReady = checks.some((c) => c.name === "Piper TTS" && c.ok);
   const broken = checks.filter((c) => c.required && !c.ok);
   const banner = $("#health-banner");
   banner.hidden = broken.length === 0;
@@ -124,6 +127,36 @@ async function loadHealth() {
       c.fix && el("span", { className: "fix", textContent: `Fix: ${c.fix}` }),
     ))),
   );
+}
+
+// --------------------------------------------------------------------------- the Archivist's voice
+
+let voiceReady = true; // corrected by the health check; if wrong, the click explains the fix
+let playing = null;    // only one voice at a time
+
+function speakButton(text) {
+  if (!voiceReady) return null;
+  const button = el("button", { className: "quiet speak", textContent: voice().speak });
+  button.onclick = async () => {
+    playing?.pause();
+    button.parentElement.querySelector(".voice-error")?.remove();
+    button.disabled = true;
+    try {
+      const res = await fetch("/api/speak", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, plain }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || res.statusText);
+      playing = new Audio(URL.createObjectURL(await res.blob()));
+      await playing.play();
+    } catch (err) {
+      button.after(el("p", { className: "error voice-error", textContent: voice().trouble + err.message }));
+    } finally {
+      button.disabled = false;
+    }
+  };
+  return button;
 }
 
 // --------------------------------------------------------------------------- Seance
@@ -148,12 +181,15 @@ async function askSeance(question) {
       done: (data) => {
         const titles = new Map(sources.map((s) => [s.id, s.title]));
         const cited = new Set(data.cited);
-        pen?.finish((id) => (cited.has(id) ? { href: `#/story/${id}`, label: titles.get(id) } : null));
-        if (cited.size > 0) {
-          sourcesLine.replaceChildren(`${voice().sources} `, ...[...cited].flatMap((id, i) => [
+        const text = pen?.finish((id) => (cited.has(id) ? { href: `#/story/${id}`, label: titles.get(id) } : null));
+        sourcesLine.replaceChildren(...present([
+          cited.size > 0 && `${voice().sources} `,
+          ...[...cited].flatMap((id, i) => [
             i > 0 ? ", " : "", el("a", { href: `#/story/${id}`, textContent: titles.get(id) }),
-          ]));
-        }
+          ]),
+          text && " ",
+          text && speakButton(text),
+        ]));
       },
     });
   } catch (err) {
@@ -248,20 +284,27 @@ const reactions = new Map(); // story id -> finished reaction text, so re-render
 function reactionBlock(story) {
   if (plain || story.status !== "ready") return null;
   const box = el("div", { className: "reaction" });
+  const wrap = el("section", { className: "reaction-wrap" }, el("h3", { textContent: voice().reaction }), box);
+  const addVoice = (text) => { const b = speakButton(text); if (b) wrap.append(b); };
   const known = reactions.get(story.id) ?? story.reaction;
   if (known) {
     box.append(el("p", { className: "handwriting", textContent: known }));
+    addVoice(known);
   } else {
     const pen = quill(box);
     const showError = (message) => box.replaceChildren(
       el("p", { className: "error", textContent: voice().trouble + message }));
     streamEvents(`/api/stories/${story.id}/reaction`, null, {
       token: (data) => pen.write(data.text),
-      done: () => reactions.set(story.id, pen.finish()),
+      done: () => {
+        const text = pen.finish();
+        reactions.set(story.id, text);
+        addVoice(text);
+      },
       error: (data) => showError(data.message),
     }).catch((err) => showError(err.message));
   }
-  return el("section", { className: "reaction-wrap" }, el("h3", { textContent: voice().reaction }), box);
+  return wrap;
 }
 
 function entityRow(label, values) {

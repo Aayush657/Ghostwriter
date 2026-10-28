@@ -15,7 +15,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from ghostwriter import db, selfcheck, whispers
-from ghostwriter.api import seance, stories
+from ghostwriter.api import seance, stories, voice
 from ghostwriter.config import settings
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
@@ -37,6 +37,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Ghostwriter", lifespan=lifespan)
 app.include_router(stories.router)
 app.include_router(seance.router)
+app.include_router(voice.router)
 
 
 @app.middleware("http")

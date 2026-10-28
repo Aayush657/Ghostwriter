@@ -1,0 +1,97 @@
+"""The Archivist's voice: Piper (offline neural text-to-speech) piped through ffmpeg ghost effects.
+
+Piper runs as a separate program. Its raw audio streams straight into ffmpeg, which lowers the
+pitch and adds an echoing stone room. Each spoken line is cached by its text, so it is made once.
+It's optional: if Piper or the voice is missing, the app still works and just stays silent.
+
+Try it:  python -m ghostwriter.tts "The archive is awake."
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import re
+import subprocess
+import sys
+import time
+import uuid
+from pathlib import Path
+
+from ghostwriter.config import settings
+
+# Pitch down (rubberband keeps the speed), soften the highs, a stone-room echo, a faint ghostly doubling.
+GHOST_EFFECTS = ("rubberband=pitch=0.84,lowpass=f=5500,"
+                 "aecho=0.8:0.85:55|110|190:0.35|0.22|0.12,"
+                 "chorus=0.6:0.9:45:0.3:0.3:1.5,volume=2.4")  # measured peak -2 dB: loud, no clipping
+MAX_CHARS = 1500  # about a minute and a half of speech
+
+
+class TTSError(Exception):
+    """The voice couldn't be made. The message is safe to show the user."""
+
+
+def clean(text: str) -> str:
+    """Drop [S12] citation marks (they aren't for reading aloud) and squeeze whitespace onto one line."""
+    return re.sub(r"\s+", " ", re.sub(r"\[S\d+\]", "", text)).strip()
+
+
+def speak(text: str, ghostly: bool = True) -> Path:
+    """Return a WAV file of `text` spoken by the Archivist, making it if it isn't cached yet."""
+    if not settings.tts_enabled:
+        raise TTSError("The ghost's voice is turned off (GW_TTS_ENABLED=false in .env).")
+    text = clean(text)[:MAX_CHARS]
+    if not text:
+        raise TTSError("There is nothing to say.")
+    voice = settings.piper_voice_path
+    if not voice.exists():
+        raise TTSError(f"The voice model is missing from {voice}. Run scripts\\setup.ps1.")
+
+    key = hashlib.sha256(f"{settings.piper_voice}|{ghostly}|{text}".encode()).hexdigest()[:24]
+    out = settings.data_dir / "tts" / f"{key}.wav"
+    if out.exists():
+        return out
+    out.parent.mkdir(parents=True, exist_ok=True)
+    partial = out.with_name(f"{key}.{uuid.uuid4().hex[:8]}.part.wav")  # unique: requests may overlap
+
+    rate = json.loads(Path(f"{voice}.json").read_text(encoding="utf-8"))["audio"]["sample_rate"]
+    try:
+        piper = subprocess.Popen(
+            [settings.piper_bin, "--model", str(voice), "--length_scale", "1.15",
+             "--sentence_silence", "0.35", "--output_raw"],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+        )
+    except FileNotFoundError:
+        raise TTSError("Piper isn't installed (or GW_PIPER_BIN points to the wrong place). "
+                       "See README > Ghost voice.") from None
+    try:
+        ffmpeg = subprocess.Popen(
+            [settings.ffmpeg_bin, "-y", "-loglevel", "error", "-f", "s16le", "-ar", str(rate), "-ac", "1",
+             "-i", "pipe:0", "-af", GHOST_EFFECTS if ghostly else "anull", str(partial)],
+            stdin=piper.stdout, stderr=subprocess.PIPE, text=True,
+        )
+    except FileNotFoundError:
+        piper.kill()
+        raise TTSError("ffmpeg is not installed (or GW_FFMPEG_BIN points to the wrong place).") from None
+    piper.stdout.close()  # ffmpeg now owns the pipe and sees end-of-file when Piper finishes
+    try:
+        piper.stdin.write(text.encode("utf-8"))
+        piper.stdin.close()
+        _, ffmpeg_errors = ffmpeg.communicate(timeout=120)
+        piper.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        piper.kill()
+        ffmpeg.kill()
+        partial.unlink(missing_ok=True)
+        raise TTSError("The voice took too long to form.") from None
+    if piper.returncode or ffmpeg.returncode or not partial.exists():
+        partial.unlink(missing_ok=True)
+        raise TTSError(f"The voice failed to form ({(ffmpeg_errors or 'piper error').strip()[-200:]}).")
+    partial.replace(out)
+    return out
+
+
+if __name__ == "__main__":
+    start = time.perf_counter()
+    path = speak(" ".join(sys.argv[1:]) or "The archive is awake, and it remembers you.")
+    print(f"{path} in {time.perf_counter() - start:.2f}s")
