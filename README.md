@@ -21,9 +21,22 @@ _[Screenshot placeholder]_
    - Python 3.11+ from python.org
    - ffmpeg: `winget install --id Gyan.FFmpeg -e`
    - Ollama: `winget install --id Ollama.Ollama -e`
-2. Pull the model: `ollama pull gemma4:e4b`
+   - If winget's download fails (it did on the dev machine with `0x80072eff`), download the same
+     installer URL shown by `winget show --id <id> -e` with `curl.exe`, check its SHA256, and run it.
+2. Pull the model: `ollama pull gemma4:e4b` (about 5.5 GB; `gemma4:e2b` is lighter)
 3. From the project folder: `powershell -ExecutionPolicy Bypass -File scripts\setup.ps1`
+   (creates `.venv`, installs pinned packages, downloads the Whisper weights, runs the self-check)
 4. Check everything: `.venv\Scripts\python.exe -m ghostwriter.selfcheck --ping`
+
+## Run
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\run.ps1    # your real archive (data\)
+powershell -ExecutionPolicy Bypass -File scripts\demo.ps1   # fictional samples in demo-data\
+```
+
+Then open http://127.0.0.1:8000. The server listens on `127.0.0.1` only, so other devices on
+your network can't reach it.
 
 ## Offline proof
 
