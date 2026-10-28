@@ -1,6 +1,6 @@
 # PROGRESS
 
-_Last updated: Wed Oct 28, 2026, 17:50 IST_
+_Last updated: Wed Oct 28, 2026, 18:05 IST_
 
 **Name decided: Ghostwriter**, subtitle "the ghost that keeps your stories" (user's choice, Oct 28).
 
@@ -13,9 +13,14 @@ _Last updated: Wed Oct 28, 2026, 17:50 IST_
 - **Stage 3 (candle wall, whispers, browser recording, polish): DONE**, except a real mic test (the
   browser pane blocks the mic). Polish: subtitle, favicon, back link, processing hint, samples fade by
   days unvisited; no horizontal overflow at 375 px; every request goes to localhost.
-- **Stage 5: haunted retelling DONE** (verified with real Gemma: faithful, eerie, no invented tragedy;
-  stored in its own column, original untouched; read aloud as ~60 s of ghost voice).
-  Export and the .tech landing page still to do.
+- **Stage 5: DONE.**
+  - Haunted retelling (verified with real Gemma: faithful, eerie, no invented tragedy; stored in its
+    own column, original untouched; read aloud as ~60 s of ghost voice).
+  - Memory book export: `/api/book`, one self-contained HTML (fonts embedded, 807 KB for the 4 samples),
+    prints to PDF; checked in the browser pane, Hindi renders.
+  - Landing page in `docs/` for GitHub Pages + .tech domain; no external requests, fine at 375 px.
+    **User TODOs in `docs/index.html`**: `YOUR_GITHUB_REPO_URL` (x2) and the demo-video box.
+- **Stage 6 (README, DEMO_SCRIPT.md, POST_DRAFT.md): NEXT.**
 - **Stage 4 (ghost voice): DONE.** Piper + ffmpeg effects, cached, optional; "Let the Archivist speak"
   buttons on Seance answers and reactions. `/api/speak` returns 200 in the browser pane; **how it sounds
   is not verified** (no audio here) -> user to listen and judge.
@@ -45,9 +50,8 @@ _Last updated: Wed Oct 28, 2026, 17:50 IST_
    measure Whisper on real Hindi/mixed speech, and consider `medium` if accuracy is poor.
 2. **User**: listen to the ghost voice and say if the effect is too strong or too weak
    (knob: `GHOST_EFFECTS` in `ghostwriter/tts.py`).
-3. Stage 5: export the memory book (printable HTML, browser "Save as PDF"), then the static .tech
-   landing page (`site/`).
-4. Stage 6: README (screenshots placeholders, architecture diagram), DEMO_SCRIPT.md, POST_DRAFT.md.
+3. Stage 6: README (screenshots placeholders, architecture diagram), DEMO_SCRIPT.md, POST_DRAFT.md.
+4. **User**: push to GitHub, enable Pages from `/docs`, claim the .tech domain (README > Landing page).
 
 ## Known issues
 
