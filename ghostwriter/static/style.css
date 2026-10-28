@@ -1,9 +1,24 @@
-/* Stage 1 styles: readable and dark. The candle wall arrives in Stage 3. */
+/* Ghostwriter. All fonts are bundled locally (see /fonts/*-OFL.txt); nothing loads from the internet. */
+
+@font-face {
+  font-family: "Caveat";
+  src: url("/fonts/Caveat.ttf") format("truetype");
+  font-weight: 400 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IM Fell English";
+  src: url("/fonts/IMFellEnglish-Regular.ttf") format("truetype");
+  font-display: swap;
+}
+
 :root {
   --bg: #0e0c10;
-  --panel: #18151c;
+  --panel: #17141b;
+  --line: #2a2530;
   --text: #e9e1d4;
   --muted: #9a8f80;
+  --ink: #efe3c8;
   --marigold: #f2a33a;
   --bad: #e0675a;
   --ok: #7fbf7f;
@@ -13,37 +28,52 @@
 
 body {
   margin: 0;
-  background: var(--bg);
+  background: radial-gradient(ellipse at top, #1b1620 0%, var(--bg) 60%) fixed;
   color: var(--text);
-  font: 16px/1.6 Georgia, "Times New Roman", serif;
+  font: 16px/1.6 Georgia, "Nirmala UI", "Times New Roman", serif;
 }
 
 header, main { max-width: 860px; margin: 0 auto; padding: 0 16px; }
 header { padding-top: 24px; }
-h1 { margin: 0; font-size: 2rem; letter-spacing: 0.04em; }
+
+h1, h2, h3 { font-family: "IM Fell English", Georgia, serif; font-weight: normal; }
+h1 { margin: 0; font-size: 2.4rem; letter-spacing: 0.03em; }
 h1 a { color: var(--marigold); text-decoration: none; }
-h2 { font-size: 1.2rem; color: var(--marigold); font-weight: normal; }
-.tagline { margin: 0; color: var(--muted); font-style: italic; }
+h2 { font-size: 1.5rem; color: var(--marigold); margin: 12px 0; }
+h3 { font-size: 1.2rem; color: var(--marigold); margin: 16px 0 4px; }
 a { color: var(--marigold); }
 
-section, article { background: var(--panel); border-radius: 8px; padding: 4px 20px 16px; margin: 20px 0; }
+section, article { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 4px 20px 16px; margin: 20px 0; }
+section section { background: none; border: 0; padding: 0; margin: 12px 0; }
 
-#health { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; font-size: 0.8rem; }
-#health li { padding: 2px 10px; border-radius: 999px; border: 1px solid currentColor; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 8px; font-size: 0.85rem; color: var(--muted); }
+
+#health { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+#health li { padding: 0 9px; border-radius: 999px; border: 1px solid currentColor; font-size: 0.75rem; }
 #health .ok { color: var(--ok); }
 #health .bad { color: var(--bad); }
 #health .off { color: var(--muted); }
 
+#health-banner { margin-top: 12px; padding: 8px 16px; border: 1px solid var(--bad); border-radius: 6px; color: var(--text); }
+#health-banner .fix { color: var(--marigold); font-family: Consolas, monospace; font-size: 0.85rem; }
+
+form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+input[type="text"] {
+  flex: 1 1 260px; font: inherit; color: var(--text); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 4px; padding: 6px 10px;
+}
+input[type="text"]:focus { outline: 1px solid var(--marigold); }
 button {
   font: inherit; cursor: pointer;
   background: transparent; color: var(--marigold);
   border: 1px solid var(--marigold); border-radius: 4px; padding: 4px 14px;
 }
 button:hover, button:focus-visible { background: var(--marigold); color: var(--bg); }
+button:disabled { opacity: 0.5; cursor: wait; }
 
 #story-list { list-style: none; padding: 0; margin: 0; }
-#story-list li { padding: 8px 0; border-bottom: 1px solid #2a2530; }
-#story-list .meta, .meta { color: var(--muted); font-size: 0.85rem; }
+#story-list li { padding: 8px 0; border-bottom: 1px solid var(--line); }
+.meta { color: var(--muted); font-size: 0.85rem; }
 .status { font-style: italic; color: var(--muted); }
 .error { color: var(--bad); }
 
@@ -54,3 +84,50 @@ dl.details dd { margin: 0; }
 .transcript { white-space: pre-wrap; color: #cfc6b8; }
 .questions li { margin-bottom: 8px; }
 audio { width: 100%; margin: 8px 0; }
+
+/* ---------- ghost handwriting ---------- */
+
+.handwriting {
+  font-family: "Caveat", "Segoe Print", cursive;
+  font-size: 1.6rem;
+  line-height: 1.35;
+  color: var(--ink);
+  text-shadow: 0 0 10px rgba(242, 163, 58, 0.18);
+}
+#greeting { margin: 4px 0 0; font-size: 1.4rem; color: var(--muted); }
+
+/* Each new piece of text fades in like ink soaking into paper. */
+.ink { animation: ink-in 0.7s ease-out both; }
+@keyframes ink-in {
+  from { opacity: 0; filter: blur(4px); color: var(--marigold); }
+  to   { opacity: 1; filter: blur(0); }
+}
+
+/* While the ghost writes, the whole passage flickers faintly, like candlelight. */
+.writing { animation: flicker 2.8s infinite; }
+.writing::after { content: "\2712"; margin-left: 4px; color: var(--marigold); opacity: 0.7; }
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  42% { opacity: 0.93; }
+  46% { opacity: 0.82; }
+  50% { opacity: 0.96; }
+}
+
+a.cite {
+  font-family: "IM Fell English", Georgia, serif;
+  font-size: 0.8em;
+  vertical-align: 0.15em;
+  margin: 0 2px;
+  white-space: nowrap;
+}
+a.cite::before { content: "\2767 "; }
+
+/* ---------- plain mode: neutral text, no effects ---------- */
+
+body.plain .handwriting { font-family: Georgia, "Nirmala UI", serif; font-size: 1rem; text-shadow: none; color: var(--text); }
+body.plain .writing { animation: none; }
+body.plain .ink { animation: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ink, .writing { animation: none; }
+}

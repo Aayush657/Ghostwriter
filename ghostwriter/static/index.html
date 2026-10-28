@@ -9,28 +9,42 @@
 <body>
   <header>
     <h1><a href="#/">Ghostwriter</a></h1>
-    <p class="tagline">Tell it your stories. It will keep them.</p>
-    <ul id="health" aria-label="Local services"></ul>
+    <p id="greeting" class="handwriting"></p>
+    <div class="controls">
+      <label><input type="checkbox" id="plain-toggle"> Plain mode</label>
+      <ul id="health" aria-label="Local services"></ul>
+    </div>
+    <div id="health-banner" role="alert" hidden></div>
   </header>
 
   <main>
+    <section id="seance">
+      <h2 data-voice="seance"></h2>
+      <form id="seance-form">
+        <input type="text" name="question" maxlength="500" autocomplete="off" aria-label="Your question">
+        <button type="submit" data-voice="ask"></button>
+      </form>
+      <div id="seance-answer" aria-live="polite"></div>
+      <p id="seance-sources" class="meta"></p>
+    </section>
+
+    <article id="story" hidden></article>
+
     <section id="new-story">
-      <h2>Give the ghost a story</h2>
+      <h2 data-voice="give"></h2>
       <form id="upload-form">
-        <input type="file" name="file" accept=".wav,.mp3,.m4a,.webm,.ogg" required>
-        <button type="submit">Offer it</button>
+        <input type="file" name="file" accept=".wav,.mp3,.m4a,.webm,.ogg" required aria-label="Audio file">
+        <button type="submit" data-voice="offer"></button>
       </form>
       <p id="upload-status" role="status"></p>
     </section>
 
     <section id="archive">
-      <h2>The archive</h2>
+      <h2 data-voice="archive"></h2>
       <ul id="story-list"></ul>
     </section>
-
-    <article id="story" hidden></article>
   </main>
 
-  <script src="/app.js"></script>
+  <script type="module" src="/js/app.js"></script>
 </body>
 </html>
