@@ -64,6 +64,14 @@ def test_missing_story_answers_in_character(client):
     assert resp.json()["detail"] == "That memory was never given to me."
 
 
+def test_visiting_relights_the_candle(client):
+    story_id = upload(client).json()["id"]
+    db.update_story(story_id, last_visited_at="2020-01-01 00:00:00")
+    assert client.post(f"/api/stories/{story_id}/visit").status_code == 204
+    assert client.get(f"/api/stories/{story_id}").json()["last_visited_at"] > "2026"
+    assert client.post("/api/stories/999/visit").status_code == 404
+
+
 def test_only_failed_stories_can_be_retried(client):
     story_id = upload(client).json()["id"]
     assert client.post(f"/api/stories/{story_id}/retry").status_code == 409

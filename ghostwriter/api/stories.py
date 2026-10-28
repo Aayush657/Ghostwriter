@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Form, HTTPException, UploadFile
@@ -86,6 +87,13 @@ def retry_story(story_id: int, background: BackgroundTasks) -> dict:
     db.update_story(story_id, status="queued", error=None)
     background.add_task(pipeline.process_story, story_id)
     return {"id": story_id}
+
+
+@router.post("/{story_id}/visit", status_code=204)
+def visit_story(story_id: int) -> None:
+    """Opening a story relights its candle on the wall."""
+    _story_or_404(story_id)
+    db.update_story(story_id, last_visited_at=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"))
 
 
 @router.post("/{story_id}/reaction")

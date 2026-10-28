@@ -74,8 +74,6 @@ button.quiet { border-color: transparent; color: var(--muted); font-size: 0.85re
 button.record { font-size: 1.1rem; padding: 8px 20px; }
 button.live { background: var(--bad); border-color: var(--bad); color: var(--text); animation: flicker 1.6s infinite; }
 
-#story-list { list-style: none; padding: 0; margin: 0; }
-#story-list li { padding: 8px 0; border-bottom: 1px solid var(--line); }
 .meta { color: var(--muted); font-size: 0.85rem; }
 .status { font-style: italic; color: var(--muted); }
 .error { color: var(--bad); }
@@ -125,6 +123,94 @@ a.cite {
 }
 a.cite::before { content: "\2767 "; }
 
+/* ---------- the candle wall (ofrenda) ---------- */
+
+/* Registered so the browser can animate it: a relit candle's flame grows back smoothly. */
+@property --life { syntax: "<number>"; inherits: true; initial-value: 1; }
+
+.ofrenda {
+  position: relative;
+  padding-top: 26px;
+  /* a string of marigolds along the top edge */
+  background:
+    radial-gradient(circle at 11px 9px, #f7b84a 0 6px, #e0821e 7px, transparent 8px) 0 0 / 22px 18px repeat-x,
+    var(--panel);
+}
+.filter { display: inline-flex; gap: 8px; align-items: center; }
+.filter select { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 2px 6px; }
+
+.wall {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 28px 12px;
+  padding: 20px 0 8px;
+  align-items: end;
+}
+
+.candle {
+  --life: 1;
+  display: flex; flex-direction: column; align-items: center;
+  text-decoration: none; color: var(--text);
+  transition: --life 1.8s ease-out;
+}
+.candle:hover .label, .candle:focus-visible .label { color: var(--marigold); }
+
+.flame-wrap {
+  height: 40px; display: flex; align-items: flex-end;
+  transform: scale(calc(0.45 + 0.55 * var(--life)));
+  transform-origin: 50% 100%;
+  opacity: calc(0.2 + 0.8 * var(--life));
+}
+.flame {
+  width: 16px; height: 34px;
+  border-radius: 50% 50% 45% 45% / 65% 65% 35% 35%;
+  background: radial-gradient(ellipse at 50% 78%, #fffbe8 0 12%, #ffd77d 30%, var(--marigold) 58%, rgba(230, 90, 20, 0) 76%);
+  filter: drop-shadow(0 0 10px rgba(242, 163, 58, 0.85));
+  transform-origin: 50% 100%;
+  animation: dance 2.4s ease-in-out infinite alternate;
+}
+.wick { width: 2px; height: 6px; background: #1c1a17; }
+.wax {
+  width: 34px; height: var(--wax, 64px);
+  border-radius: 5px 5px 2px 2px;
+  background: linear-gradient(90deg, #cdbf9f, #f4ecd9 45%, #c4b593);
+  box-shadow: 0 -6px calc(40px * var(--life)) calc(8px * var(--life)) rgba(242, 163, 58, calc(0.28 * var(--life)));
+  filter: brightness(calc(0.55 + 0.45 * var(--life)));
+}
+.candle .label {
+  margin-top: 10px; max-width: 140px; text-align: center;
+  font-family: "IM Fell English", Georgia, serif; font-size: 1rem; line-height: 1.25;
+  opacity: calc(0.55 + 0.45 * var(--life));
+}
+.candle .meta { font-size: 0.72rem; text-align: center; }
+
+/* Not finished yet (or failed): an unlit candle with a thin curl of smoke. */
+.candle:not(.lit) .flame { background: none; filter: none; animation: none; }
+.candle:not(.lit) .flame::before {
+  content: ""; display: block; width: 3px; height: 28px; margin: 0 auto;
+  background: linear-gradient(to top, rgba(200, 200, 210, 0.45), transparent);
+  border-radius: 2px; animation: smoke 3s ease-in-out infinite;
+}
+.candle.failed .label { color: var(--bad); }
+
+.candle.relit .flame { animation: relight 1.2s ease-out, dance 2.4s ease-in-out 1.2s infinite alternate; }
+
+@keyframes dance {
+  0%   { transform: rotate(-2deg) scaleY(1); }
+  40%  { transform: rotate(1.5deg) scaleY(1.06); }
+  70%  { transform: rotate(-1deg) scaleY(0.96); }
+  100% { transform: rotate(2deg) scaleY(1.03); }
+}
+@keyframes relight {
+  0%   { transform: scale(0.2); filter: drop-shadow(0 0 30px #fff); }
+  60%  { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+@keyframes smoke {
+  0%, 100% { transform: translateX(0) skewX(0); opacity: 0.6; }
+  50% { transform: translateX(3px) skewX(-12deg); opacity: 0.25; }
+}
+
 /* ---------- plain mode: neutral text, no effects ---------- */
 
 body.plain .handwriting { font-family: Georgia, "Nirmala UI", serif; font-size: 1rem; text-shadow: none; color: var(--text); }
@@ -132,5 +218,5 @@ body.plain .writing { animation: none; }
 body.plain .ink { animation: none; }
 
 @media (prefers-reduced-motion: reduce) {
-  .ink, .writing { animation: none; }
+  .ink, .writing, .flame, .candle.relit .flame, .candle:not(.lit) .flame::before, button.live { animation: none; }
 }

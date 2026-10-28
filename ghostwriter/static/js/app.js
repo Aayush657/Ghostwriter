@@ -26,7 +26,10 @@ const VOICE = {
     stop: "Stop. Let the ghost keep it",
     orUpload: "...or offer a recording you already have:",
     offer: "Offer it",
-    archive: "The archive",
+    archive: "The candle wall",
+    filterLabel: "Light only the candles of",
+    allMemories: "every memory",
+    emptyWall: "No candles yet. The wall waits for its first memory.",
     reaction: "The Archivist writes",
     unfinished: "Unfinished business",
     unfinishedIntro: "You never told me...",
@@ -57,6 +60,9 @@ const VOICE = {
     orUpload: "Or upload an audio file:",
     offer: "Upload",
     archive: "Stories",
+    filterLabel: "Filter:",
+    allMemories: "All stories",
+    emptyWall: "No stories yet.",
     reaction: "",
     unfinished: "Follow-up questions",
     unfinishedIntro: "",
@@ -157,19 +163,82 @@ async function askSeance(question) {
   }
 }
 
-// --------------------------------------------------------------------------- archive list
+// --------------------------------------------------------------------------- the candle wall
 
 const statusText = (s) => (s.status === "ready" ? s.title : voice().status[s.status] || s.status);
+
+const FADE_DAYS = 30; // an unvisited candle burns down to a faint glow over about a month
+const ENTITY_GROUPS = [["person", "People"], ["place", "Places"], ["era", "When"]];
+
+let allStories = [];
+let wallKey = ""; // skip re-rendering (and restarting the flame animations) when nothing changed
+
+function life(story) {
+  const days = (Date.now() - Date.parse(story.last_visited_at.replace(" ", "T") + "Z")) / 86_400_000;
+  return Math.min(1, Math.max(0.12, 1 - days / FADE_DAYS));
+}
+
+function candle(s) {
+  const lit = s.status === "ready";
+  const meta = [localTime(s.created_at), s.mood, s.is_sample && "fictional sample"].filter(Boolean).join(" · ");
+  const node = el("a", { href: `#/story/${s.id}`, className: `candle ${lit ? "lit" : s.status}`, title: s.summary || "" },
+    el("span", { className: "flame-wrap" }, el("span", { className: "flame" })),
+    el("span", { className: "wick" }),
+    el("span", { className: "wax" }),
+    el("span", { className: "label", textContent: statusText(s) }),
+    el("span", { className: "meta", textContent: meta }),
+  );
+  node.style.setProperty("--life", lit ? life(s).toFixed(2) : "0");
+  node.style.setProperty("--wax", `${54 + ((s.id * 37) % 34)}px`); // varied heights look hand-made
+  return node;
+}
+
+function renderFilterOptions() {
+  const select = $("#filter");
+  const current = select.value;
+  const groups = ENTITY_GROUPS.map(([kind, label]) => {
+    const values = [...new Set(allStories.flatMap((s) => s.entities?.[kind] || []))].sort();
+    return values.length && el("optgroup", { label },
+      ...values.map((v) => el("option", { value: `${kind}:${v}`, textContent: v })));
+  });
+  select.replaceChildren(el("option", { value: "", textContent: voice().allMemories }), ...present(groups));
+  select.value = [...select.options].some((o) => o.value === current) ? current : "";
+}
+
+function renderWall() {
+  const filter = $("#filter").value;
+  const split = filter.indexOf(":");
+  const [kind, value] = [filter.slice(0, split), filter.slice(split + 1)];
+  const shown = filter ? allStories.filter((s) => s.entities?.[kind]?.includes(value)) : allStories;
+  $("#wall").replaceChildren(...(shown.length
+    ? shown.map(candle)
+    : [el("p", { className: "handwriting", textContent: voice().emptyWall })]));
+}
 
 async function loadStories() {
   const stories = await api("/api/stories");
   const ready = stories.filter((s) => s.status === "ready").length;
   $("#greeting").textContent = voice().greeting(ready);
-  $("#story-list").replaceChildren(...stories.map((s) => el("li", {},
-    el("a", { href: `#/story/${s.id}`, textContent: statusText(s) }),
-    el("div", { className: "meta", textContent: [localTime(s.created_at), s.mood, s.language, s.is_sample && "fictional sample"].filter(Boolean).join(" · ") }),
-  )));
+  const key = JSON.stringify(stories) + plain;
+  if (key !== wallKey) {
+    wallKey = key;
+    allStories = stories;
+    renderFilterOptions();
+    renderWall();
+  }
   return stories;
+}
+
+// Opening a story relights its candle: the server records the visit, the flame grows back in place.
+async function relight(id) {
+  await api(`/api/stories/${id}/visit`, { method: "POST" }).catch(() => null);
+  const story = allStories.find((s) => s.id === id);
+  if (story) story.last_visited_at = new Date().toISOString().slice(0, 19).replace("T", " ");
+  const node = document.querySelector(`.candle[href="#/story/${id}"]`);
+  if (node && story?.status === "ready") {
+    node.style.setProperty("--life", "1");
+    node.classList.add("relit");
+  }
 }
 
 // --------------------------------------------------------------------------- story page
@@ -327,7 +396,10 @@ async function refresh(force = false) {
     const isNew = id !== shown.id;
     const story = await showStory(id);
     shown = { id, status: story?.status ?? null };
-    if (isNew) $("#story").scrollIntoView({ behavior: "smooth", block: "start" });
+    if (isNew) {
+      $("#story").scrollIntoView({ behavior: "smooth", block: "start" });
+      if (story) relight(id);
+    }
   }
   if (stories.some((s) => IN_PROGRESS.includes(s.status))) pollTimer = setTimeout(refresh, 2000);
 }
@@ -353,6 +425,7 @@ async function start() {
     if (question) askSeance(question);
   });
   $("#record-button").addEventListener("click", (event) => toggleRecording(event.currentTarget));
+  $("#filter").addEventListener("change", renderWall);
   $("#upload-form").addEventListener("submit", (event) => {
     event.preventDefault();
     const file = event.target.file.files[0];

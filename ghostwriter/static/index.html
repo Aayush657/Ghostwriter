@@ -18,6 +18,17 @@
   </header>
 
   <main>
+    <section id="archive" class="ofrenda">
+      <h2 data-voice="archive"></h2>
+      <label class="meta filter">
+        <span data-voice="filterLabel"></span>
+        <select id="filter"><option value="" data-voice="allMemories"></option></select>
+      </label>
+      <div id="wall" class="wall"></div>
+    </section>
+
+    <article id="story" hidden></article>
+
     <section id="seance">
       <h2 data-voice="seance"></h2>
       <form id="seance-form">
@@ -28,8 +39,6 @@
       <p id="seance-sources" class="meta"></p>
     </section>
 
-    <article id="story" hidden></article>
-
     <section id="new-story">
       <h2 data-voice="give"></h2>
       <button type="button" id="record-button" class="record" data-voice="record"></button>
@@ -39,11 +48,6 @@
         <button type="submit" data-voice="offer"></button>
       </form>
       <p id="upload-status" role="status"></p>
-    </section>
-
-    <section id="archive">
-      <h2 data-voice="archive"></h2>
-      <ul id="story-list"></ul>
     </section>
   </main>
 
