@@ -111,6 +111,7 @@ def ping_gemma() -> Check:
         "model": settings.llm_model,
         "stream": False,
         "think": False,
+        "options": {"num_ctx": settings.llm_num_ctx},  # same as the app, so Ollama doesn't reload the model
         "messages": [{"role": "user",
                       "content": "In one short, eerie sentence, announce that the archive is awake."}],
     }

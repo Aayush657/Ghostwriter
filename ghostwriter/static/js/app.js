@@ -319,7 +319,7 @@ function renderStory(s) {
   const v = voice();
   return present([
     el("h2", { textContent: statusText(s) }),
-    s.is_sample && el("p", { className: "meta", textContent: "A fictional sample story, written for the demo." }),
+    Boolean(s.is_sample) && el("p", { className: "meta", textContent: "A fictional sample story, written for the demo." }),
     s.answers && el("p", { className: "meta" }, "An answer to: ",
       el("a", { href: `#/story/${s.answers.story_id}`, textContent: s.answers.text })),
     s.status === "failed" && el("p", { className: "error", textContent: s.error }),

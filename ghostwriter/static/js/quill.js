@@ -22,11 +22,16 @@ export function quill(node) {
 }
 
 function withCitations(text, linkFor) {
+  const named = new Set(); // show a story's title on its first citation, then just a small mark
   return text.split(/(\[S\d+\])/).filter(Boolean).map((part) => {
     const id = part.match(/^\[S(\d+)\]$/)?.[1];
     if (!id) return part;
     const link = linkFor(Number(id));  // {href, label} or null
     // A citation of a story Gemma was never shown is dropped rather than shown as a dead link.
-    return link ? el("a", { href: link.href, className: "cite", textContent: link.label }) : "";
+    if (!link) return "";
+    const first = !named.has(id);
+    named.add(id);
+    return el("a", { href: link.href, className: first ? "cite" : "cite short", title: link.label,
+                     textContent: first ? link.label : "" });
   });
 }

@@ -135,6 +135,7 @@ a.cite {
   white-space: nowrap;
 }
 a.cite::before { content: "\2767 "; }
+a.cite.short::before { content: "\2767"; }
 
 /* ---------- the candle wall (ofrenda) ---------- */
 

@@ -9,7 +9,8 @@ events. If something is not mentioned, use an empty list.
 
 Reply with JSON only, using these fields:
 - title: 3 to 8 words in English, evocative but true to the story.
-- summary: 2 or 3 sentences in English describing what happens in the story.
+- summary: 2 or 3 sentences in English describing what happens in the story, addressed to the \
+storyteller as "you", e.g. "You spent a winter at your grandmother's house in Shimla..."
 - people: names or relationships of the people in the story, e.g. "Dadi (grandmother)", "Ravi". \
 Write Hindi names in Latin script.
 - places: places named or described, e.g. "Allahabad", "the hostel terrace".
@@ -60,10 +61,20 @@ def voice(plain: bool) -> str:
 # ---------------------------------------------------------------- Seance (grounded Q&A)
 
 SEANCE_RULES = """Answer the question using ONLY the stories below. Each story has an id such as [S3].
+- The person asking told you these stories about their own life. Speak to them as "you", never \
+"the speaker". Example: a story says "my grandmother gave me her thimble", so you write \
+"Your grandmother gave you her thimble [S3]."
 - After every detail you use, cite its story id in square brackets, for example [S3].
 - If the stories do not answer the question, reply with exactly this sentence and nothing else: {unknown}
 - Never add names, dates, places or events that are not in the stories. Do not guess or embellish facts.
+- {style}
 - Answer in English, in under 120 words."""
+
+SEANCE_STYLE = {
+    False: "Speak in your own voice as the Archivist: an atmospheric phrase or two is welcome, "
+           "as long as every fact comes from the stories.",
+    True: "Be direct and factual.",
+}
 
 MAX_SOURCE_CHARS = 4000  # per story, so three stories fit comfortably in Gemma's context
 
@@ -79,10 +90,13 @@ def _source(story: dict) -> str:
 
 def seance_messages(question: str, stories: list[dict], plain: bool) -> list[dict]:
     sources = "\n\n".join(_source(s) for s in stories)
-    rules = SEANCE_RULES.format(unknown=UNKNOWN[plain])
+    rules = SEANCE_RULES.format(unknown=UNKNOWN[plain], style=SEANCE_STYLE[plain])
     return [
         {"role": "system", "content": f"{voice(plain)}\n\n{rules}"},
-        {"role": "user", "content": f"<stories>\n{sources}\n</stories>\n\nQuestion: {question}"},
+        {"role": "user", "content": (
+            f"<stories>\n{sources}\n</stories>\n\n"
+            f"Question: {question}"
+        )},
     ]
 
 
