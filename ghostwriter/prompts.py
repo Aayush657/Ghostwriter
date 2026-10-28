@@ -114,3 +114,20 @@ def reaction_messages(story: dict) -> list[dict]:
         {"role": "system", "content": f"{ARCHIVIST}\n\n{REACTION_RULES}"},
         {"role": "user", "content": _source(story)},
     ]
+
+
+# ---------------------------------------------------------------- haunted retelling
+
+RETELLING_RULES = """Retell this memory as a ghost story told around a campfire, in the spirit of an \
+Indian bhoot-kahani, in English. This is clearly a retelling, so you may add atmosphere: wind, shadows, \
+creaking doors, the hush before something happens. Keep the real people, places and objects from the \
+memory, keep what actually happened at the heart of it, and do not invent deaths, injuries or new \
+tragedies. Warm and eerie, never gory or cruel. Write 150 to 250 words, in short paragraphs, as if \
+speaking to listeners in the dark. Give it no title. End on a quiet, chilling line."""
+
+
+def retelling_messages(story: dict) -> list[dict]:
+    return [
+        {"role": "system", "content": f"{ARCHIVIST}\n\n{RETELLING_RULES}"},
+        {"role": "user", "content": _source(story)},
+    ]

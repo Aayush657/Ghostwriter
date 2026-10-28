@@ -40,6 +40,9 @@ const VOICE = {
     transcript: "The words as they were spoken",
     missing: "That memory was never given to me.",
     back: "← back to the candle wall",
+    retelling: "A haunted retelling",
+    retellingNote: "Told by the Archivist beside a dying fire. A retelling, not the memory itself, which stays exactly as you gave it.",
+    retell: "Retell it as a ghost story",
     patience: "First the ghost listens, then it reads. It takes roughly a minute for every minute you spoke.",
     status: { queued: "waiting its turn...", transcribing: "the ghost is listening...",
               thinking: "the ghost is reading...", failed: "the ink ran dry" },
@@ -76,6 +79,9 @@ const VOICE = {
     transcript: "Transcript",
     missing: "Story not found.",
     back: "← all stories",
+    retelling: "Ghost-story retelling",
+    retellingNote: "A creative retelling written by Gemma. The original story is unchanged.",
+    retell: "Retell as a ghost story",
     patience: "Transcribing with Whisper, then analysing with Gemma: roughly a minute per minute of audio.",
     status: { queued: "queued", transcribing: "transcribing...", thinking: "analysing...", failed: "failed" },
     tryAgain: "Retry",
@@ -283,30 +289,37 @@ async function relight(id) {
 
 // --------------------------------------------------------------------------- story page
 
-const reactions = new Map(); // story id -> finished reaction text, so re-renders never re-ask Gemma
+const written = new Map(); // "reaction:3" -> finished text, so re-renders never re-ask Gemma
 
-function reactionBlock(story) {
-  if (plain || story.status !== "ready") return null;
-  const box = el("div", { className: "reaction" });
-  const wrap = el("section", { className: "reaction-wrap" }, el("h3", { textContent: voice().reaction }), box);
-  const addVoice = (text) => { const b = speakButton(text); if (b) wrap.append(b); };
-  const known = reactions.get(story.id) ?? story.reaction;
-  if (known) {
-    box.append(el("p", { className: "handwriting", textContent: known }));
-    addVoice(known);
-  } else {
+// Something Gemma writes once per story (the reaction, the retelling): replayed if already
+// written, otherwise streamed in, either straight away or when the visitor asks for it.
+function writtenBlock(story, kind, { heading, note, startNow }) {
+  const key = `${kind}:${story.id}`;
+  const box = el("div", { className: kind });
+  const wrap = el("section", {}, el("h3", { textContent: heading }), note && el("p", { className: "meta", textContent: note }), box);
+  const finish = (text) => {
+    written.set(key, text);
+    const button = speakButton(text);
+    if (button) wrap.append(button);
+  };
+  const write = () => {
     const pen = quill(box);
     const showError = (message) => box.replaceChildren(
       el("p", { className: "error", textContent: voice().trouble + message }));
-    streamEvents(`/api/stories/${story.id}/reaction`, null, {
+    streamEvents(`/api/stories/${story.id}/${kind}`, null, {
       token: (data) => pen.write(data.text),
-      done: () => {
-        const text = pen.finish();
-        reactions.set(story.id, text);
-        addVoice(text);
-      },
+      done: () => finish(pen.finish()),
       error: (data) => showError(data.message),
     }).catch((err) => showError(err.message));
+  };
+  const known = written.get(key) ?? story[kind];
+  if (known) {
+    box.append(el("p", { className: "handwriting", textContent: known }));
+    finish(known);
+  } else if (startNow) {
+    write();
+  } else {
+    box.append(el("button", { textContent: voice().retell, onclick: write }));
   }
   return wrap;
 }
@@ -373,7 +386,7 @@ function renderStory(s) {
       el("a", { href: `#/story/${s.answers.story_id}`, textContent: s.answers.text })),
     s.status === "failed" && el("p", { className: "error", textContent: s.error }),
     s.status === "failed" && el("button", { textContent: v.tryAgain, onclick: () => retry(s.id) }),
-    reactionBlock(s),
+    !plain && s.status === "ready" && writtenBlock(s, "reaction", { heading: v.reaction, startNow: true }),
     s.summary && el("p", { textContent: s.summary }),
     s.audio_original && el("audio", { controls: true, preload: "none", src: `/api/stories/${s.id}/audio` }),
     el("dl", { className: "details" },
@@ -388,6 +401,7 @@ function renderStory(s) {
       v.unfinishedIntro && el("p", { className: "handwriting", textContent: v.unfinishedIntro }),
       el("ul", { className: "questions" }, ...s.questions.map(questionItem)),
     ),
+    s.status === "ready" && writtenBlock(s, "retelling", { heading: v.retelling, note: v.retellingNote, startNow: false }),
     s.transcript && el("details", {},
       el("summary", { textContent: `${v.transcript} (${s.language || "?"})` }),
       el("p", { className: "transcript", textContent: s.transcript }),

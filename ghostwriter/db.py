@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS stories (
     mood                TEXT,
     tags                TEXT,   -- people, places, eras, keepsakes as one searchable line
     reaction            TEXT,   -- the Archivist's first words about the story
+    retelling           TEXT,   -- the story retold as a ghost story (the original is never changed)
     is_sample           INTEGER NOT NULL DEFAULT 0  -- 1 for the fictional demo stories
 );
 
@@ -77,11 +78,12 @@ END;
 SEARCH_COLUMNS = ["title", "summary", "tags", "transcript"]
 
 # Columns added after a database may already exist. init_db() adds any that are missing.
-ADDED_COLUMNS = {"reaction": "TEXT", "is_sample": "INTEGER NOT NULL DEFAULT 0", "tags": "TEXT"}
+ADDED_COLUMNS = {"reaction": "TEXT", "is_sample": "INTEGER NOT NULL DEFAULT 0", "tags": "TEXT",
+                 "retelling": "TEXT"}
 
 # Columns update_story() may touch. Column names can't be SQL parameters, so we whitelist them.
 UPDATABLE = {"status", "error", "audio_original", "audio_wav", "duration_s", "language",
-             "transcript", "last_visited_at", "reaction"}
+             "transcript", "last_visited_at", "reaction", "retelling"}
 
 ENTITY_KINDS = {"people": "person", "places": "place", "eras": "era", "keepsakes": "keepsake"}
 

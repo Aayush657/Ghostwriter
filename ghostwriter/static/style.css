@@ -83,6 +83,7 @@ dl.details dt { color: var(--muted); }
 dl.details dd { margin: 0; }
 
 .transcript { white-space: pre-wrap; color: #cfc6b8; }
+.retelling, .retelling p { white-space: pre-wrap; } /* keep the retelling's paragraphs */
 .questions li { margin-bottom: 8px; }
 audio { width: 100%; margin: 8px 0; }
 

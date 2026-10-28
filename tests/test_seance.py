@@ -88,6 +88,21 @@ def test_reaction_is_written_once_then_remembered(client, monkeypatch):
     assert db.get_story(story_id)["reaction"] == "How the clock listens..."
 
 
+def test_retelling_is_kept_apart_and_never_touches_the_original(client, monkeypatch):
+    story_id = add_story("The Clock That Listened", "the clock stopped at eleven")
+    before = db.get_story(story_id)
+    calls = fake_stream(monkeypatch, ["Gather close. ", "The clock was listening..."])
+
+    out = events(client.post(f"/api/stories/{story_id}/retelling"))
+
+    after = db.get_story(story_id)
+    assert out[-1] == ("done", {})
+    assert after["retelling"] == "Gather close. The clock was listening..."
+    assert (after["transcript"], after["summary"], after["title"]) == \
+        (before["transcript"], before["summary"], before["title"])
+    assert "bhoot-kahani" in calls[0][0]["content"]
+
+
 def test_old_database_gets_the_new_column(data_dir):
     with db.connect() as con:
         con.execute("ALTER TABLE stories DROP COLUMN reaction")

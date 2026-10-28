@@ -99,27 +99,40 @@ def visit_story(story_id: int) -> None:
 @router.post("/{story_id}/reaction")
 def story_reaction(story_id: int) -> StreamingResponse:
     """The Archivist's first words about a story: written live by Gemma once, then remembered."""
-    story = _story_or_404(story_id)
-    if story["status"] != "ready":
-        raise HTTPException(409, "The ghost hasn't finished reading this one yet.")
-    return stream(_reaction_events(story))
+    story = _ready_story_or_409(story_id)
+    return stream(_write_once(story, "reaction", prompts.reaction_messages(story), temperature=0.8))
 
 
-def _reaction_events(story: dict) -> Iterator[str]:
-    if story["reaction"]:
-        yield sse("token", {"text": story["reaction"]})
+@router.post("/{story_id}/retelling")
+def story_retelling(story_id: int) -> StreamingResponse:
+    """The memory retold as a campfire ghost story. Stored apart: the original is never changed."""
+    story = _ready_story_or_409(story_id)
+    return stream(_write_once(story, "retelling", prompts.retelling_messages(story), temperature=0.9))
+
+
+def _write_once(story: dict, column: str, messages: list[dict], temperature: float) -> Iterator[str]:
+    """Stream Gemma's text into `column` the first time; afterwards replay what was kept."""
+    if story[column]:
+        yield sse("token", {"text": story[column]})
         yield sse("done", {})
         return
     pieces = []
     try:
-        for piece in llm.stream_chat(prompts.reaction_messages(story), temperature=0.8):
+        for piece in llm.stream_chat(messages, temperature=temperature):
             pieces.append(piece)
             yield sse("token", {"text": piece})
     except LLMError as exc:
         yield sse("error", {"message": str(exc)})
         return
-    db.update_story(story["id"], reaction="".join(pieces).strip())
+    db.update_story(story["id"], **{column: "".join(pieces).strip()})
     yield sse("done", {})
+
+
+def _ready_story_or_409(story_id: int) -> dict:
+    story = _story_or_404(story_id)
+    if story["status"] != "ready":
+        raise HTTPException(409, "The ghost hasn't finished reading this one yet.")
+    return story
 
 
 def _story_or_404(story_id: int) -> dict:

@@ -24,7 +24,7 @@ from ghostwriter.config import settings
 GHOST_EFFECTS = ("rubberband=pitch=0.84,lowpass=f=5500,"
                  "aecho=0.8:0.85:55|110|190:0.35|0.22|0.12,"
                  "chorus=0.6:0.9:45:0.3:0.3:1.5,volume=2.4")  # measured peak -2 dB: loud, no clipping
-MAX_CHARS = 1500  # about a minute and a half of speech
+MAX_CHARS = 2500  # about two and a half minutes of speech; fits a whole retelling
 
 
 class TTSError(Exception):
