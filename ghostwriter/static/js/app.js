@@ -404,6 +404,20 @@ async function refresh(force = false) {
   if (stories.some((s) => IN_PROGRESS.includes(s.status))) pollTimer = setTimeout(refresh, 2000);
 }
 
+// --------------------------------------------------------------------------- whispers
+
+// Sometimes (not always) the ghost murmurs a line from a faded story when the page opens.
+async function maybeWhisper() {
+  if (plain || Math.random() > 0.7) return;
+  const res = await fetch("/api/whisper");
+  if (res.status !== 200) return;
+  const w = await res.json();
+  const node = $("#whisper");
+  node.replaceChildren(el("a", { href: `#/story/${w.story_id}`, title: w.title, textContent: `“${w.text}”` }));
+  node.hidden = false;
+  setTimeout(() => node.classList.add("fading"), 15000);
+}
+
 // --------------------------------------------------------------------------- start
 
 async function start() {
@@ -435,6 +449,7 @@ async function start() {
 
   loadHealth().catch(() => {});
   refresh();
+  setTimeout(() => maybeWhisper().catch(() => {}), 2500);
 }
 
 start();

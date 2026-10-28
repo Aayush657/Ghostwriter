@@ -97,6 +97,19 @@ audio { width: 100%; margin: 8px 0; }
 }
 #greeting { margin: 4px 0 0; font-size: 1.4rem; color: var(--muted); }
 
+.whisper {
+  margin: 2px 0 0; font-family: "Caveat", cursive; font-size: 1.25rem; font-style: italic;
+  animation: whisper-in 4s ease-out both;
+  transition: opacity 4s ease-in;
+}
+.whisper a { color: #b9a98c; text-decoration: none; text-shadow: 0 0 12px rgba(200, 200, 255, 0.25); }
+.whisper a:hover { color: var(--marigold); }
+.whisper.fading { opacity: 0; }
+@keyframes whisper-in {
+  from { opacity: 0; letter-spacing: 0.12em; filter: blur(3px); }
+  to   { opacity: 0.85; letter-spacing: normal; filter: blur(0); }
+}
+
 /* Each new piece of text fades in like ink soaking into paper. */
 .ink { animation: ink-in 0.7s ease-out both; }
 @keyframes ink-in {
@@ -218,5 +231,5 @@ body.plain .writing { animation: none; }
 body.plain .ink { animation: none; }
 
 @media (prefers-reduced-motion: reduce) {
-  .ink, .writing, .flame, .candle.relit .flame, .candle:not(.lit) .flame::before, button.live { animation: none; }
+  .ink, .writing, .flame, .candle.relit .flame, .candle:not(.lit) .flame::before, button.live, .whisper { animation: none; }
 }

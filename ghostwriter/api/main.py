@@ -10,10 +10,11 @@ from contextlib import asynccontextmanager
 from dataclasses import asdict
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from ghostwriter import db, selfcheck
+from ghostwriter import db, selfcheck, whispers
 from ghostwriter.api import seance, stories
 from ghostwriter.config import settings
 
@@ -51,6 +52,13 @@ async def always_fresh_ui(request: Request, call_next):
 def health() -> list[dict]:
     """Which local services are available right now. The UI shows this."""
     return [asdict(check) for check in selfcheck.run_checks()]
+
+
+@app.get("/api/whisper")
+def whisper() -> Response:
+    """A line from an old, faded story, or 204 if the archive has nothing to whisper yet."""
+    found = whispers.pick()
+    return JSONResponse(found) if found else Response(status_code=204)
 
 
 @app.get("/api/settings")
