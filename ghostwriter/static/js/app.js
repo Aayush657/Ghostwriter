@@ -3,6 +3,7 @@
 import { $, el, localTime, present } from "./dom.js";
 import { api, streamEvents } from "./api.js";
 import { quill } from "./quill.js";
+import { micProblem, startRecording } from "./recorder.js";
 
 const IN_PROGRESS = ["queued", "transcribing", "thinking"];
 const AUDIO_TYPES = ".wav,.mp3,.m4a,.webm,.ogg";
@@ -21,12 +22,16 @@ const VOICE = {
     trouble: "The candle gutters. ",
     unwell: "Something in the walls is not well. The archive may only half wake:",
     give: "Give the ghost a story",
+    record: "Speak, and the ghost will listen",
+    stop: "Stop. Let the ghost keep it",
+    orUpload: "...or offer a recording you already have:",
     offer: "Offer it",
     archive: "The archive",
     reaction: "The Archivist writes",
     unfinished: "Unfinished business",
     unfinishedIntro: "You never told me...",
-    answer: "Answer",
+    answer: "Speak your answer",
+    answerFile: "or offer a file",
     answered: "answered",
     transcript: "The words as they were spoken",
     missing: "That memory was never given to me.",
@@ -47,12 +52,16 @@ const VOICE = {
     trouble: "Error: ",
     unwell: "Some local services are not available:",
     give: "Add a story",
+    record: "Record",
+    stop: "Stop and save",
+    orUpload: "Or upload an audio file:",
     offer: "Upload",
     archive: "Stories",
     reaction: "",
     unfinished: "Follow-up questions",
     unfinishedIntro: "",
     answer: "Record an answer",
+    answerFile: "or upload a file",
     answered: "answered",
     transcript: "Transcript",
     missing: "Story not found.",
@@ -197,7 +206,43 @@ function questionItem(q) {
   }
   const picker = el("input", { type: "file", accept: AUDIO_TYPES, hidden: true });
   picker.onchange = () => picker.files[0] && upload(picker.files[0], q.id);
-  return el("li", {}, q.text, " ", el("button", { textContent: voice().answer, onclick: () => picker.click() }), picker);
+  const speak = el("button", { textContent: voice().answer });
+  speak.onclick = () => toggleRecording(speak, q.id);
+  return el("li", {}, q.text, " ", speak, " ",
+    el("button", { className: "quiet", textContent: voice().answerFile, onclick: () => picker.click() }), picker);
+}
+
+// --------------------------------------------------------------------------- recording
+
+let recording = null; // the one recording in progress: { stop, button, label, timer, answersQuestionId }
+
+async function toggleRecording(button, answersQuestionId = null) {
+  button.parentElement.querySelector(".mic-error")?.remove();
+  if (recording) {
+    const { stop, button: active, label, timer, answersQuestionId: answering } = recording;
+    recording = null;
+    clearInterval(timer);
+    active.textContent = label;
+    active.classList.remove("live");
+    upload(await stop(), answering);
+    return;
+  }
+  try {
+    const session = await startRecording();
+    const label = button.textContent;
+    const started = Date.now();
+    const tick = () => {
+      const s = Math.floor((Date.now() - started) / 1000);
+      button.textContent = `${voice().stop} (${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")})`;
+    };
+    tick();
+    button.classList.add("live");
+    recording = { ...session, button, label, timer: setInterval(tick, 500), answersQuestionId };
+  } catch (err) {
+    const problem = micProblem(err);
+    button.after(el("p", { className: "error mic-error",
+      textContent: plain ? problem.fix : `${problem.ghost} ${problem.fix}` }));
+  }
 }
 
 function renderStory(s) {
@@ -307,6 +352,7 @@ async function start() {
     const question = event.target.question.value.trim();
     if (question) askSeance(question);
   });
+  $("#record-button").addEventListener("click", (event) => toggleRecording(event.currentTarget));
   $("#upload-form").addEventListener("submit", (event) => {
     event.preventDefault();
     const file = event.target.file.files[0];

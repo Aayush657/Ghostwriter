@@ -70,6 +70,9 @@ button {
 }
 button:hover, button:focus-visible { background: var(--marigold); color: var(--bg); }
 button:disabled { opacity: 0.5; cursor: wait; }
+button.quiet { border-color: transparent; color: var(--muted); font-size: 0.85rem; text-decoration: underline; }
+button.record { font-size: 1.1rem; padding: 8px 20px; }
+button.live { background: var(--bad); border-color: var(--bad); color: var(--text); animation: flicker 1.6s infinite; }
 
 #story-list { list-style: none; padding: 0; margin: 0; }
 #story-list li { padding: 8px 0; border-bottom: 1px solid var(--line); }
