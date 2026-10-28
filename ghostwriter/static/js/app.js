@@ -39,6 +39,8 @@ const VOICE = {
     answered: "answered",
     transcript: "The words as they were spoken",
     missing: "That memory was never given to me.",
+    back: "← back to the candle wall",
+    patience: "First the ghost listens, then it reads. It takes roughly a minute for every minute you spoke.",
     status: { queued: "waiting its turn...", transcribing: "the ghost is listening...",
               thinking: "the ghost is reading...", failed: "the ink ran dry" },
     tryAgain: "Try again",
@@ -73,6 +75,8 @@ const VOICE = {
     answered: "answered",
     transcript: "Transcript",
     missing: "Story not found.",
+    back: "← all stories",
+    patience: "Transcribing with Whisper, then analysing with Gemma: roughly a minute per minute of audio.",
     status: { queued: "queued", transcribing: "transcribing...", thinking: "analysing...", failed: "failed" },
     tryAgain: "Retry",
     offering: "Uploading...",
@@ -361,7 +365,9 @@ function renderStory(s) {
   const e = s.entities || {};
   const v = voice();
   return present([
+    el("a", { href: "#/", className: "meta", textContent: v.back }),
     el("h2", { textContent: statusText(s) }),
+    IN_PROGRESS.includes(s.status) && el("p", { className: "status", textContent: v.patience }),
     Boolean(s.is_sample) && el("p", { className: "meta", textContent: "A fictional sample story, written for the demo." }),
     s.answers && el("p", { className: "meta" }, "An answer to: ",
       el("a", { href: `#/story/${s.answers.story_id}`, textContent: s.answers.text })),
@@ -433,6 +439,7 @@ async function refresh(force = false) {
   const stories = await loadStories();
   const id = Number(location.hash.match(/^#\/story\/(\d+)$/)?.[1]) || null;
   if (id === null) {
+    if (shown.id !== null) window.scrollTo({ top: 0, behavior: "smooth" });
     $("#story").hidden = true;
     shown = { id: null, status: null };
   } else if (force || id !== shown.id || IN_PROGRESS.includes(shown.status)) {

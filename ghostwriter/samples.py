@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import sys
+from datetime import datetime, timedelta, timezone
 
 from ghostwriter import db, pipeline
 from ghostwriter.config import PROJECT_ROOT, settings
@@ -28,6 +29,9 @@ def seed() -> list[int]:
         story_id = db.create_story(is_sample=True)
         db.update_story(story_id, transcript=sample["transcript"], language=sample["language"])
         pipeline.process_story(story_id)
+        # Pretend some samples were last opened weeks ago, so the candle wall shows fading.
+        visited = datetime.now(timezone.utc) - timedelta(days=sample.get("days_unvisited", 0))
+        db.update_story(story_id, last_visited_at=visited.strftime("%Y-%m-%d %H:%M:%S"))
         story = db.get_story(story_id)
         print(f"  [{story['status']}] {sample['key']}: {story['title'] or story['error']}")
         ids.append(story_id)

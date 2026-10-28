@@ -1,4 +1,4 @@
-# Ghostwriter
+# Ghostwriter: the ghost that keeps your stories
 
 > A ghost lives in your laptop. Tell it your stories and it writes them down,
 > keeps them, and haunts you with them later.

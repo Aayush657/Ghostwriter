@@ -95,6 +95,7 @@ audio { width: 100%; margin: 8px 0; }
   color: var(--ink);
   text-shadow: 0 0 10px rgba(242, 163, 58, 0.18);
 }
+.tagline { margin: 0; font-family: "IM Fell English", Georgia, serif; font-style: italic; color: var(--muted); }
 #greeting { margin: 4px 0 0; font-size: 1.4rem; color: var(--muted); }
 
 .whisper {
