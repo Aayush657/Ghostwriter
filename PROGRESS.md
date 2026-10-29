@@ -24,6 +24,15 @@ _Last updated: Thu Oct 29, 2026_
     asks for the project to be "live" on the domain, and the app itself can't run on a server.
     `python -m ghostwriter.export <file>` CLI; it refuses to write real stories into `docs/` (tested).
     Checked in the browser pane: 4 stories, fonts load, zero network requests, no overflow at 375 px.
+  - Oct 29: **spooky redesign** (user asked: dark blue, black, orange, white; Halloween-site inspired).
+    App and landing page: moonlit sky, twinkling stars, drifting clouds, 3 flapping bats, fog, haunted
+    house/graveyard/jack-o'-lantern skyline (inline SVG), bobbing ghost mascot ("Boo!" on click),
+    orange/white twinkling string lights, cobweb + dangling spider, crystal ball that swirls faster
+    during a Seance, gravestone "Unfinished business", campfire glow behind retellings, lantern glow
+    following the mouse, staggered entrance animations. Checked in the browser pane: desktop and
+    375 px (no overflow), plain mode hides all decoration, zero external requests, no console errors,
+    a real Seance answer renders. **Not checked:** prefers-reduced-motion (CSS only, not emulated) and
+    real frame rate while Gemma runs.
     **User TODOs in `docs/index.html`**: `YOUR_GITHUB_REPO_URL` (x2) and the demo-video box.
 - **Stage 6: DONE (drafts).** README complete (quick start **verified on a fresh clone**: setup.ps1 OK in
   43 s, 47 tests pass + 1 skipped without Piper). DEMO_SCRIPT.md (2:00 + 1:30 cut). POST_DRAFT.md in the
@@ -70,8 +79,9 @@ _Last updated: Thu Oct 29, 2026_
 
 - **Oct 29, Gemma failed to load: out of memory.** Seance returned Ollama's raw error ("unable to
   allocate CPU_REPACK buffer" of 1.5 GB). Free RAM was 3.4 of 15.7 GB (Chrome ~2.1 GB, Claude ~1.8 GB,
-  Ollama app ~1.7 GB). Not a code bug. Fix: close programs before using or demoing; the app should
-  say so in plain words instead of showing the raw error (being fixed).
+  Ollama app ~1.7 GB). Not a code bug. Fix: close programs before using or demoing. The app now says
+  so in plain words ("Gemma couldn't fit in memory right now. Close some programs...", tested). A
+  retry a few minutes later loaded Gemma and answered normally.
 
 - **winget downloads fail** here (`InternetOpenUrl() failed 0x80072eff`). Workaround: curl.exe + SHA256
   from `winget show` + run the installer. GitHub raw/API also resets or rate-limits sometimes; use

@@ -133,7 +133,24 @@ Piper. The same checks run at startup, on the command line and behind `/api/heal
 shows a banner with a plain fix for anything required that's missing ("Run: ollama pull gemma4:e4b").
 Errors from Ollama are translated into actionable messages instead of stack traces.
 
-## 14. Small choices worth knowing
+## 14. The look: a moonlit night
+
+Dark blue sky, black silhouettes, pumpkin orange and white, inspired by how Halloween shops and
+sites dress their pages (smoky orange glows, moonlit skies, bats, fog, haunted houses). Everything is
+drawn with CSS and inline SVG, so there are no image files and nothing to download: the stars are
+repeated radial gradients, the moon is layered gradients, the skyline is one hand-written SVG, the bats
+are one SVG symbol reused three times. The animations move only `transform` and `opacity`, which the
+browser can hand to the graphics chip, because the CPU is busy running Gemma.
+
+Two small touches use modern CSS instead of JavaScript: the crystal ball swirls faster while the
+Seance button is disabled or the ghost is writing (`#seance:has(.writing)`), and the retelling's
+campfire glow is attached with `section:has(> .retelling)`. The only new JavaScript moves the
+visitor's lantern glow and makes the ghost say "Boo!" when poked.
+
+The night is decoration only (`aria-hidden`). Plain mode hides it, and `prefers-reduced-motion`
+settles every animation into its final, still state.
+
+## 15. Small choices worth knowing
 
 - **Config** lives in one pydantic-settings class (`config.py`), read from `.env` with the `GW_`
   prefix. Relative paths are resolved against the project folder, not the current directory.

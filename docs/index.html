@@ -11,46 +11,61 @@
     @font-face { font-family: "Caveat"; src: url("fonts/Caveat.ttf") format("truetype"); font-weight: 400 700; font-display: swap; }
     @font-face { font-family: "IM Fell English"; src: url("fonts/IMFellEnglish-Regular.ttf") format("truetype"); font-display: swap; }
 
+    /* A moonlit night: dark blue, black, pumpkin orange and white. */
     :root {
-      --bg: #0e0c10; --panel: #17141b; --line: #2a2530;
-      --text: #e9e1d4; --muted: #a39887; --ink: #efe3c8; --marigold: #f2a33a;
+      color-scheme: dark;
+      --bg: #03050b; --panel: rgba(8, 17, 42, 0.94); --line: rgba(130, 160, 230, 0.18);
+      --text: #f4f6fb; --muted: #a9b6d6; --ink: #ffffff; --orange: #ff7a18; --orange-soft: #ffa24a;
+      --glow: rgba(255, 122, 24, 0.55);
+      scrollbar-color: var(--orange) var(--bg);
     }
     * { box-sizing: border-box; }
+    ::selection { background: var(--orange); color: var(--bg); }
     body {
-      margin: 0; color: var(--text);
-      background: radial-gradient(ellipse at top, #1d1722 0%, var(--bg) 55%) fixed, var(--bg);
+      margin: 0; color: var(--text); overflow-x: hidden;
+      background: linear-gradient(180deg, #10224f 0%, #0a1633 30%, #050b1c 70%, var(--bg) 100%) fixed var(--bg);
       font: 17px/1.65 Georgia, "Times New Roman", serif;
     }
-    main, footer { max-width: 900px; margin: 0 auto; padding: 0 16px; }
+    main, footer { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 0 16px; }
     h1, h2, h3 { font-family: "IM Fell English", Georgia, serif; font-weight: normal; }
-    h2 { color: var(--marigold); font-size: 1.9rem; margin: 64px 0 8px; }
-    h3 { color: var(--ink); font-size: 1.25rem; margin: 0 0 4px; }
-    a { color: var(--marigold); }
+    h2 { color: var(--ink); font-size: 1.9rem; margin: 64px 0 12px; text-shadow: 0 0 18px rgba(255, 122, 24, 0.3); }
+    h2::after { content: ""; display: block; width: 56px; height: 3px; margin-top: 4px; border-radius: 3px; background: linear-gradient(90deg, var(--orange), transparent); }
+    h3 { color: var(--orange-soft); font-size: 1.25rem; margin: 0 0 4px; }
+    a { color: var(--orange-soft); }
     .hand { font-family: "Caveat", "Segoe Print", cursive; color: var(--ink); }
 
     /* ---------- hero ---------- */
-    .hero { text-align: center; padding: 72px 0 24px; }
-    .hero h1 { margin: 0; font-size: clamp(2.8rem, 9vw, 4.6rem); color: var(--marigold); letter-spacing: 0.02em; }
+    .hero { text-align: center; padding: 64px 0 24px; animation: rise 0.9s ease-out both; }
+    .ghost { width: 74px; height: 92px; margin: 0 auto 8px; animation: bob 3.4s ease-in-out infinite; }
+    .ghost svg { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.5)); }
+    .ghost .sheet { fill: #f6f8ff; }
+    .ghost .eyes, .ghost .mouth { fill: #0a1633; }
+    .ghost .eyes { transform-box: fill-box; transform-origin: center; animation: blink 5s infinite; }
+    .hero h1 {
+      margin: 0; font-size: clamp(2.8rem, 9vw, 4.6rem); color: var(--orange); letter-spacing: 0.02em;
+      text-shadow: 0 0 16px var(--glow), 0 0 48px rgba(255, 122, 24, 0.35); animation: sign-flicker 9s infinite;
+    }
     .hero .subtitle { margin: 0; font-family: "IM Fell English", Georgia, serif; font-style: italic; color: var(--muted); font-size: 1.25rem; }
     .hero .pitch { max-width: 620px; margin: 28px auto; font-size: 1.15rem; }
-    .hero .whisper { font-size: 1.6rem; margin: 8px 0 0; text-shadow: 0 0 12px rgba(242, 163, 58, 0.2); }
+    .hero .whisper { font-size: 1.7rem; margin: 8px 0 0; text-shadow: 0 0 14px rgba(255, 122, 24, 0.4); }
     .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 28px; }
     .button {
-      display: inline-block; padding: 10px 22px; border: 1px solid var(--marigold); border-radius: 4px;
-      text-decoration: none; font-size: 1.05rem;
+      display: inline-block; padding: 10px 24px; border: 1px solid var(--orange); border-radius: 999px;
+      text-decoration: none; font-size: 1.05rem; transition: transform 0.15s, box-shadow 0.2s;
     }
-    .button.primary { background: var(--marigold); color: var(--bg); }
+    .button:hover, .button:focus-visible { box-shadow: 0 0 22px var(--glow); transform: translateY(-1px) rotate(-1.5deg); }
+    .button.primary { background: var(--orange); color: var(--bg); }
 
     /* ---------- three candles ---------- */
     .candles { display: flex; justify-content: center; align-items: flex-end; gap: 36px; margin: 40px 0 0; }
     .candle { display: flex; flex-direction: column; align-items: center; }
     .flame {
       width: 16px; height: 34px; border-radius: 50% 50% 45% 45% / 65% 65% 35% 35%;
-      background: radial-gradient(ellipse at 50% 78%, #fffbe8 0 12%, #ffd77d 30%, var(--marigold) 58%, rgba(230, 90, 20, 0) 76%);
+      background: radial-gradient(ellipse at 50% 78%, #fffbe8 0 12%, #ffd77d 30%, var(--orange) 58%, rgba(230, 90, 20, 0) 76%);
       filter: drop-shadow(0 0 12px rgba(242, 163, 58, 0.9)); transform-origin: 50% 100%;
       animation: dance 2.4s ease-in-out infinite alternate;
     }
-    .wax { width: 34px; border-radius: 5px 5px 2px 2px; background: linear-gradient(90deg, #cdbf9f, #f4ecd9 45%, #c4b593); }
+    .wax { width: 34px; border-radius: 5px 5px 2px 2px; background: linear-gradient(90deg, #cfd3dd, #ffffff 45%, #c3c8d4); box-shadow: 0 -6px 40px 8px rgba(255, 122, 24, 0.25); }
     .candle:nth-child(1) .wax { height: 60px; }
     .candle:nth-child(2) .wax { height: 84px; }
     .candle:nth-child(3) .wax { height: 48px; filter: brightness(0.6); }
@@ -61,8 +76,12 @@
 
     /* ---------- sections ---------- */
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
-    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 18px 20px; }
-    .card p { margin: 0; color: #d6cdbf; }
+    .card {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px;
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45); transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+    }
+    .card:hover { transform: translateY(-4px); border-color: rgba(255, 122, 24, 0.45); box-shadow: 0 0 30px rgba(255, 122, 24, 0.15), 0 14px 40px rgba(0, 0, 0, 0.45); }
+    .card p { margin: 0; color: #d4dbec; }
     .quote { font-size: 1.35rem; margin: 10px 0 0; }
 
     .todo {
@@ -74,7 +93,7 @@
 
     .pipeline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; list-style: none; padding: 0; }
     .pipeline li { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; font-size: 0.95rem; }
-    .pipeline li strong { color: var(--marigold); font-weight: normal; display: block; font-family: "IM Fell English", Georgia, serif; font-size: 1.05rem; }
+    .pipeline li strong { color: var(--orange); font-weight: normal; display: block; font-family: "IM Fell English", Georgia, serif; font-size: 1.05rem; }
     .pipeline .arrow { background: none; border: 0; padding: 0; color: var(--muted); }
 
     table { width: 100%; border-collapse: collapse; font-size: 0.98rem; }
@@ -84,15 +103,141 @@
     pre { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; overflow-x: auto; font-size: 0.9rem; }
     code { font-family: Consolas, "Courier New", monospace; }
 
-    footer { margin-top: 72px; padding: 24px 16px 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.9rem; }
+    footer { margin-top: 72px; padding: 24px 16px 230px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.9rem; }
 
-    @media (prefers-reduced-motion: reduce) { .flame { animation: none; } }
+    /* ---------- the night outside (decoration only) ---------- */
+    .scene { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+    .stars {
+      position: absolute; inset: 0 0 30% 0; opacity: 0.7; background-size: 240px 240px;
+      background-image: radial-gradient(1px 1px at 20px 30px, #fff, transparent), radial-gradient(1px 1px at 90px 120px, #dfe8ff, transparent),
+        radial-gradient(1.5px 1.5px at 160px 60px, #fff, transparent), radial-gradient(1px 1px at 210px 170px, #fff, transparent),
+        radial-gradient(1px 1px at 60px 200px, #cfdcff, transparent);
+    }
+    .stars.twinkle { background-size: 330px 330px; background-position: 70px 40px; animation: twinkle 3.5s ease-in-out infinite alternate; }
+    .moon {
+      position: absolute; top: 56px; right: max(16px, 7vw); width: 104px; height: 104px; border-radius: 50%;
+      background: radial-gradient(circle at 64% 40%, rgba(150, 165, 200, 0.45) 0 7%, transparent 8%),
+        radial-gradient(circle at 38% 66%, rgba(150, 165, 200, 0.35) 0 10%, transparent 11%),
+        radial-gradient(circle at 30% 32%, rgba(150, 165, 200, 0.3) 0 5%, transparent 6%),
+        radial-gradient(circle at 40% 38%, #ffffff, #eef2fc 50%, #c9d3ec 100%);
+      box-shadow: 0 0 50px 12px rgba(220, 230, 255, 0.28), 0 0 160px 60px rgba(110, 145, 255, 0.14);
+    }
+    .cloud { position: absolute; top: 90px; width: 340px; height: 60px; border-radius: 50%; background: radial-gradient(ellipse at center, rgba(28, 44, 90, 0.85), rgba(28, 44, 90, 0) 70%); animation: drift 70s linear infinite; }
+    .cloud.c2 { top: 150px; width: 260px; animation-duration: 95s; animation-delay: -40s; }
+    .bat { position: absolute; left: 0; width: 34px; height: 17px; opacity: 0; fill: #04060c; animation: fly 22s linear infinite; }
+    .bat svg { display: block; width: 100%; height: 100%; animation: flap 0.28s ease-in-out infinite alternate; }
+    .bat.b1 { top: 12vh; }
+    .bat.b2 { top: 22vh; width: 26px; animation-duration: 29s; animation-delay: -9s; }
+    .bat.b3 { top: 7vh; width: 22px; animation-duration: 37s; animation-delay: -21s; }
+    .horizon { position: absolute; left: 0; right: 0; bottom: 0; height: 45vh; background: radial-gradient(ellipse 70% 80% at 60% 100%, rgba(70, 105, 200, 0.42), rgba(40, 65, 140, 0.15) 50%, transparent 75%); }
+    .skyline { position: absolute; left: 0; bottom: 0; width: 100%; height: clamp(120px, 22vh, 220px); }
+    .skyline .land { fill: #02040a; }
+    .skyline .trees { fill: none; stroke: #02040a; stroke-width: 3.5; stroke-linecap: round; }
+    .skyline .trees .trunk { stroke-width: 8; }
+    .skyline .trees .twig { stroke-width: 2; }
+    .skyline .windows { fill: var(--orange); filter: drop-shadow(0 0 6px rgba(255, 122, 24, 0.9)); }
+    .skyline .windows .late { animation: lamp 11s steps(1) infinite; }
+    .skyline .jack ellipse { fill: var(--orange); }
+    .skyline .jack .face { fill: #2a0e00; }
+    .skyline .jack .stem { fill: #02040a; }
+    .skyline .jack { filter: drop-shadow(0 0 8px rgba(255, 122, 24, 0.85)); animation: flicker 2.2s infinite; }
+    .fog {
+      position: absolute; left: 0; bottom: 0; width: 200%; height: 34vh; background-size: 50% 100%; animation: roll 48s linear infinite;
+      background-image: radial-gradient(ellipse 22% 60% at 25% 85%, rgba(200, 215, 255, 0.11), transparent 70%),
+        radial-gradient(ellipse 18% 45% at 70% 95%, rgba(200, 215, 255, 0.09), transparent 70%);
+    }
+    .fog.f2 { height: 24vh; opacity: 0.8; animation-duration: 70s; animation-direction: reverse; }
+
+    @keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+    @keyframes bob { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-9px) rotate(2deg); } }
+    @keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
+    @keyframes sign-flicker { 0%, 88%, 92%, 100% { opacity: 1; } 89% { opacity: 0.45; } 90% { opacity: 1; } 91% { opacity: 0.65; } }
+    @keyframes twinkle { from { opacity: 0.45; } to { opacity: 1; } }
+    @keyframes flicker { 0%, 100% { opacity: 1; } 42% { opacity: 0.93; } 46% { opacity: 0.82; } 50% { opacity: 0.96; } }
+    @keyframes drift { from { transform: translateX(-400px); } to { transform: translateX(110vw); } }
+    @keyframes fly {
+      0% { opacity: 1; transform: translate(-60px, 0); } 20% { transform: translate(18vw, -5vh); } 40% { transform: translate(40vw, 6vh); }
+      60% { transform: translate(62vw, -3vh); } 80% { transform: translate(84vw, 5vh); }
+      99% { opacity: 1; transform: translate(calc(100vw + 60px), -2vh); } 100% { opacity: 0; transform: translate(calc(100vw + 60px), -2vh); }
+    }
+    @keyframes flap { from { transform: scaleY(1); } to { transform: scaleY(0.35); } }
+    @keyframes lamp { 0%, 60% { opacity: 1; } 61%, 80% { opacity: 0.15; } 81% { opacity: 1; } }
+    @keyframes roll { to { transform: translateX(-50%); } }
+
+    @media (max-width: 600px) { .moon { top: 18px; width: 58px; height: 58px; } }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; animation-delay: 0s !important; transition-duration: 0.01ms !important; }
+      .bat, .cloud { display: none; }
+    }
   </style>
 </head>
 <body>
+<div class="scene" aria-hidden="true">
+  <svg width="0" height="0" style="position: absolute">
+    <symbol id="bat" viewBox="0 0 100 50">
+      <path d="M50 14 L53 9 L54 17 Q70 8 98 10 Q90 16 90 26 Q83 21 77 26 Q70 22 64 31 Q58 28 52 34 L50 38 L48 34 Q42 28 36 31 Q30 22 23 26 Q17 21 10 26 Q10 16 2 10 Q30 8 46 17 L47 9 Z"/>
+    </symbol>
+  </svg>
+  <div class="stars"></div>
+  <div class="stars twinkle"></div>
+  <div class="moon"></div>
+  <div class="cloud"></div>
+  <div class="cloud c2"></div>
+  <span class="bat b1"><svg><use href="#bat"/></svg></span>
+  <span class="bat b2"><svg><use href="#bat"/></svg></span>
+  <span class="bat b3"><svg><use href="#bat"/></svg></span>
+  <div class="horizon"></div>
+  <svg class="skyline" viewBox="0 0 1440 220" preserveAspectRatio="xMidYMax slice">
+    <g class="land">
+      <path d="M0 220 V178 Q120 160 260 170 T520 168 Q640 160 760 166 Q860 122 1000 128 Q1140 136 1220 160 Q1330 172 1440 166 V220 Z"/>
+      <rect x="890" y="78" width="110" height="80"/>
+      <polygon points="880,80 945,36 1010,80"/>
+      <rect x="858" y="58" width="36" height="100"/>
+      <polygon points="852,60 876,8 900,60"/>
+      <rect x="996" y="92" width="30" height="66"/>
+      <polygon points="990,94 1011,66 1032,94"/>
+      <rect x="968" y="44" width="10" height="24"/>
+      <path d="M470 180 V152 A12 12 0 0 1 494 152 V180 Z"/>
+      <path d="M530 180 V146 A15 15 0 0 1 560 146 V180 Z"/>
+      <rect x="600" y="140" width="6" height="40"/>
+      <rect x="592" y="150" width="22" height="6"/>
+      <path d="M690 180 V156 A10 10 0 0 1 710 156 V180 Z" transform="rotate(-8 700 180)"/>
+      <path d="M760 180 V150 Q772 138 784 150 V180 Z"/>
+    </g>
+    <g class="trees">
+      <path class="trunk" d="M150 180 C152 150 146 132 150 110 C153 94 148 80 152 64"/>
+      <path d="M150 120 C136 110 124 104 106 100 C98 98 92 92 88 84 M151 104 C164 96 176 94 190 82 C196 76 198 70 200 62 M152 84 C142 76 136 70 132 58 M149 140 C164 136 178 138 192 130"/>
+      <path class="twig" d="M106 100 C100 108 96 112 88 114 M190 82 C198 86 206 86 214 84 M132 58 C128 52 126 46 128 40 M152 64 C158 56 160 50 158 42"/>
+      <path class="trunk" d="M1300 178 C1298 150 1306 130 1300 108 C1296 92 1302 80 1298 66"/>
+      <path d="M1300 118 C1316 108 1330 104 1348 100 M1299 100 C1286 92 1274 90 1262 78 M1298 82 C1308 74 1314 68 1318 56"/>
+      <path class="twig" d="M1348 100 C1356 106 1362 110 1370 110 M1262 78 C1256 72 1254 66 1256 58 M1318 56 C1324 50 1326 44 1324 38"/>
+    </g>
+    <g class="windows">
+      <rect x="869" y="74" width="14" height="18" rx="7"/>
+      <rect class="late" x="905" y="96" width="16" height="20"/>
+      <rect x="965" y="96" width="16" height="20"/>
+      <circle cx="945" cy="62" r="7"/>
+      <rect class="late" x="1004" y="104" width="12" height="14"/>
+    </g>
+    <g class="jack" transform="translate(648 166) scale(1.6)">
+      <ellipse rx="15" ry="11"/>
+      <path class="face" d="M-9 -2 l4 -5 l4 5 z M1 -2 l4 -5 l4 5 z M-9 3 q9 7 18 0 l-3 0 l-1.5 2 l-1.5 -2 l-3 0 l-1.5 2 l-1.5 -2 z"/>
+      <rect class="stem" x="-2" y="-15" width="4" height="5" rx="1"/>
+    </g>
+  </svg>
+  <div class="fog"></div>
+  <div class="fog f2"></div>
+</div>
 <main>
 
   <section class="hero">
+    <div class="ghost" aria-hidden="true">
+      <svg viewBox="0 0 40 50">
+        <path class="sheet" d="M20 3 C9 3 4 12 4 24 V47 l5 -4 l5 4 l6 -4 l6 4 l5 -4 l5 4 V24 C36 12 31 3 20 3 z"/>
+        <g class="eyes"><ellipse cx="14.5" cy="21" rx="2.6" ry="3.6"/><ellipse cx="25.5" cy="21" rx="2.6" ry="3.6"/></g>
+        <ellipse class="mouth" cx="20" cy="30" rx="2.4" ry="3"/>
+      </svg>
+    </div>
     <h1>Ghostwriter</h1>
     <p class="subtitle">The ghost that keeps your stories.</p>
     <p class="pitch">
@@ -149,7 +294,7 @@
     </div>
     <div class="card">
       <h3>It lights a candle for each memory</h3>
-      <p>Your stories stand as candles on a wall strung with marigolds. The ones you haven't visited in a while burn low. Open one, and it flares back to life.</p>
+      <p>Your stories stand as candles on a wall strung with orange and white lights. The ones you haven't visited in a while burn low. Open one, and it flares back to life.</p>
     </div>
     <div class="card">
       <h3>It speaks, and it retells</h3>

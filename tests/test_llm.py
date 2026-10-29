@@ -2,6 +2,7 @@
 
 import json
 
+import httpx
 import pytest
 
 from ghostwriter import llm
@@ -39,6 +40,13 @@ def test_two_bad_replies_raise_a_friendly_error(monkeypatch):
     fake_replies(monkeypatch, ["not json", "{still not json"])
     with pytest.raises(llm.LLMError, match="couldn't make sense"):
         llm.analyse_story("a story")
+
+
+def test_out_of_memory_says_what_to_do(monkeypatch):
+    error = '{"error":"llama-server startup failed: unable to allocate CPU_REPACK buffer"}'
+    monkeypatch.setattr(llm.httpx, "post", lambda *args, **kwargs: httpx.Response(500, text=error))
+    with pytest.raises(llm.LLMError, match="Close some programs"):
+        llm.chat([{"role": "user", "content": "hello"}])
 
 
 def test_ollama_down_gives_a_plain_fix(monkeypatch):

@@ -29,7 +29,9 @@ _Screenshots and a demo video: [PLACEHOLDER]_
   *"That memory was never given to me."*
 - **Ghost handwriting.** Gemma's words stream to the page as they are generated and fade in like ink,
   in a handwriting font.
-- **Candle wall.** Every story is a candle on a wall strung with marigolds. Candles burn low when a
+- **Candle wall.** Every story is a candle on a wall strung with orange and white lights, under a
+  moonlit sky with bats, fog and a haunted house (decoration only; plain mode hides it, and it holds
+  still for reduced motion). Candles burn low when a
   story goes unvisited, and relight when you open it. Filter by person, place or era.
 - **Whispers.** On launch the ghost sometimes murmurs a line from one of your most faded stories.
 - **Ghost voice.** The Archivist can speak, using Piper text-to-speech with ffmpeg effects (lower
@@ -174,7 +176,7 @@ default) are documented there, with the prefix `GW_`.
 ## Development
 
 ```powershell
-.venv\Scripts\python.exe -m pytest                        # 49 tests; Gemma and Whisper are faked
+.venv\Scripts\python.exe -m pytest                        # 50 tests; Gemma and Whisper are faked
 .venv\Scripts\python.exe -m ghostwriter.transcribe a.wav  # Whisper timing on one file
 .venv\Scripts\python.exe -m ghostwriter.tts "Hello"       # the ghost voice on one line
 ```

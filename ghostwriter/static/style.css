@@ -474,7 +474,7 @@ section:has(> .retelling)::after {
 
 @media (max-width: 600px) {
   section, article { padding: 6px 16px 16px; }
-  .moon { top: 18px; width: 58px; height: 58px; }
+  .moon { top: 14px; right: 10px; width: 48px; height: 48px; }
   .mascot { width: 48px; height: 60px; }
   .web { transform: scale(0.75); transform-origin: top right; }
   .book-link { display: block; margin: 6px 0 0; }

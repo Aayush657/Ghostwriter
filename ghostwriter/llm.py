@@ -49,11 +49,18 @@ def _friendly_errors() -> Iterator[None]:
                        "(set GW_LLM_MODEL=gemma4:e2b in .env).") from None
 
 
+def _ollama_error(detail: str) -> LLMError:
+    if "allocate" in detail:  # Ollama couldn't find enough free RAM to load the model
+        return LLMError("Gemma couldn't fit in memory right now. Close some programs (browser tabs, games) and "
+                        "try again, or use the smaller model: set GW_LLM_MODEL=gemma4:e2b in .env.")
+    return LLMError(f"Ollama returned an error: {detail[:300]}")
+
+
 def _check(resp: httpx.Response) -> None:
     if resp.status_code == 404:
         raise LLMError(f"The model {settings.llm_model} isn't downloaded. Run: ollama pull {settings.llm_model}")
     if resp.is_error:
-        raise LLMError(f"Ollama returned an error: {resp.read().decode(errors='replace')[:300]}")
+        raise _ollama_error(resp.read().decode(errors="replace"))
 
 
 def _log_speed(data: dict) -> None:
@@ -85,7 +92,7 @@ def stream_chat(messages: list[dict], *, temperature: float = 0.7) -> Iterator[s
                 continue
             chunk = json.loads(line)
             if "error" in chunk:
-                raise LLMError(f"Ollama returned an error: {chunk['error']}")
+                raise _ollama_error(chunk["error"])
             if piece := chunk.get("message", {}).get("content"):
                 yield piece
             if chunk.get("done"):
