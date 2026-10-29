@@ -8,6 +8,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
+# faster-whisper sizes, smallest and fastest first. scripts\setup.ps1 downloads the one in .env.
+WHISPER_SIZES = ("tiny", "base", "small", "medium", "large-v3-turbo", "large-v3")
+
+
 class Settings(BaseSettings):
     """All tunable values in one place. See .env.example for documentation."""
 
@@ -19,12 +23,17 @@ class Settings(BaseSettings):
     models_dir: Path = PROJECT_ROOT / "models"
 
     ffmpeg_bin: str = "ffmpeg"  # a full path works too, if ffmpeg isn't on PATH
+    ffprobe_bin: str = ""  # empty: the ffprobe next to ffmpeg (every ffmpeg build ships both)
+    max_audio_minutes: int = 30  # longer recordings are refused before anything is saved
 
     ollama_url: str = "http://127.0.0.1:11434"
     llm_model: str = "gemma4:e4b"
     llm_num_ctx: int = 8192  # Ollama's smaller default would silently cut long transcripts
+    # Optional: lets the Seance find stories by meaning ("a good cook" finds the kadhi story).
+    # Without it the Seance still works, by keywords only.
+    embed_model: str = "embeddinggemma:300m-qat-q8_0"
 
-    whisper_model: str = "small"
+    whisper_model: str = "small"  # one of WHISPER_SIZES; bigger hears names better but is slower
     whisper_compute_type: str = "int8"
     whisper_language: str = ""  # e.g. "hi" to force Hindi; empty means auto-detect
 
@@ -33,6 +42,13 @@ class Settings(BaseSettings):
     piper_voice: str = "en_GB-northern_english_male-medium"  # file name in models/piper/
 
     plain_mode_default: bool = False
+
+    @field_validator("whisper_model")
+    @classmethod
+    def _known_whisper_size(cls, size: str) -> str:
+        if size not in WHISPER_SIZES:
+            raise ValueError(f"GW_WHISPER_MODEL must be one of: {', '.join(WHISPER_SIZES)}")
+        return size
 
     @field_validator("data_dir", "models_dir")
     @classmethod
@@ -43,6 +59,13 @@ class Settings(BaseSettings):
     @property
     def db_path(self) -> Path:
         return self.data_dir / "ghostwriter.db"
+
+    @property
+    def ffprobe(self) -> str:
+        if self.ffprobe_bin:
+            return self.ffprobe_bin
+        ffmpeg = Path(self.ffmpeg_bin)
+        return str(ffmpeg.with_name(ffmpeg.name.replace("ffmpeg", "ffprobe"))) if ffmpeg.parent != Path() else "ffprobe"
 
     @property
     def whisper_path(self) -> Path:

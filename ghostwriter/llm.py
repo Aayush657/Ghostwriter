@@ -12,7 +12,7 @@ from pydantic import ValidationError
 
 from ghostwriter import prompts, tags
 from ghostwriter.config import settings
-from ghostwriter.models import StoryAnalysis
+from ghostwriter.models import META_TEXT, StoryAnalysis
 
 log = logging.getLogger(__name__)
 
@@ -26,6 +26,13 @@ class LLMError(Exception):
     """Gemma couldn't be reached or gave no usable answer. The message is safe to show the user."""
 
 
+class UnclearStory(Exception):
+    """Gemma could only describe the words themselves ("the transcript is garbled"), not a memory."""
+
+
+SEED = 7  # with temperature 0, re-reading the same words gives the same title, mood and tags
+
+
 def _body(messages: list[dict], *, stream: bool, temperature: float, schema: dict | None = None) -> dict:
     body = {
         "model": settings.llm_model,
@@ -33,7 +40,7 @@ def _body(messages: list[dict], *, stream: bool, temperature: float, schema: dic
         "stream": stream,
         "think": False,  # Gemma 4 can reason before answering; we want direct, faster replies
         "keep_alive": KEEP_ALIVE,
-        "options": {"temperature": temperature, "num_ctx": settings.llm_num_ctx},
+        "options": {"temperature": temperature, "num_ctx": settings.llm_num_ctx, "seed": SEED},
     }
     if schema is not None:
         body["format"] = schema
@@ -113,58 +120,75 @@ def stream_chat(messages: list[dict], *, temperature: float = 0.7) -> Iterator[s
                 _log_speed(chunk)
 
 
-def analyse_story(transcript: str, answering: str | None = None) -> StoryAnalysis:
-    """Ask Gemma for a story's title, summary, entities and follow-up questions, as validated JSON.
-
-    If the first reply doesn't validate, Gemma gets exactly one chance to repair it.
-    """
-    schema = StoryAnalysis.model_json_schema()
-    messages = [
-        {"role": "system", "content": prompts.ANALYSE_SYSTEM},
+def _messages(transcript: str, answering: dict | None) -> list[dict]:
+    return [
+        {"role": "system", "content": prompts.analyse_system(answering)},
         {"role": "user", "content": prompts.analyse_user(transcript, answering)},
     ]
-    reply = chat(messages, schema=schema, temperature=0.2)
+
+
+def _validated(reply: str, answering: dict | None) -> StoryAnalysis:
+    analysis = tags.clean(StoryAnalysis.model_validate_json(reply))
+    if answering:  # an answer completes an earlier memory; it opens no new questions
+        analysis.unfinished_business = []
+    return analysis
+
+
+def analyse_story(transcript: str, answering: dict | None = None) -> StoryAnalysis:
+    """Ask Gemma for a story's title, summary, entities and follow-up questions, as validated JSON.
+
+    `answering` is the question this recording answers, with its story (db.get_story()["answers"]).
+    If the first reply doesn't validate, Gemma gets exactly one chance to repair it. If it still talks
+    about "the transcript" instead of a memory, the words were too unclear: UnclearStory.
+    """
+    schema = StoryAnalysis.model_json_schema()
+    messages = _messages(transcript, answering)
+    reply = chat(messages, schema=schema, temperature=0)
     try:
-        return tags.clean(StoryAnalysis.model_validate_json(reply))
+        return _validated(reply, answering)
     except ValidationError as exc:
         log.warning("story JSON invalid, asking Gemma to repair it: %s", exc)
         messages += [{"role": "assistant", "content": reply},
                      {"role": "user", "content": prompts.repair(str(exc))}]
     reply = chat(messages, schema=schema, temperature=0)
     try:
-        return tags.clean(StoryAnalysis.model_validate_json(reply))
+        return _validated(reply, answering)
     except ValidationError as exc:
+        if META_TEXT.search(reply):
+            raise UnclearStory() from exc
         raise LLMError("The Archivist couldn't make sense of this story. Try again.") from exc
 
 
-ANSWERED_SCHEMA = {"type": "object", "properties": {"answered": {"type": "array", "items": {"type": "boolean"}}},
-                   "required": ["answered"]}
+DROP_SCHEMA = {"type": "object", "properties": {"drop": {"type": "array", "items": {"type": "boolean"}}},
+               "required": ["drop"]}
 
 
-def unanswered_questions(transcript: str, analysis: StoryAnalysis, answering: str | None = None) -> list[str]:
-    """Drop follow-up questions the transcript already answers ("What kind of car?" when it says "a Fiat").
+def unanswered_questions(transcript: str, analysis: StoryAnalysis, answering: dict | None = None) -> list[str]:
+    """Drop follow-up questions the story already answers ("What kind of car?" when it says "a Fiat"),
+    or that it says nobody can answer ("What did the key open?" when "we never found the lock").
 
-    Gemma checks its own questions in the same conversation, so Ollama reuses the transcript it has
+    Gemma checks its own questions in the same conversation, so Ollama reuses the words it has
     already read and the check costs a few seconds. If the check fails, every question is kept.
     """
     questions = analysis.unfinished_business
+    if not questions:
+        return questions
     messages = [
-        {"role": "system", "content": prompts.ANALYSE_SYSTEM},
-        {"role": "user", "content": prompts.analyse_user(transcript, answering)},
+        *_messages(transcript, answering),
         {"role": "assistant", "content": analysis.model_dump_json()},
         {"role": "user", "content": prompts.CHECK_QUESTIONS},
     ]
     try:
-        answered = json.loads(chat(messages, schema=ANSWERED_SCHEMA, temperature=0))["answered"]
+        drop = json.loads(chat(messages, schema=DROP_SCHEMA, temperature=0))["drop"]
     except (LLMError, ValueError, KeyError, TypeError) as exc:
         log.warning("question check skipped: %s", exc)
         return questions
-    if len(answered) != len(questions):
+    if len(drop) != len(questions):
         return questions
-    kept = [q for q, done in zip(questions, answered) if not done]
+    kept = [q for q, dropped in zip(questions, drop) if not dropped]
     if len(kept) < len(questions):
-        log.info("dropped questions the transcript already answers: %s",
-                 [q for q, done in zip(questions, answered) if done])
+        log.info("dropped questions the story already answers or can't: %s",
+                 [q for q, dropped in zip(questions, drop) if dropped])
     return kept
 
 

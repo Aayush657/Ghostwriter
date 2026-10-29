@@ -1,7 +1,9 @@
 """The Archivist's voice: Piper (offline neural text-to-speech) piped through ffmpeg ghost effects.
 
 Piper runs as a separate program. Its raw audio streams straight into ffmpeg, which lowers the
-pitch and adds an echoing stone room. Each spoken line is cached by its text, so it is made once.
+pitch and adds an echoing stone room. Text is spoken in parts (the first sentence, then a few
+sentences at a time), so the page can start playing the first part while the next is being made.
+Each part is cached by its text, so it is made once; notes are voiced as soon as they are written.
 It's optional: if Piper or the voice is missing, the app still works and just stays silent.
 
 Try it:  python -m ghostwriter.tts "The archive is awake."
@@ -11,6 +13,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import re
 import subprocess
 import sys
@@ -19,12 +22,16 @@ import uuid
 from pathlib import Path
 
 from ghostwriter.config import settings
+from ghostwriter.whispers import SENTENCE_END
+
+log = logging.getLogger(__name__)
 
 # Pitch down (rubberband keeps the speed), soften the highs, a stone-room echo, a faint ghostly doubling.
 GHOST_EFFECTS = ("rubberband=pitch=0.84,lowpass=f=5500,"
                  "aecho=0.8:0.85:55|110|190:0.35|0.22|0.12,"
                  "chorus=0.6:0.9:45:0.3:0.3:1.5,volume=2.4")  # measured peak -2 dB: loud, no clipping
 MAX_CHARS = 2500  # about two and a half minutes of speech; fits a whole retelling
+PART_CHARS = 280  # later parts gather sentences up to about this length
 
 
 class TTSError(Exception):
@@ -33,7 +40,38 @@ class TTSError(Exception):
 
 def clean(text: str) -> str:
     """Drop [S12] citation marks (they aren't for reading aloud) and squeeze whitespace onto one line."""
-    return re.sub(r"\s+", " ", re.sub(r"\[S\d+\]", "", text)).strip()
+    return re.sub(r"\s+", " ", re.sub(r"\s*\[S\d+(?:\s*,\s*S?\d+)*\]", "", text)).strip()
+
+
+def parts(text: str) -> list[str]:
+    """The pieces `text` is spoken in: the first sentence alone (so the voice starts quickly), then
+    sentences gathered into parts of up to PART_CHARS."""
+    sentences = [s for s in SENTENCE_END.split(clean(text)[:MAX_CHARS]) if s.strip()]
+    if not sentences:
+        return []
+    out = [sentences[0]]
+    for sentence in sentences[1:]:
+        if len(out) > 1 and len(out[-1]) + len(sentence) < PART_CHARS:
+            out[-1] += " " + sentence
+        else:
+            out.append(sentence)
+    return out
+
+
+def cache_paths(text: str) -> list[Path]:
+    """Every file the spoken versions of `text` may be cached in (both voices, whole and in parts)."""
+    return [cache_path(t, ghostly) for t in [text, *parts(text)] for ghostly in (True, False)]
+
+
+def prepare(text: str) -> None:
+    """Make the ghost voice for `text` ahead of time, so pressing play starts at once. Never raises."""
+    if not settings.tts_enabled or not text:
+        return
+    try:
+        for part in parts(text):
+            speak(part)
+    except TTSError as exc:
+        log.info("voice not prepared: %s", exc)
 
 
 def cache_path(text: str, ghostly: bool = True) -> Path:

@@ -1,22 +1,25 @@
-"""The FastAPI app: JSON API under /api, the web UI as static files at /.
+"""The FastAPI app: JSON API under /api, the memory book at /book, the web UI as static files at /.
 
-Run:  .venv\\Scripts\\python.exe -m uvicorn ghostwriter.api.main:app --port 8000
+Run:  .venv\\Scripts\\python.exe -m uvicorn ghostwriter.api.main:app --host 127.0.0.1 --port 8000
+(127.0.0.1 means only this computer can open it; see README > Privacy before changing the host.)
 """
 
 from __future__ import annotations
 
 import logging
+import threading
 from contextlib import asynccontextmanager
 from dataclasses import asdict
 from pathlib import Path
 
-from fastapi import BackgroundTasks, FastAPI, Request, Response
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI, Request, Response
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from ghostwriter import db, export, llm, selfcheck, whispers
+from ghostwriter import db, embed, export, llm, selfcheck, transcribe, trash, whispers
 from ghostwriter.api import seance, stories, voice
 from ghostwriter.config import settings
+from ghostwriter.models import MOODS
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
@@ -29,8 +32,11 @@ async def lifespan(app: FastAPI):
     db.init_db()
     if interrupted := db.mark_interrupted():
         log.warning("%d story(ies) were interrupted last time; they can be retried", interrupted)
+    if purged := trash.purge(older_than=0):
+        log.info("finished deleting %d story(ies) deleted before the last stop", purged)
     for check in selfcheck.run_checks():
         log.info("[%s] %s: %s", "ok" if check.ok else "!!", check.name, check.detail)
+    threading.Thread(target=embed.refresh_quietly, daemon=True).start()  # stories saved before meaning search
     yield
 
 
@@ -51,14 +57,19 @@ async def always_fresh_ui(request: Request, call_next):
 
 @app.get("/api/health")
 def health() -> list[dict]:
-    """Which local services are available right now. The UI shows this."""
+    """Which local services are available right now. The UI shows this in the About panel."""
     return [asdict(check) for check in selfcheck.run_checks()]
 
 
 @app.post("/api/warm", status_code=204)
-def warm(background: BackgroundTasks) -> Response:
-    """The page calls this when it opens, so Gemma is loaded before the first question is asked."""
-    background.add_task(llm.warm_up)
+def warm() -> Response:
+    """The page calls this when it opens and shows "waking the ghost" until it returns: Gemma, Whisper
+    and the meaning-search model are loaded before the first story or question needs them."""
+    whisper = threading.Thread(target=transcribe.warm_up, daemon=True)
+    whisper.start()
+    llm.warm_up()
+    embed.refresh_quietly()
+    whisper.join(timeout=60)
     return Response(status_code=204)
 
 
@@ -69,16 +80,32 @@ def whisper() -> Response:
     return JSONResponse(found) if found else Response(status_code=204)
 
 
-@app.get("/api/book", response_class=HTMLResponse)
+@app.get("/book", response_class=HTMLResponse)
 def memory_book() -> str:
     """Every finished story as one self-contained, printable page (see export.py)."""
     return export.memory_book_html()
 
 
+@app.get("/api/book", include_in_schema=False)
+def old_book_address() -> RedirectResponse:
+    return RedirectResponse("/book", status_code=308)
+
+
+@app.delete("/api/samples")
+def remove_samples() -> dict:
+    """Remove the fictional sample stories in one go (they never mix with real ones, so nothing else changes)."""
+    ids = [s["id"] for s in db.list_stories() if s["is_sample"] and s["status"] not in db.IN_PROGRESS]
+    for story_id in ids:
+        trash.remove_now(story_id)
+    return {"removed": len(ids)}
+
+
 @app.get("/api/settings")
 def ui_settings() -> dict:
-    """The defaults the page starts with (the visitor can still flip plain mode)."""
-    return {"plain_mode_default": settings.plain_mode_default, "tts_enabled": settings.tts_enabled}
+    """The defaults the page starts with (the visitor can still flip plain mode), and the shared lists."""
+    return {"plain_mode_default": settings.plain_mode_default, "tts_enabled": settings.tts_enabled,
+            "moods": list(MOODS), "undo_seconds": trash.UNDO_SECONDS,
+            "max_recording_minutes": settings.max_audio_minutes}
 
 
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")

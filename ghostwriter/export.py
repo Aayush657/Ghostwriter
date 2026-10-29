@@ -1,5 +1,7 @@
 """The memory book: every finished story in one self-contained, printable HTML file.
 
+Answers to the Archivist's questions appear inside the story they complete, under the question.
+
 Open it in any browser, print it to PDF, or keep the file itself. The fonts are embedded, so it
 needs no server, no internet and no Ghostwriter to be read, now or in twenty years.
 (Recordings aren't included; they stay in data/audio/.)
@@ -37,6 +39,8 @@ dd { margin: 0; }
 a { color: #7a3d0c; text-decoration-color: #d9a066; text-underline-offset: 3px; }
 a:hover, a:focus-visible { color: #b4520a; }
 ol li { margin: 4px 0; }
+.added { margin: 6px 0 14px 18px; padding-left: 12px; border-left: 3px solid #d9a066; }
+.added .meta { margin: 0; }
 .print {
   font: inherit; margin-top: 18px; padding: 8px 22px; cursor: pointer; border: 0; border-radius: 999px;
   background: #7a3d0c; color: #fff8ec; box-shadow: 0 2px 10px rgba(122, 61, 12, 0.3);
@@ -73,13 +77,13 @@ def _story(s: dict) -> str:
                    for kind, label in ENTITY_LABELS if entities.get(kind))
     meta = " · ".join(filter(None, [_local_date(s["created_at"]), s["mood"],
                                     "fictional sample" if s["is_sample"] else ""]))
-    questions = "".join(f"<li>{escape(q['text'])}{' <em>(answered)</em>' if q['answered_by'] else ''}</li>"
-                        for q in s["questions"])
+    questions = "".join(f"<li>{escape(q['text'])}{_answer(q['answer'])}</li>" for q in s["questions"])
     parts = [
         f'<section class="story" id="s{s["id"]}">',
         f"<h2>{escape(s['title'])}</h2>",
         f'<p class="meta">{escape(meta)}</p>',
         f"<p>{escape(s['summary'])}</p>",
+        '<p class="meta">Some words were unclear, so the summary leaves them out.</p>' if s["uncertain"] else "",
         f"<dl>{rows}</dl>" if rows else "",
         f'<h3>The words as they were spoken</h3><p class="transcript">{escape(s["transcript"])}</p>',
         f'<h3>The Archivist wrote</h3><p class="hand">{escape(s["reaction"])}</p>' if s["reaction"] else "",
@@ -91,9 +95,19 @@ def _story(s: dict) -> str:
     return "\n".join(p for p in parts if p)
 
 
+def _answer(answer: dict | None) -> str:
+    """An answer recorded later, shown under its question."""
+    if not answer or answer["status"] != "ready":
+        return ""
+    return (f'<div class="added"><p class="meta">Added later, {_local_date(answer["created_at"])}</p>'
+            f'<p>{escape(answer["summary"] or "")}</p>'
+            f'<p class="transcript">{escape(answer["transcript"] or "")}</p></div>')
+
+
 def memory_book_html() -> str:
     """The whole archive, oldest story first, as one HTML page with nothing to fetch."""
-    stories = [db.get_story(s["id"]) for s in reversed(db.list_stories()) if s["status"] == "ready"]
+    stories = [db.get_story(s["id"]) for s in reversed(db.list_stories())
+               if s["status"] == "ready" and not s["parent_id"]]
     today = _local_date(datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"))
     contents = "".join(f'<li><a href="#s{s["id"]}">{escape(s["title"])}</a></li>' for s in stories)
     fonts = _font_face("Caveat", "Caveat.ttf") + _font_face("IM Fell English", "IMFellEnglish-Regular.ttf")

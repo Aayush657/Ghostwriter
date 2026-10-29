@@ -12,14 +12,14 @@ from contextlib import contextmanager
 from typing import Any
 
 from ghostwriter.config import settings
-from ghostwriter.models import StoryAnalysis
+from ghostwriter.models import MOODS, StoryAnalysis, normalise_mood
 
 TABLES = """
 CREATE TABLE IF NOT EXISTS stories (
     id                  INTEGER PRIMARY KEY,
     created_at          TEXT NOT NULL DEFAULT (datetime('now')),
     last_visited_at     TEXT NOT NULL DEFAULT (datetime('now')),
-    status              TEXT NOT NULL DEFAULT 'queued',  -- queued|transcribing|thinking|noting|ready|failed
+    status              TEXT NOT NULL DEFAULT 'queued',  -- queued|transcribing|thinking|noting|ready|failed|unclear
     error               TEXT,
     answers_question_id INTEGER REFERENCES questions(id), -- set when this recording answers one
     audio_original      TEXT,   -- paths are relative to the data folder
@@ -48,6 +48,22 @@ CREATE TABLE IF NOT EXISTS questions (
     id       INTEGER PRIMARY KEY,
     story_id INTEGER NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
     text     TEXT NOT NULL
+);
+
+-- What each story means, as a vector, so the Seance can find it by meaning (see embed.py).
+CREATE TABLE IF NOT EXISTS embeddings (
+    story_id  INTEGER PRIMARY KEY REFERENCES stories(id) ON DELETE CASCADE,
+    model     TEXT NOT NULL,
+    text_hash TEXT NOT NULL,  -- the embedded text changed (re-read, edited): embed it again
+    vector    BLOB NOT NULL   -- float32
+);
+
+-- How long each step took on this computer, so the page can say how long the next one will take.
+CREATE TABLE IF NOT EXISTS timings (
+    id      INTEGER PRIMARY KEY,
+    step    TEXT NOT NULL,  -- transcribing|thinking|noting
+    audio_s REAL,
+    seconds REAL NOT NULL
 );
 """
 
@@ -80,15 +96,26 @@ SEARCH_COLUMNS = ["title", "summary", "tags", "transcript"]
 # Columns added after a database may already exist. init_db() adds any that are missing.
 ADDED_COLUMNS = {"reaction": "TEXT", "is_sample": "INTEGER NOT NULL DEFAULT 0", "tags": "TEXT",
                  "retelling": "TEXT",
-                 "transcript_original": "TEXT"}  # Whisper's words, kept the first time someone edits them
+                 "transcript_original": "TEXT",  # Whisper's words, kept the first time someone edits them
+                 "language_choice": "TEXT",       # what the storyteller chose: auto|en|hi|hinglish
+                 "language_probability": "REAL",  # how sure Whisper was, when it detected the language itself
+                 "quality": "TEXT",               # JSON: Whisper's confidence figures (transcribe.Quality)
+                 "uncertain": "INTEGER NOT NULL DEFAULT 0",  # Gemma left out words it couldn't make sense of
+                 "error_kind": "TEXT",            # transient (try again) | audio (choose another file)
+                 "started_at": "TEXT",            # processing began (UTC), for the page's clock
+                 "stage_at": "TEXT",              # the current step began (UTC), for the time-left estimate
+                 "deleted_at": "TEXT"}            # deleted, but can still be undone for a few seconds
 
 # Columns update_story() may touch. Column names can't be SQL parameters, so we whitelist them.
-UPDATABLE = {"status", "error", "audio_original", "audio_wav", "duration_s", "language", "title",
-             "transcript", "transcript_original", "last_visited_at", "reaction", "retelling"}
+UPDATABLE = {"status", "error", "error_kind", "audio_original", "audio_wav", "duration_s", "language", "title",
+             "transcript", "transcript_original", "last_visited_at", "reaction", "retelling", "mood",
+             "language_choice", "language_probability", "quality", "started_at", "stage_at"}
 
 ENTITY_KINDS = {"people": "person", "places": "place", "eras": "era", "keepsakes": "keepsake"}
 
 IN_PROGRESS = ("queued", "transcribing", "thinking", "noting")
+# Not deleted (a deleted story waits a few seconds for an Undo, then is purged).
+LIVE = "deleted_at IS NULL"
 
 
 @contextmanager
@@ -115,6 +142,15 @@ def init_db() -> None:
             if name not in existing:
                 con.execute(f"ALTER TABLE stories ADD COLUMN {name} {sql_type}")
         _upgrade_search_index(con)
+        _fix_moods(con)
+
+
+def _fix_moods(con: sqlite3.Connection) -> None:
+    """Moods from before the fixed list ("confused", "calm") become the nearest candle mood."""
+    placeholders = ", ".join("?" for _ in MOODS)
+    for row in con.execute(f"SELECT id, mood FROM stories WHERE mood IS NOT NULL AND mood NOT IN ({placeholders})",
+                           MOODS).fetchall():
+        con.execute("UPDATE stories SET mood = ? WHERE id = ?", (normalise_mood(row["mood"]), row["id"]))
 
 
 def _upgrade_search_index(con: sqlite3.Connection) -> None:
@@ -137,10 +173,11 @@ def _upgrade_search_index(con: sqlite3.Connection) -> None:
     con.execute("INSERT INTO stories_fts(stories_fts) VALUES ('rebuild')")
 
 
-def create_story(answers_question_id: int | None = None, is_sample: bool = False) -> int:
+def create_story(answers_question_id: int | None = None, is_sample: bool = False,
+                 language_choice: str | None = None) -> int:
     with connect() as con:
-        cur = con.execute("INSERT INTO stories (answers_question_id, is_sample) VALUES (?, ?)",
-                          (answers_question_id, int(is_sample)))
+        cur = con.execute("INSERT INTO stories (answers_question_id, is_sample, language_choice) VALUES (?, ?, ?)",
+                          (answers_question_id, int(is_sample), language_choice))
         return cur.lastrowid
 
 
@@ -153,15 +190,38 @@ def update_story(story_id: int, **fields: Any) -> None:
         con.execute(f"UPDATE stories SET {assignments} WHERE id = ?", (*fields.values(), story_id))
 
 
-def delete_story(story_id: int) -> None:
-    """Remove a story with its tags and questions (the search index follows through its trigger).
+def answer_ids(story_id: int) -> list[int]:
+    """The recordings that answered this story's questions ("added later")."""
+    with connect() as con:
+        return [r["id"] for r in con.execute(
+            "SELECT id FROM stories WHERE answers_question_id IN (SELECT id FROM questions WHERE story_id = ?)",
+            (story_id,))]
 
-    Recordings that answered one of its questions stay, as stories of their own.
+
+def delete_story(story_id: int) -> None:
+    """Remove a story with its tags, questions and answers (the search index follows through its trigger).
+
+    trash.py calls this a few seconds after the visitor deletes a story, so the deletion can be undone.
     """
     with connect() as con:
-        con.execute("UPDATE stories SET answers_question_id = NULL WHERE answers_question_id IN "
+        con.execute("DELETE FROM stories WHERE answers_question_id IN "
                     "(SELECT id FROM questions WHERE story_id = ?)", (story_id,))
         con.execute("DELETE FROM stories WHERE id = ?", (story_id,))
+
+
+def set_deleted(story_ids: list[int], deleted: bool) -> None:
+    placeholders = ", ".join("?" for _ in story_ids)
+    when = "datetime('now')" if deleted else "NULL"
+    with connect() as con:
+        con.execute(f"UPDATE stories SET deleted_at = {when} WHERE id IN ({placeholders})", story_ids)
+
+
+def deleted_before(seconds: float) -> list[int]:
+    """Stories deleted at least `seconds` ago: their Undo has run out."""
+    with connect() as con:
+        return [r["id"] for r in con.execute(
+            "SELECT id FROM stories WHERE deleted_at IS NOT NULL AND deleted_at <= datetime('now', ?)",
+            (f"-{seconds} seconds",))]
 
 
 def save_analysis(story_id: int, analysis: StoryAnalysis, status: str = "ready") -> None:
@@ -172,9 +232,9 @@ def save_analysis(story_id: int, analysis: StoryAnalysis, status: str = "ready")
     tags = " · ".join(v.strip() for field in ENTITY_KINDS for v in getattr(analysis, field) if v.strip())
     with connect() as con:
         con.execute(
-            "UPDATE stories SET title = ?, summary = ?, mood = ?, tags = ?, status = ?, error = NULL "
-            "WHERE id = ?",
-            (analysis.title, analysis.summary, analysis.mood, tags, status, story_id),
+            "UPDATE stories SET title = ?, summary = ?, mood = ?, tags = ?, uncertain = ?, status = ?, "
+            "error = NULL, error_kind = NULL WHERE id = ?",
+            (analysis.title, analysis.summary, analysis.mood, tags, int(analysis.uncertain), status, story_id),
         )
         con.execute("DELETE FROM entities WHERE story_id = ?", (story_id,))
         con.execute("DELETE FROM questions WHERE story_id = ? AND id NOT IN "
@@ -190,34 +250,63 @@ def save_analysis(story_id: int, analysis: StoryAnalysis, status: str = "ready")
         )
 
 
-def get_story(story_id: int) -> dict | None:
-    """One story with its entities (grouped by kind) and its follow-up questions."""
+def clear_reading(story_id: int) -> None:
+    """Forget what Gemma wrote about a story (its words were unclear, or are being heard again).
+
+    Answered questions stay, with their answers.
+    """
     with connect() as con:
-        row = con.execute("SELECT * FROM stories WHERE id = ?", (story_id,)).fetchone()
+        con.execute("UPDATE stories SET title = NULL, summary = NULL, mood = NULL, tags = NULL, reaction = NULL, "
+                    "uncertain = 0 WHERE id = ?", (story_id,))
+        con.execute("DELETE FROM entities WHERE story_id = ?", (story_id,))
+        con.execute("DELETE FROM questions WHERE story_id = ? AND id NOT IN "
+                    "(SELECT answers_question_id FROM stories WHERE answers_question_id IS NOT NULL)", (story_id,))
+
+
+# What the story page shows of an answer, inside the story it belongs to.
+ANSWER_FIELDS = ("id, created_at, status, error, error_kind, title, summary, transcript, audio_original, "
+                 "language, language_choice, language_probability, quality, duration_s, started_at")
+
+
+def get_story(story_id: int, include_deleted: bool = False) -> dict | None:
+    """One story with its entities (grouped by kind), its follow-up questions and their answers."""
+    with connect() as con:
+        row = con.execute("SELECT * FROM stories WHERE id = ?" + ("" if include_deleted else f" AND {LIVE}"),
+                          (story_id,)).fetchone()
         if row is None:
             return None
         story = dict(row)
         story["entities"] = _entities(con, [story_id]).get(story_id, {})
         story["questions"] = [dict(q) for q in con.execute(
-            """SELECT q.id, q.text,
-                      (SELECT max(a.id) FROM stories a WHERE a.answers_question_id = q.id) AS answered_by
+            f"""SELECT q.id, q.text,
+                      (SELECT max(a.id) FROM stories a WHERE a.answers_question_id = q.id AND a.{LIVE}) AS answered_by
                FROM questions q WHERE q.story_id = ? ORDER BY q.id""",
             (story_id,),
         )]
+        for q in story["questions"]:
+            answer = q["answered_by"] and con.execute(
+                f"SELECT {ANSWER_FIELDS} FROM stories WHERE id = ?", (q["answered_by"],)).fetchone()
+            q["answer"] = dict(answer) if answer else None
         if story["answers_question_id"]:
             story["answers"] = dict(con.execute(
-                "SELECT id, story_id, text FROM questions WHERE id = ?", (story["answers_question_id"],)
+                "SELECT q.id, q.story_id, q.text, s.title AS story_title, s.summary AS story_summary "
+                "FROM questions q JOIN stories s ON s.id = q.story_id WHERE q.id = ?",
+                (story["answers_question_id"],),
             ).fetchone())
         return story
 
 
 def list_stories() -> list[dict]:
-    """All stories, newest first, without the long transcript."""
+    """All stories, newest first, without the long transcript.
+
+    An answer to an earlier question has a `parent_id`: the page shows it inside that story, not on the wall.
+    """
     with connect() as con:
         rows = [dict(r) for r in con.execute(
-            """SELECT id, created_at, last_visited_at, status, error, title, summary, mood,
-                      duration_s, language, answers_question_id, is_sample
-               FROM stories ORDER BY created_at DESC, id DESC"""
+            f"""SELECT id, created_at, last_visited_at, status, error, title, summary, mood,
+                      duration_s, language, answers_question_id, is_sample,
+                      (SELECT story_id FROM questions WHERE id = answers_question_id) AS parent_id
+               FROM stories WHERE {LIVE} ORDER BY created_at DESC, id DESC"""
         )]
         entities = _entities(con, [r["id"] for r in rows])
         for r in rows:
@@ -227,6 +316,7 @@ def list_stories() -> list[dict]:
 
 def rename_tag(story_id: int, kind: str, old: str, new: str) -> None:
     """Rename one of a story's tags. Renaming to a tag it already has merges the two; "" removes it.
+    An empty `old` adds `new` as a new tag.
 
     Only this story changes: "grandmother" in one story may be Nani, in another Dadi.
     """
@@ -234,7 +324,10 @@ def rename_tag(story_id: int, kind: str, old: str, new: str) -> None:
     with connect() as con:
         exists = con.execute("SELECT 1 FROM entities WHERE story_id = ? AND kind = ? AND value = ?",
                              (story_id, kind, new)).fetchone()
-        if not new or exists:
+        if not old.strip():
+            if new and not exists:
+                con.execute("INSERT INTO entities (story_id, kind, value) VALUES (?, ?, ?)", (story_id, kind, new))
+        elif not new or exists:
             con.execute("DELETE FROM entities WHERE story_id = ? AND kind = ? AND value = ?", (story_id, kind, old))
         else:
             con.execute("UPDATE entities SET value = ? WHERE story_id = ? AND kind = ? AND value = ?",
@@ -253,11 +346,36 @@ def mark_interrupted() -> int:
     placeholders = ", ".join("?" for _ in IN_PROGRESS)
     with connect() as con:
         cur = con.execute(
-            f"UPDATE stories SET status = 'failed', error = 'Interrupted before it finished. Try again.' "
+            f"UPDATE stories SET status = 'failed', error_kind = 'transient', "
+            f"error = 'Interrupted before it finished. Try again.' "
             f"WHERE status IN ({placeholders})",
             IN_PROGRESS,
         )
         return cur.rowcount
+
+
+def known_names(limit: int = 40) -> list[str]:
+    """People, places and keepsakes already in the archive, most mentioned first (Whisper's vocabulary)."""
+    with connect() as con:
+        return [r["value"] for r in con.execute(
+            f"""SELECT e.value FROM entities e JOIN stories s ON s.id = e.story_id
+               WHERE e.kind IN ('person', 'place', 'keepsake') AND s.{LIVE}
+               GROUP BY lower(e.value) ORDER BY count(*) DESC, max(e.rowid) DESC LIMIT ?""", (limit,))]
+
+
+def record_timing(step: str, seconds: float, audio_s: float | None = None) -> None:
+    """Remember how long a step took (the last 20 of each kind are kept)."""
+    with connect() as con:
+        con.execute("INSERT INTO timings (step, audio_s, seconds) VALUES (?, ?, ?)", (step, audio_s, seconds))
+        con.execute("DELETE FROM timings WHERE step = ? AND id NOT IN "
+                    "(SELECT id FROM timings WHERE step = ? ORDER BY id DESC LIMIT 20)", (step, step))
+
+
+def timings(step: str) -> list[tuple[float | None, float]]:
+    """(audio seconds, seconds taken) for the recent runs of one step, newest first."""
+    with connect() as con:
+        return [(r["audio_s"], r["seconds"]) for r in con.execute(
+            "SELECT audio_s, seconds FROM timings WHERE step = ? ORDER BY id DESC", (step,))]
 
 
 def _entities(con: sqlite3.Connection, story_ids: list[int]) -> dict[int, dict[str, list[str]]]:

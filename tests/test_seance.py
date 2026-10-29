@@ -52,8 +52,28 @@ def test_answer_streams_and_only_real_citations_count(client, monkeypatch):
     out = events(client.post("/api/seance", json={"question": "When did the clock stop?"}))
 
     assert out[0] == ("sources", {"stories": [{"id": clock, "title": "The Clock That Listened"}]})
-    assert "".join(d["text"] for e, d in out if e == "token").startswith("It stopped at eleven")
+    assert "".join(d["text"] for e, d in out if e == "token") == "It stopped at eleven, or so claims."
+    assert ("cite", {"id": clock}) in out and ("cite", {"id": 999}) not in out
     assert out[-1] == ("done", {"cited": [clock]})  # S999 was never retrieved, so it is dropped
+
+
+def split(pieces):
+    from ghostwriter.api.seance import split_citations
+    return list(split_citations(pieces))
+
+
+def test_citation_marks_never_reach_the_page_even_when_split():
+    pieces = ["Your Nani made kadhi ", "[", "S", "3", "]. The pot ", "was brass [S3,", " S5]", "."]
+    out = split(pieces)
+    text = "".join(v for kind, v in out if kind == "text")
+    assert text == "Your Nani made kadhi. The pot was brass."
+    assert "[" not in text and [v for kind, v in out if kind == "cite"] == [3, 3, 5]
+    assert out[0] == ("text", "Your Nani made kadhi")  # streamed before the citation arrived
+
+
+def test_ordinary_brackets_are_kept():
+    assert "".join(v for _, v in split(["She said [", "laughing] no. A list [1]", " [S"])) == \
+        "She said [laughing] no. A list [1] [S"
 
 
 def test_plain_mode_changes_the_voice(client, monkeypatch):

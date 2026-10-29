@@ -14,8 +14,17 @@ has_piper = shutil.which(settings.piper_bin) is not None and settings.piper_voic
 
 
 def test_citations_are_not_read_aloud():
-    assert tts.clean("Your grandmother made kadhi [S3].\n It was famous [S3] [S12].") == \
-        "Your grandmother made kadhi . It was famous ."
+    assert tts.clean("Your grandmother made kadhi [S3].\n It was famous [S3] [S12, S4].") == \
+        "Your grandmother made kadhi. It was famous."
+
+
+def test_text_is_spoken_first_sentence_first():
+    text = "Ah, a memory of rain [S3]. The roof leaked. " + "Your grandmother laughed and laughed. " * 12
+    parts = tts.parts(text)
+    assert parts[0] == "Ah, a memory of rain."  # short, so the voice starts at once
+    assert all(len(p) <= tts.PART_CHARS for p in parts[1:])
+    assert " ".join(parts) == tts.clean(text)  # nothing lost or repeated
+    assert tts.parts("[S3]") == []
 
 
 def test_turned_off_voice_explains_itself(monkeypatch):

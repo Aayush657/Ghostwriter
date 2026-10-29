@@ -1,13 +1,16 @@
 """Seance: ask the archive a question. The Archivist answers only from your stories, streamed live.
 
-Events, in order:  sources {stories: [{id, title}]}  ->  token {text} ...  ->  done {cited: [ids]}
+Events, in order:  sources {stories: [{id, title}]}  ->  token {text} and cite {id} ...  ->  done {cited: [ids]}
                    (or error {message} if Gemma can't be reached)
+
+Gemma writes citations as [S3]. They are taken out of the text here, even when one arrives split
+across pieces ("[S", "3]"), and sent as cite events, so the page never shows a raw marker.
 """
 
 from __future__ import annotations
 
 import re
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
@@ -19,6 +22,10 @@ from ghostwriter.llm import LLMError
 
 router = APIRouter(prefix="/api", tags=["seance"])
 
+CITATION = re.compile(r"\s*\[S(\d+(?:\s*,\s*S?\d+)*)\]")  # [S3], also [S3, S5]
+# The end of the text so far might still become a citation: hold it back until the next piece.
+UNFINISHED = re.compile(r"\s*(\[(S[\d,\sS]*)?)?$")
+
 
 class Question(BaseModel):
     question: str = Field(min_length=1, max_length=500)
@@ -28,6 +35,29 @@ class Question(BaseModel):
 @router.post("/seance")
 def seance(q: Question) -> StreamingResponse:
     return stream(_answer(q))
+
+
+def split_citations(pieces: Iterable[str]) -> Iterator[tuple[str, str | int]]:
+    """("text", "...") and ("cite", 3) in reading order, from Gemma's streamed pieces."""
+    held = ""
+    for piece in pieces:
+        held += piece
+        cut = UNFINISHED.search(held).start()
+        yield from _parts(held[:cut])
+        held = held[cut:]
+    yield from _parts(held)
+
+
+def _parts(text: str) -> Iterator[tuple[str, str | int]]:
+    pos = 0
+    for match in CITATION.finditer(text):
+        if match.start() > pos:
+            yield "text", text[pos:match.start()]
+        for number in re.findall(r"\d+", match.group(1)):
+            yield "cite", int(number)
+        pos = match.end()
+    if pos < len(text):
+        yield "text", text[pos:]
 
 
 def _answer(q: Question) -> Iterator[str]:
@@ -41,15 +71,17 @@ def _answer(q: Question) -> Iterator[str]:
         yield sse("done", {"cited": []})
         return
 
-    answer = []
+    shown = {s["id"] for s in stories}
+    cited = []
     try:
-        for piece in llm.stream_chat(prompts.seance_messages(q.question, stories, q.plain), temperature=0.3):
-            answer.append(piece)
-            yield sse("token", {"text": piece})
+        pieces = llm.stream_chat(prompts.seance_messages(q.question, stories, q.plain), temperature=0.3)
+        for kind, value in split_citations(pieces):
+            if kind == "text":
+                yield sse("token", {"text": value})
+            elif value in shown:  # only stories Gemma was actually shown become links
+                cited.append(value)
+                yield sse("cite", {"id": value})
     except LLMError as exc:
         yield sse("error", {"message": str(exc)})
         return
-
-    # Only citations of stories Gemma was actually shown become links.
-    cited = {int(n) for n in re.findall(r"\[S(\d+)\]", "".join(answer))}
-    yield sse("done", {"cited": sorted(cited & {s["id"] for s in stories})})
+    yield sse("done", {"cited": sorted(set(cited))})

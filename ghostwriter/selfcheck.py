@@ -16,10 +16,11 @@ import sqlite3
 import subprocess
 import sys
 from dataclasses import dataclass
+from pathlib import Path
 
 import httpx
 
-from ghostwriter.config import settings
+from ghostwriter.config import PROJECT_ROOT, WHISPER_SIZES, settings
 
 
 @dataclass
@@ -31,6 +32,16 @@ class Check:
     detail: str
     fix: str = ""
     required: bool = True
+
+
+def short(path: str | Path) -> str:
+    """A path without the Windows user name in it: relative to the project, or to ~ (the home folder)."""
+    full = Path(path).resolve()
+    for base, prefix in ((PROJECT_ROOT, ""), (Path.home(), "~")):
+        if full.is_relative_to(base):
+            rest = full.relative_to(base)
+            return str(Path(prefix) / rest) if prefix else str(rest)
+    return str(path)
 
 
 def check_python() -> Check:
@@ -57,7 +68,11 @@ def check_ffmpeg() -> Check:
                      "winget install --id Gyan.FFmpeg -e, then open a new terminal "
                      "(or set GW_FFMPEG_BIN to the full path of ffmpeg.exe).")
     out = subprocess.run([path, "-version"], capture_output=True, text=True, check=False).stdout
-    return Check("ffmpeg", True, out.splitlines()[0] if out else path)
+    version = out.split()[2] if out.startswith("ffmpeg version") else short(path)
+    if not shutil.which(settings.ffprobe):
+        return Check("ffmpeg", True, f"version {version}, but ffprobe is missing: uploads are checked later",
+                     "Install a full ffmpeg build (it includes ffprobe), or set GW_FFPROBE_BIN.")
+    return Check("ffmpeg", True, f"version {version}, with ffprobe")
 
 
 def has_model(installed: list[str], wanted: str) -> bool:
@@ -75,11 +90,17 @@ def check_ollama() -> list[Check]:
         return [Check("Ollama", False, f"not reachable at {url} ({type(exc).__name__})",
                       "Start Ollama from the Start menu, or run: ollama serve")]
     server = Check("Ollama", True, f"version {version} at {url}")
+    if has_model(installed, settings.embed_model):
+        meaning = Check("Meaning search", True, f"{settings.embed_model}: the Seance finds stories by meaning",
+                        required=False)
+    else:
+        meaning = Check("Meaning search", False, f"{settings.embed_model} not pulled: the Seance uses keywords only",
+                        f"ollama pull {settings.embed_model}", required=False)
     if has_model(installed, settings.llm_model):
-        return [server, Check("Gemma model", True, settings.llm_model)]
+        return [server, Check("Gemma model", True, settings.llm_model), meaning]
     have = ", ".join(installed) or "none"
     return [server, Check("Gemma model", False, f"{settings.llm_model} not pulled (have: {have})",
-                          f"ollama pull {settings.llm_model}")]
+                          f"ollama pull {settings.llm_model}"), meaning]
 
 
 def check_whisper() -> Check:
@@ -88,10 +109,12 @@ def check_whisper() -> Check:
         return Check("Whisper", False, "faster-whisper not installed", "pip install -r requirements.txt")
     path = settings.whisper_path
     if not (path / "model.bin").exists():
-        return Check("Whisper", False, f"model '{settings.whisper_model}' not found in {path}",
-                     "Run scripts\\setup.ps1 once while online.")
-    return Check("Whisper", True,
-                 f"faster-whisper {settings.whisper_model} ({settings.whisper_compute_type}) at {path}")
+        return Check("Whisper", False, f"size '{settings.whisper_model}' not downloaded (looked in {short(path)})",
+                     "Run scripts\\setup.ps1 once while online: it downloads the size set in GW_WHISPER_MODEL.")
+    others = [size for size in WHISPER_SIZES if size != settings.whisper_model
+              and (settings.models_dir / "whisper" / size / "model.bin").exists()]
+    also = f"; also downloaded: {', '.join(others)}" if others else ""
+    return Check("Whisper", True, f"faster-whisper {settings.whisper_model} ({settings.whisper_compute_type}){also}")
 
 
 def check_tts() -> Check:
@@ -103,9 +126,9 @@ def check_tts() -> Check:
         return Check("Piper TTS", False, f"'{settings.piper_bin}' not found",
                      "Optional. See README > Ghost voice.", required=False)
     if not settings.piper_voice_path.exists():
-        return Check("Piper TTS", False, f"voice missing: {settings.piper_voice_path}",
+        return Check("Piper TTS", False, f"voice missing: {short(settings.piper_voice_path)}",
                      "Run scripts\\setup.ps1 once while online.", required=False)
-    return Check("Piper TTS", True, f"{path} with voice {settings.piper_voice}", required=False)
+    return Check("Piper TTS", True, f"voice {settings.piper_voice}", required=False)
 
 
 def ping_gemma() -> Check:
@@ -144,9 +167,9 @@ def main() -> int:
     checks = run_checks(ping=parser.parse_args().ping)
     for c in checks:
         mark = "ok" if c.ok else ("FAIL" if c.required else "--")
-        print(f"[{mark:^4}] {c.name:<12} {c.detail}")
+        print(f"[{mark:^4}] {c.name:<15} {c.detail}")
         if not c.ok and c.fix:
-            print(f"{'':19}fix: {c.fix}")
+            print(f"{'':22}fix: {c.fix}")
     failed = [c for c in checks if c.required and not c.ok]
     print("\nAll required services are ready." if not failed else f"\n{len(failed)} required check(s) failed.")
     return 1 if failed else 0
