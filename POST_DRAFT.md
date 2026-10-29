@@ -26,8 +26,10 @@ Hindi, English, or the mix most of us actually speak, and it:
   out loud, and your answer is kept beside the story it completes;
 - **holds a séance**: ask your archive anything, and the ghost answers only from what you told it,
   citing the story it remembered;
-- **lights a candle for every story** on a wall strung with orange and white lights. Stories you haven't visited in
-  a while burn low. Open one, and its flame comes back;
+- **lights a candle for every story** on a wall strung with orange and white lights. The story's mood
+  picks the candle: a skull with a green flame for the eerie ones, a jack-o'-lantern for the joyful,
+  a clay diya for the loving. Stories you haven't visited in a while burn lower. Open one, and its
+  flame comes back;
 - **speaks** in a low, echoing voice, and on request **retells** any memory as a campfire
   bhoot-kahani (always labelled as a retelling; the original is never touched).
 

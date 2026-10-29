@@ -59,17 +59,17 @@
     /* ---------- three candles ---------- */
     .candles { display: flex; justify-content: center; align-items: flex-end; gap: 36px; margin: 40px 0 0; }
     .candle { display: flex; flex-direction: column; align-items: center; }
+    /* Flame colours as in the app, where each story's mood picks its candle: eerie, nostalgic, mysterious. */
+    .candle { --core: #fffaf0; --mid: #ffd27a; --edge: #ff8c1a; --glow: rgba(255, 140, 26, 0.85); --halo: rgba(255, 140, 26, 0.25); }
+    .candle:nth-child(1) { --core: #f4fff8; --mid: #a8ffcf; --edge: #22d67f; --glow: rgba(60, 230, 140, 0.85); --halo: rgba(60, 230, 140, 0.22); }
+    .candle:nth-child(3) { --core: #fbf5ff; --mid: #d8bbff; --edge: #9b5cff; --glow: rgba(160, 100, 255, 0.85); --halo: rgba(160, 100, 255, 0.22); }
     .flame {
       width: 16px; height: 34px; border-radius: 50% 50% 45% 45% / 65% 65% 35% 35%;
-      background: radial-gradient(ellipse at 50% 78%, #fffbe8 0 12%, #ffd77d 30%, var(--orange) 58%, rgba(230, 90, 20, 0) 76%);
-      filter: drop-shadow(0 0 12px rgba(242, 163, 58, 0.9)); transform-origin: 50% 100%;
+      background: radial-gradient(ellipse at 50% 78%, var(--core) 0 12%, var(--mid) 30%, var(--edge) 58%, transparent 76%);
+      filter: drop-shadow(0 0 12px var(--glow)); transform-origin: 50% 100%;
       animation: dance 2.4s ease-in-out infinite alternate;
     }
-    .wax { width: 34px; border-radius: 5px 5px 2px 2px; background: linear-gradient(90deg, #cfd3dd, #ffffff 45%, #c3c8d4); box-shadow: 0 -6px 40px 8px rgba(255, 122, 24, 0.25); }
-    .candle:nth-child(1) .wax { height: 60px; }
-    .candle:nth-child(2) .wax { height: 84px; }
-    .candle:nth-child(3) .wax { height: 48px; filter: brightness(0.6); }
-    .candle:nth-child(3) .flame { transform: scale(0.55); opacity: 0.45; }
+    .wax { width: 34px; height: 70px; border-radius: 5px 5px 2px 2px; background: linear-gradient(90deg, #cfd3dd, #ffffff 45%, #c3c8d4); box-shadow: 0 -6px 40px 8px var(--halo); }
     @keyframes dance {
       0% { rotate: -2deg; } 40% { rotate: 1.5deg; scale: 1 1.06; } 70% { rotate: -1deg; scale: 1 0.96; } 100% { rotate: 2deg; }
     }

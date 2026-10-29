@@ -10,12 +10,12 @@ import re
 
 from ghostwriter import db
 
-_SENTENCE_END = re.compile(r"(?<=[.!?।])\s+")  # । is the Devanagari full stop (danda)
+SENTENCE_END = re.compile(r"(?<=[.!?।])\s+")  # । is the Devanagari full stop (danda)
 
 
 def fragment(transcript: str, rng: random.Random = random) -> str | None:
     """One sentence of a readable length, or None if there isn't one."""
-    sentences = [s.strip() for s in _SENTENCE_END.split(transcript) if 5 <= len(s.split()) <= 30]
+    sentences = [s.strip() for s in SENTENCE_END.split(transcript) if 5 <= len(s.split()) <= 30]
     return rng.choice(sentences) if sentences else None
 
 

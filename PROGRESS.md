@@ -33,6 +33,12 @@ _Last updated: Thu Oct 29, 2026_
     375 px (no overflow), plain mode hides all decoration, zero external requests, no console errors,
     a real Seance answer renders. **Not checked:** prefers-reduced-motion (CSS only, not emulated) and
     real frame rate while Gemma runs.
+  - Oct 29: **Seance faster** (excerpts, weak matches dropped, warm-up on page open, keep_alive 20m;
+    numbers below). **Mood candles** (user chose: mood decides colour, design matches mood, fading kept
+    but subtler): 6 fixed moods enforced by the JSON schema, 6 CSS candle designs on one 90x128 stage
+    (uniform height; the old random wax heights are gone), flame colours, a colour key. Checked in the
+    browser pane at desktop and 375 px (joyful/loving previewed by injecting two candles, since no demo
+    story has those moods yet).
     **User TODOs in `docs/index.html`**: `YOUR_GITHUB_REPO_URL` (x2) and the demo-video box.
 - **Stage 6: DONE (drafts).** README complete (quick start **verified on a fresh clone**: setup.ps1 OK in
   43 s, 47 tests pass + 1 skipped without Piper). DEMO_SCRIPT.md (2:00 + 1:30 cut). POST_DRAFT.md in the
@@ -160,6 +166,10 @@ powershell -ExecutionPolicy Bypass -File scripts\demo.ps1           # demo archi
 | Story analysis (JSON) | 26.9 s warm (488 prompt tokens, 182 generated); 143 s for 4 samples (~36 s each) | |
 | Seance | first word 7-19 s, full answer 11-26 s | up to 3 stories as context |
 | Seance, same stories again | first word 0.7 s | Ollama prompt cache |
+| Seance before/after excerpts, samples (Oct 29) | ~560 prompt tokens, first word 7.9-13 s -> ~550, 6.8-12.4 s | 1 story per question; RAM nearly full (0.4-2.5 GB free), one 52 s outlier before |
+| Seance before/after excerpts, stories 5x longer | ~1,050 prompt tokens, first word 16.9-23.4 s -> ~670, 9.6-13.6 s | synthetic: sample transcripts repeated 5x |
+| Seance first question after page warm-up | first word 7.0 s, total 10.4 s | no model load; warm-up itself took ~20 s in the background |
+| Ollama threads 6 vs default 8 | no difference (8.4-15.5 s) | not changed |
 | Downloads | Gemma 6.6 GB took ~35 min at ~3.9 MB/s | setup cost, once |
 | Piper synthesis | real-time factor 0.066 (9.6 s of speech in 0.63 s) | plain voice |
 | Ghost voice end to end | 11.2 s of speech in 1.22 s (Piper + ffmpeg effects); cached repeat 0.00 s | |

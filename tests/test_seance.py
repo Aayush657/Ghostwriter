@@ -109,3 +109,20 @@ def test_old_database_gets_the_new_column(data_dir):
     db.init_db()
     story_id = db.create_story()
     assert db.get_story(story_id)["reaction"] is None
+
+
+def test_seance_sends_only_the_relevant_part_of_a_long_story():
+    filler = "We walked to school and back every day. " * 60
+    transcript = f"{filler}The clock stopped at eleven. Then it started again. {filler}"
+    text = prompts.excerpt(transcript, ["clock"])
+    assert "The clock stopped at eleven." in text and "Then it started again." in text
+    assert len(text) <= prompts.EXCERPT_CHARS + len(" [...]")
+    assert prompts.excerpt("No match here. Just a short story.", ["clock"]) == "No match here. Just a short story."
+
+
+def test_seance_prompt_includes_tags_and_excerpt():
+    story = {"id": 3, "title": "Kadhi", "summary": "Your grandmother made kadhi.", "tags": "Nani (grandmother)",
+             "transcript": "Long ago. Nani made kadhi in a brass pot. It was famous."}
+    user = prompts.seance_messages("What did Nani cook?", [story], plain=False)[1]["content"]
+    assert "[S3] Kadhi" in user and "Tags: Nani (grandmother)" in user
+    assert "Nani made kadhi in a brass pot." in user

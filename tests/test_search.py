@@ -8,7 +8,7 @@ def add_story(title: str, transcript: str, status: str = "ready", people: list[s
     story_id = db.create_story()
     db.update_story(story_id, transcript=transcript)
     db.save_analysis(story_id, StoryAnalysis(
-        title=title, summary="A remembered evening.", people=list(people), places=[], eras=[], mood="calm",
+        title=title, summary="A remembered evening.", people=list(people), places=[], eras=[], mood="nostalgic",
         keepsakes=[], unfinished_business=["What next?", "Who else was there?"]))
     if status != "ready":
         db.update_story(story_id, status=status)
@@ -24,7 +24,16 @@ def test_keywords_drop_filler_and_keep_hindi_words_whole():
 def test_title_matches_outrank_transcript_matches(data_dir):
     in_transcript = add_story("A Hostel Night", "and somewhere a clock was ticking")
     in_title = add_story("The Clock That Listened", "every night it stopped")
-    assert [s["id"] for s in search.find_stories("the clock")] == [in_title, in_transcript]
+    assert search.find_stories("the clock")[0]["id"] == in_title
+
+
+def test_weak_matches_are_left_out(data_dir):
+    trunk = add_story("Grandfather's Trunk", "letters from Rangoon", people=["grandfather"])
+    add_story("The Clock That Listened", "my grandfather said the clock was older than the house")
+    clock_and_trunk = add_story("The Trunk and the Clock", "the trunk sat under the clock",
+                                people=["grandfather"])
+    found = {s["id"] for s in search.find_stories("What was in grandfather's trunk?")}
+    assert found == {trunk, clock_and_trunk}  # the clock story only mentions grandfather in passing
 
 
 def test_latin_name_finds_a_devanagari_story_through_its_tags(data_dir):

@@ -226,18 +226,24 @@ function life(story) {
   return Math.min(1, Math.max(0.12, 1 - days / FADE_DAYS));
 }
 
+// Each mood has its own candle design and flame colour (style.css, .mood-*); see models.Mood.
+const MOODS = ["joyful", "nostalgic", "loving", "poignant", "mysterious", "eerie"];
+
 function candle(s, i = 0) {
   const lit = s.status === "ready";
+  const mood = MOODS.includes(s.mood?.toLowerCase()) ? s.mood.toLowerCase() : "nostalgic"; // older free-form moods
   const meta = [localTime(s.created_at), s.mood, s.is_sample && "fictional sample"].filter(Boolean).join(" · ");
-  const node = el("a", { href: `#/story/${s.id}`, className: `candle ${lit ? "lit" : s.status}`, title: s.summary || "" },
-    el("span", { className: "flame-wrap" }, el("span", { className: "flame" })),
-    el("span", { className: "wick" }),
-    el("span", { className: "wax" }),
+  const node = el("a", { href: `#/story/${s.id}`, className: `candle mood-${mood} ${lit ? "lit" : s.status}`, title: s.summary || "" },
+    el("span", { className: "art" },
+      el("span", { className: "holder" }),
+      el("span", { className: "wax" }),
+      el("span", { className: "wick" }),
+      el("span", { className: "flame-wrap" }, el("span", { className: "flame" })),
+    ),
     el("span", { className: "label", textContent: statusText(s) }),
     el("span", { className: "meta", textContent: meta }),
   );
   node.style.setProperty("--life", lit ? life(s).toFixed(2) : "0");
-  node.style.setProperty("--wax", `${54 + ((s.id * 37) % 34)}px`); // varied heights look hand-made
   node.style.setProperty("--i", i); // candles rise onto the wall one after another
   return node;
 }
@@ -533,6 +539,7 @@ async function start() {
   window.addEventListener("hashchange", () => refresh());
   haunt();
 
+  fetch("/api/warm", { method: "POST" }).catch(() => {}); // load Gemma before the first question
   loadHealth().catch(() => {});
   refresh();
   setTimeout(() => maybeWhisper().catch(() => {}), 2500);

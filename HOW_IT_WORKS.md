@@ -78,6 +78,18 @@ The ghost "can only remember what it was told". In code:
 3. After streaming, the server keeps **only citations of stories Gemma was actually shown**. The page
    turns those into links to the story; any other `[S..]` tag is dropped.
 
+**Making it fast on a CPU.** Measured, the wait before the first word grows with the prompt: Gemma
+reads about 50 prompt tokens a second here (~560 tokens: 8-13 s; ~1,090 tokens: 17-23 s). Using 6
+threads instead of Ollama's 8 made no difference. So the Seance sends less:
+- each story arrives as title, summary, tags and an **excerpt**: only the transcript sentences that
+  mention the question's words, plus their neighbours, at most 800 characters (`prompts.excerpt`);
+- a match that scores **under half the best match** is dropped (`search.RELEVANCE`);
+- opening the page **loads Gemma in the background** (`/api/warm`), and every request asks Ollama to
+  keep it loaded for 20 minutes, so a question never waits ~20 s for the model to load.
+
+On stories five times the length of the samples this cut the prompt from ~1,050 to ~670 tokens and
+the first word from 17-23 s to 10-14 s. On the short samples it changes little (they were already small).
+
 ## 7. Ghost handwriting (streaming)
 
 Ollama streams tokens as JSON lines. The server re-sends them to the browser as **Server-Sent
@@ -99,9 +111,18 @@ mentioned its "memory banks", so the persona now forbids machine words.
 
 ## 9. The candle wall and whispers
 
-A candle's brightness is `1 - days_since_visit / 30`, never below 0.12, passed to CSS as a custom
-property `--life` that scales the flame and the glow. Registering it with `@property` makes it
-animatable, so opening a story (which records the visit) lets the flame grow back smoothly.
+A candle's life is `1 - days_since_visit / 30`, never below 0.12, passed to CSS as a custom
+property `--life`. It dims the flame only gently (never below about 70% of full size and brightness),
+so the wall stays even. Registering it with `@property` makes it animatable, so opening a story (which
+records the visit) lets the flame grow back smoothly.
+
+Each story's **mood** picks its candle. Gemma must choose one of six moods (a `Literal` in
+`models.py`, so Ollama's structured output can only produce those words), and each has its own
+design and flame colour, all drawn in CSS on the same 90 x 128 px stage so the wall lines up:
+nostalgic = dripping pillar, amber; poignant = twisted taper in a brass candlestick, blue;
+mysterious = candle in an iron lantern, violet; eerie = skull candle, green; joyful = jack-o'-lantern,
+gold; loving = clay diya, rose. Shape and colour together mean colour is never the only cue. A key
+under the wall names the colours. Stories analysed before the moods were fixed get the pillar.
 Whispers need no model: they are one sentence of the storyteller's own words, picked from the three
 least recently visited stories, which nudges you back toward what you've forgotten.
 

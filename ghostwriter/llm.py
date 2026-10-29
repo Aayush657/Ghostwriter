@@ -18,6 +18,8 @@ log = logging.getLogger(__name__)
 
 # CPU generation can take minutes, but a server that isn't running should fail fast.
 TIMEOUT = httpx.Timeout(300, connect=5)
+# Keep Gemma in memory between questions (Ollama's default is 5 minutes); loading it takes ~16-20 s.
+KEEP_ALIVE = "20m"
 
 
 class LLMError(Exception):
@@ -30,11 +32,23 @@ def _body(messages: list[dict], *, stream: bool, temperature: float, schema: dic
         "messages": messages,
         "stream": stream,
         "think": False,  # Gemma 4 can reason before answering; we want direct, faster replies
+        "keep_alive": KEEP_ALIVE,
         "options": {"temperature": temperature, "num_ctx": settings.llm_num_ctx},
     }
     if schema is not None:
         body["format"] = schema
     return body
+
+
+def warm_up() -> None:
+    """Load Gemma ahead of the first question (an empty chat only loads the model). Never raises."""
+    try:
+        httpx.post(f"{settings.ollama_url}/api/chat", timeout=TIMEOUT, json={
+            "model": settings.llm_model, "messages": [], "keep_alive": KEEP_ALIVE,
+            "options": {"num_ctx": settings.llm_num_ctx},  # same context size, or Ollama loads it twice
+        })
+    except httpx.HTTPError as exc:
+        log.info("could not warm up Gemma: %s", exc)  # the health banner already explains why
 
 
 @contextmanager

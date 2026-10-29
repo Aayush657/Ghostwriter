@@ -75,3 +75,10 @@ def test_visiting_relights_the_candle(client):
 def test_only_failed_stories_can_be_retried(client):
     story_id = upload(client).json()["id"]
     assert client.post(f"/api/stories/{story_id}/retry").status_code == 409
+
+
+def test_opening_the_page_warms_up_gemma(client, monkeypatch):
+    calls = []
+    monkeypatch.setattr(main.llm, "warm_up", lambda: calls.append(1))
+    assert client.post("/api/warm").status_code == 204
+    assert calls == [1]

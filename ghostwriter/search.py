@@ -33,6 +33,11 @@ def keywords(question: str) -> list[str]:
     return list(dict.fromkeys(words))  # de-duplicate, keep order
 
 
+# A match scoring under half the best one is dropped: it rarely helps the answer, and every story
+# Gemma has to read adds seconds on a CPU.
+RELEVANCE = 0.5
+
+
 def find_stories(question: str, limit: int = 3) -> list[dict]:
     """The best-matching finished stories. Title and tag hits count most, then summary, then transcript."""
     words = keywords(question)
@@ -40,11 +45,14 @@ def find_stories(question: str, limit: int = 3) -> list[dict]:
         return []
     match = " OR ".join(f'"{w}"' for w in words)  # quoted, so words are never read as FTS syntax
     with db.connect() as con:
-        return [dict(r) for r in con.execute(
-            """SELECT s.id, s.title, s.summary, s.transcript
+        rows = [dict(r) for r in con.execute(
+            """SELECT s.id, s.title, s.summary, s.tags, s.transcript,
+                      bm25(stories_fts, 3.0, 2.0, 3.0, 1.0) AS score  -- title, summary, tags, transcript
                FROM stories_fts JOIN stories s ON s.id = stories_fts.rowid
                WHERE stories_fts MATCH ? AND s.status = 'ready'
-               ORDER BY bm25(stories_fts, 3.0, 2.0, 3.0, 1.0)  -- title, summary, tags, transcript
+               ORDER BY score
                LIMIT ?""",
             (match, limit),
         )]
+    # bm25 scores are negative: the lower, the better.
+    return [r for r in rows if r["score"] <= rows[0]["score"] * RELEVANCE]

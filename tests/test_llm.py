@@ -53,3 +53,9 @@ def test_ollama_down_gives_a_plain_fix(monkeypatch):
     monkeypatch.setattr(settings, "ollama_url", "http://127.0.0.1:9")
     with pytest.raises(llm.LLMError, match="ollama serve"):
         llm.chat([{"role": "user", "content": "hello"}])
+
+
+def test_gemma_must_pick_one_of_the_candle_moods():
+    from ghostwriter.models import StoryAnalysis
+    schema = StoryAnalysis.model_json_schema()
+    assert schema["properties"]["mood"]["enum"] == ["joyful", "nostalgic", "loving", "poignant", "mysterious", "eerie"]

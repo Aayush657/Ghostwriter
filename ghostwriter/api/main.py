@@ -10,11 +10,11 @@ from contextlib import asynccontextmanager
 from dataclasses import asdict
 from pathlib import Path
 
-from fastapi import FastAPI, Request, Response
+from fastapi import BackgroundTasks, FastAPI, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from ghostwriter import db, export, selfcheck, whispers
+from ghostwriter import db, export, llm, selfcheck, whispers
 from ghostwriter.api import seance, stories, voice
 from ghostwriter.config import settings
 
@@ -53,6 +53,13 @@ async def always_fresh_ui(request: Request, call_next):
 def health() -> list[dict]:
     """Which local services are available right now. The UI shows this."""
     return [asdict(check) for check in selfcheck.run_checks()]
+
+
+@app.post("/api/warm", status_code=204)
+def warm(background: BackgroundTasks) -> Response:
+    """The page calls this when it opens, so Gemma is loaded before the first question is asked."""
+    background.add_task(llm.warm_up)
+    return Response(status_code=204)
 
 
 @app.get("/api/whisper")

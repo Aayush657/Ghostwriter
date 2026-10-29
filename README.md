@@ -31,7 +31,8 @@ _Screenshots and a demo video: [PLACEHOLDER]_
   in a handwriting font.
 - **Candle wall.** Every story is a candle on a wall strung with orange and white lights, under a
   moonlit sky with bats, fog and a haunted house (decoration only; plain mode hides it, and it holds
-  still for reduced motion). Candles burn low when a
+  still for reduced motion). Each story's mood picks its candle and flame colour: a dripping pillar,
+  a twisted taper, a lantern, a skull, a jack-o'-lantern or a clay diya. Flames dim a little when a
   story goes unvisited, and relight when you open it. Filter by person, place or era.
 - **Whispers.** On launch the ghost sometimes murmurs a line from one of your most faded stories.
 - **Ghost voice.** The Archivist can speak, using Piper text-to-speech with ffmpeg effects (lower
@@ -176,7 +177,7 @@ default) are documented there, with the prefix `GW_`.
 ## Development
 
 ```powershell
-.venv\Scripts\python.exe -m pytest                        # 50 tests; Gemma and Whisper are faked
+.venv\Scripts\python.exe -m pytest                        # 55 tests; Gemma and Whisper are faked
 .venv\Scripts\python.exe -m ghostwriter.transcribe a.wav  # Whisper timing on one file
 .venv\Scripts\python.exe -m ghostwriter.tts "Hello"       # the ghost voice on one line
 ```
