@@ -1,6 +1,6 @@
 # PROGRESS
 
-_Last updated: Wed Oct 28, 2026, 18:30 IST_
+_Last updated: Thu Oct 29, 2026_
 
 **Name decided: Ghostwriter**, subtitle "the ghost that keeps your stories" (user's choice, Oct 28).
 
@@ -19,6 +19,11 @@ _Last updated: Wed Oct 28, 2026, 18:30 IST_
   - Memory book export: `/api/book`, one self-contained HTML (fonts embedded, 807 KB for the 4 samples),
     prints to PDF; checked in the browser pane, Hindi renders.
   - Landing page in `docs/` for GitHub Pages + .tech domain; no external requests, fine at 375 px.
+  - Oct 29: `docs/book.html`, the memory book of the 4 fictional samples (real Gemma output: 2 reactions,
+    1 retelling), linked from the landing page ("Read what it wrote"). Added because the .tech prize
+    asks for the project to be "live" on the domain, and the app itself can't run on a server.
+    `python -m ghostwriter.export <file>` CLI; it refuses to write real stories into `docs/` (tested).
+    Checked in the browser pane: 4 stories, fonts load, zero network requests, no overflow at 375 px.
     **User TODOs in `docs/index.html`**: `YOUR_GITHUB_REPO_URL` (x2) and the demo-video box.
 - **Stage 6: DONE (drafts).** README complete (quick start **verified on a fresh clone**: setup.ps1 OK in
   43 s, 47 tests pass + 1 skipped without Piper). DEMO_SCRIPT.md (2:00 + 1:30 cut). POST_DRAFT.md in the

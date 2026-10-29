@@ -8,13 +8,16 @@ needs no server, no internet and no Ghostwriter to be read, now or in twenty yea
 from __future__ import annotations
 
 import base64
+import sys
 from datetime import datetime, timezone
 from html import escape
+from pathlib import Path
 
 from ghostwriter import db
 from ghostwriter.config import PROJECT_ROOT
 
 FONTS = PROJECT_ROOT / "ghostwriter" / "static" / "fonts"
+PUBLIC_DIR = PROJECT_ROOT / "docs"  # the project website: whatever is written here gets published
 ENTITY_LABELS = (("person", "People"), ("place", "Places"), ("era", "When"), ("keepsake", "Keepsakes"))
 
 STYLE = """
@@ -104,3 +107,21 @@ def memory_book_html() -> str:
 </body>
 </html>
 """
+
+
+def save(out: Path) -> None:
+    """Write the memory book to a file. Only an archive of fictional samples may go into docs/."""
+    if out.resolve().is_relative_to(PUBLIC_DIR) and not all(s["is_sample"] for s in db.list_stories()):
+        raise ValueError("docs/ is the public website and this archive holds real stories. "
+                         'Export the samples instead: $env:GW_DATA_DIR = "demo-data"')
+    out.write_text(memory_book_html(), encoding="utf-8")
+
+
+if __name__ == "__main__":
+    # .venv\Scripts\python.exe -m ghostwriter.export memory-book.html
+    target = Path(sys.argv[1] if len(sys.argv) > 1 else "memory-book.html")
+    try:
+        save(target)
+    except ValueError as e:
+        sys.exit(str(e))
+    print(f"Wrote {target}")

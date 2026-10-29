@@ -1,5 +1,6 @@
 """Memory book tests: finished stories only, oldest first, escaped, and readable without a server."""
 
+import pytest
 from fastapi.testclient import TestClient
 
 from ghostwriter import db, export
@@ -29,6 +30,21 @@ def test_book_escapes_text_and_needs_nothing_from_outside(data_dir):
     assert "<script>alert" not in book and "&lt;script&gt;" in book
     assert "data:font/ttf;base64," in book  # fonts travel inside the file
     assert "http://" not in book and "https://" not in book
+
+
+def test_real_stories_never_go_to_the_public_website(data_dir, tmp_path, monkeypatch):
+    monkeypatch.setattr(export, "PUBLIC_DIR", tmp_path / "docs")
+    (tmp_path / "docs").mkdir()
+    sample = add_story("The Clock That Listened", "tick")
+    with db.connect() as con:
+        con.execute("UPDATE stories SET is_sample = 1 WHERE id = ?", (sample,))
+    export.save(tmp_path / "docs" / "book.html")  # samples only: allowed
+
+    add_story("Nani's Real Recipe", "private")
+    with pytest.raises(ValueError):
+        export.save(tmp_path / "docs" / "book.html")
+    assert "Nani's Real Recipe" not in (tmp_path / "docs" / "book.html").read_text(encoding="utf-8")
+    export.save(tmp_path / "my-book.html")  # anywhere else is fine
 
 
 def test_book_route_serves_html(data_dir, monkeypatch):

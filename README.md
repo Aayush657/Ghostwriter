@@ -174,7 +174,7 @@ default) are documented there, with the prefix `GW_`.
 ## Development
 
 ```powershell
-.venv\Scripts\python.exe -m pytest                        # 48 tests; Gemma and Whisper are faked
+.venv\Scripts\python.exe -m pytest                        # 49 tests; Gemma and Whisper are faked
 .venv\Scripts\python.exe -m ghostwriter.transcribe a.wav  # Whisper timing on one file
 .venv\Scripts\python.exe -m ghostwriter.tts "Hello"       # the ghost voice on one line
 ```
@@ -187,10 +187,17 @@ default) are documented there, with the prefix `GW_`.
 "Open the memory book" on the candle wall (or `/api/book`) gives every finished story as one
 self-contained HTML page: fonts embedded, nothing fetched from anywhere. Print it, save it as PDF, or
 keep the file; it opens in any browser without Ghostwriter. Recordings stay in `data\audio\`.
+From the command line: `.venv\Scripts\python.exe -m ghostwriter.export memory-book.html`.
 
 ## Landing page (.tech)
 
 `docs/` is a small static site (no build step, fonts bundled) for the project's .tech domain.
+`docs/book.html` is a real memory book made from the four fictional samples, so visitors can read
+the ghost's output. To remake it (the exporter refuses to put real stories in `docs/`):
+
+```powershell
+$env:GW_DATA_DIR = "demo-data"; .venv\Scripts\python.exe -m ghostwriter.export docs\book.html
+```
 
 1. In `docs/index.html`, replace `YOUR_GITHUB_REPO_URL` (twice) and the demo-video box (`TODO(you)`).
 2. Push the repo to GitHub, then **Settings > Pages > Deploy from a branch > `main` / `/docs`**.
