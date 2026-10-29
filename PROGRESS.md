@@ -68,6 +68,11 @@ _Last updated: Thu Oct 29, 2026_
 
 ## Known issues
 
+- **Oct 29, Gemma failed to load: out of memory.** Seance returned Ollama's raw error ("unable to
+  allocate CPU_REPACK buffer" of 1.5 GB). Free RAM was 3.4 of 15.7 GB (Chrome ~2.1 GB, Claude ~1.8 GB,
+  Ollama app ~1.7 GB). Not a code bug. Fix: close programs before using or demoing; the app should
+  say so in plain words instead of showing the raw error (being fixed).
+
 - **winget downloads fail** here (`InternetOpenUrl() failed 0x80072eff`). Workaround: curl.exe + SHA256
   from `winget show` + run the installer. GitHub raw/API also resets or rate-limits sometimes; use
   `curl --retry 8 --retry-all-errors`.

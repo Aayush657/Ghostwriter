@@ -226,7 +226,7 @@ function life(story) {
   return Math.min(1, Math.max(0.12, 1 - days / FADE_DAYS));
 }
 
-function candle(s) {
+function candle(s, i = 0) {
   const lit = s.status === "ready";
   const meta = [localTime(s.created_at), s.mood, s.is_sample && "fictional sample"].filter(Boolean).join(" · ");
   const node = el("a", { href: `#/story/${s.id}`, className: `candle ${lit ? "lit" : s.status}`, title: s.summary || "" },
@@ -238,6 +238,7 @@ function candle(s) {
   );
   node.style.setProperty("--life", lit ? life(s).toFixed(2) : "0");
   node.style.setProperty("--wax", `${54 + ((s.id * 37) % 34)}px`); // varied heights look hand-made
+  node.style.setProperty("--i", i); // candles rise onto the wall one after another
   return node;
 }
 
@@ -484,6 +485,24 @@ async function maybeWhisper() {
   setTimeout(() => node.classList.add("fading"), 15000);
 }
 
+// --------------------------------------------------------------------------- the haunting (decoration only)
+
+function haunt() {
+  const lantern = document.querySelector(".lantern");
+  if (matchMedia("(pointer: fine)").matches) {
+    addEventListener("pointermove", (e) => {
+      lantern.classList.add("on");
+      lantern.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+    }, { passive: true });
+  }
+  const ghost = $("#mascot");
+  ghost.addEventListener("click", () => {
+    ghost.classList.remove("boo");
+    void ghost.offsetWidth; // restart the animation on every poke
+    ghost.classList.add("boo");
+  });
+}
+
 // --------------------------------------------------------------------------- start
 
 async function start() {
@@ -512,6 +531,7 @@ async function start() {
     if (file) upload(file);
   });
   window.addEventListener("hashchange", () => refresh());
+  haunt();
 
   loadHealth().catch(() => {});
   refresh();

@@ -12,67 +12,140 @@
   font-display: swap;
 }
 
+/* A moonlit night: dark blue, black, pumpkin orange and white. */
 :root {
-  --bg: #0e0c10;
-  --panel: #17141b;
-  --line: #2a2530;
-  --text: #e9e1d4;
-  --muted: #9a8f80;
-  --ink: #efe3c8;
-  --marigold: #f2a33a;
-  --bad: #e0675a;
-  --ok: #7fbf7f;
+  color-scheme: dark;
+  --night: #0a1633;
+  --black: #03050b;
+  --panel: rgba(8, 17, 42, 0.96);
+  --line: rgba(130, 160, 230, 0.18);
+  --text: #f4f6fb;
+  --muted: #a9b6d6;
+  --ink: #ffffff;
+  --orange: #ff7a18;
+  --orange-soft: #ffa24a;
+  --glow: rgba(255, 122, 24, 0.55);
+  --bad: #ff6b5e;
+  --ok: #8fd694;
+  scrollbar-color: var(--orange) var(--black);
 }
 
 * { box-sizing: border-box; }
+::selection { background: var(--orange); color: var(--black); }
+:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
 
 body {
   margin: 0;
-  background: radial-gradient(ellipse at top, #1b1620 0%, var(--bg) 60%) fixed;
+  background: linear-gradient(180deg, #10224f 0%, var(--night) 30%, #050b1c 70%, var(--black) 100%) fixed var(--black);
   color: var(--text);
   font: 16px/1.6 Georgia, "Nirmala UI", "Times New Roman", serif;
+  overflow-x: hidden;
 }
 
-header, main { max-width: 860px; margin: 0 auto; padding: 0 16px; }
-header { padding-top: 24px; }
+header, main { position: relative; z-index: 1; max-width: 880px; margin: 0 auto; padding: 0 16px; }
+header { padding-top: 28px; animation: rise 0.9s ease-out both; }
+main { padding-bottom: 200px; } /* room to see the graveyard at the bottom */
 
 h1, h2, h3 { font-family: "IM Fell English", Georgia, serif; font-weight: normal; }
-h1 { margin: 0; font-size: 2.4rem; letter-spacing: 0.03em; }
-h1 a { color: var(--marigold); text-decoration: none; }
-h2 { font-size: 1.5rem; color: var(--marigold); margin: 12px 0; }
-h3 { font-size: 1.2rem; color: var(--marigold); margin: 16px 0 4px; }
-a { color: var(--marigold); }
+h1 { margin: 0; font-size: clamp(2.6rem, 8vw, 3.8rem); line-height: 1; letter-spacing: 0.02em; }
+h1 a {
+  color: var(--orange); text-decoration: none;
+  text-shadow: 0 0 14px var(--glow), 0 0 42px rgba(255, 122, 24, 0.35);
+  animation: sign-flicker 9s infinite;
+}
+h2 { font-size: 1.7rem; color: var(--ink); margin: 14px 0 12px; text-shadow: 0 0 18px rgba(255, 122, 24, 0.3); }
+h2::after {
+  content: ""; display: block; width: 56px; height: 3px; margin-top: 4px; border-radius: 3px;
+  background: linear-gradient(90deg, var(--orange), transparent);
+}
+h3 { font-size: 1.25rem; color: var(--orange-soft); margin: 18px 0 4px; }
+a { color: var(--orange-soft); }
+a:hover { color: var(--ink); text-shadow: 0 0 10px var(--glow); }
 
-section, article { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 4px 20px 16px; margin: 20px 0; }
-section section { background: none; border: 0; padding: 0; margin: 12px 0; }
+section, article {
+  position: relative;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 8px 24px 20px;
+  margin: 28px 0;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  animation: rise 0.8s ease-out both;
+}
+main > :nth-child(1) { animation-delay: 0.15s; }
+main > :nth-child(3) { animation-delay: 0.3s; }
+main > :nth-child(4) { animation-delay: 0.45s; }
+article { border-color: rgba(255, 122, 24, 0.35); box-shadow: 0 0 40px rgba(255, 122, 24, 0.12), 0 18px 50px rgba(0, 0, 0, 0.5); }
+section section { background: none; border: 0; box-shadow: none; padding: 0; margin: 14px 0; animation: none; }
 
-.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 8px; font-size: 0.85rem; color: var(--muted); }
+/* ---------- header: the ghost, the sign, the controls ---------- */
+
+.brand { display: flex; align-items: center; gap: 14px; }
+.tagline { margin: 6px 0 0; font-family: "IM Fell English", Georgia, serif; font-style: italic; color: var(--muted); font-size: 1.1rem; }
+
+.mascot {
+  position: relative; flex: none; width: 62px; height: 78px; padding: 0;
+  background: none; border: 0; border-radius: 0; box-shadow: none; cursor: pointer;
+  animation: bob 3.4s ease-in-out infinite;
+}
+.mascot:hover, .mascot:focus-visible { background: none; box-shadow: none; transform: none; }
+.mascot svg { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.45)); }
+.mascot .sheet { fill: #f6f8ff; }
+.mascot .eyes, .mascot .mouth { fill: var(--night); }
+.mascot .eyes { transform-box: fill-box; transform-origin: center; animation: blink 5s infinite; }
+.mascot:hover .mouth { transform-box: fill-box; transform-origin: center; transform: scale(1.4, 1.6); }
+.mascot::after {
+  content: "Boo!"; position: absolute; left: 54px; top: -6px; padding: 2px 10px;
+  font: 700 1.4rem/1.2 "Caveat", cursive; color: var(--black); background: var(--ink);
+  border-radius: 14px 14px 14px 2px; opacity: 0; transform: scale(0.3); transform-origin: 0 100%; pointer-events: none;
+}
+.mascot.boo svg { animation: boo 0.9s ease-out; }
+.mascot.boo::after { animation: say-boo 1.6s ease-out; }
+
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 10px; font-size: 0.85rem; color: var(--muted); }
+.controls input[type="checkbox"] { accent-color: var(--orange); }
 
 #health { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
-#health li { padding: 0 9px; border-radius: 999px; border: 1px solid currentColor; font-size: 0.75rem; }
+#health li { padding: 0 10px; border-radius: 999px; border: 1px solid currentColor; font-size: 0.75rem; background: rgba(3, 5, 11, 0.5); }
 #health .ok { color: var(--ok); }
 #health .bad { color: var(--bad); }
 #health .off { color: var(--muted); }
 
-#health-banner { margin-top: 12px; padding: 8px 16px; border: 1px solid var(--bad); border-radius: 6px; color: var(--text); }
-#health-banner .fix { color: var(--marigold); font-family: Consolas, monospace; font-size: 0.85rem; }
+#health-banner { margin-top: 12px; padding: 8px 16px; border: 1px solid var(--bad); border-radius: 10px; color: var(--text); background: rgba(60, 10, 10, 0.5); }
+#health-banner .fix { color: var(--orange-soft); font-family: Consolas, monospace; font-size: 0.85rem; }
 
-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-input[type="text"] {
-  flex: 1 1 260px; font: inherit; color: var(--text); background: var(--bg);
-  border: 1px solid var(--line); border-radius: 4px; padding: 6px 10px;
+/* ---------- forms and buttons ---------- */
+
+form { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+input[type="text"], select {
+  font: inherit; color: var(--text); background: rgba(3, 5, 11, 0.7);
+  border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
-input[type="text"]:focus { outline: 1px solid var(--marigold); }
-button {
+input[type="text"] { flex: 1 1 260px; }
+input[type="text"]::placeholder { color: #7f8db0; }
+input[type="text"]:focus, select:focus { outline: none; border-color: var(--orange); box-shadow: 0 0 0 3px rgba(255, 122, 24, 0.25), 0 0 24px rgba(255, 122, 24, 0.2); }
+
+button, input[type="file"]::file-selector-button {
   font: inherit; cursor: pointer;
-  background: transparent; color: var(--marigold);
-  border: 1px solid var(--marigold); border-radius: 4px; padding: 4px 14px;
+  background: var(--orange); color: var(--black);
+  border: 0; border-radius: 999px; padding: 7px 20px;
+  box-shadow: 0 0 0 rgba(255, 122, 24, 0);
+  transition: transform 0.15s, box-shadow 0.2s, background-color 0.2s;
 }
-button:hover, button:focus-visible { background: var(--marigold); color: var(--bg); }
-button:disabled { opacity: 0.5; cursor: wait; }
-button.quiet { border-color: transparent; color: var(--muted); font-size: 0.85rem; text-decoration: underline; }
-button.record { font-size: 1.1rem; padding: 8px 20px; }
-button.live { background: var(--bad); border-color: var(--bad); color: var(--text); animation: flicker 1.6s infinite; }
+button:hover, button:focus-visible, input[type="file"]::file-selector-button:hover {
+  background: var(--orange-soft); box-shadow: 0 0 22px var(--glow); transform: translateY(-1px) rotate(-1.5deg);
+}
+button:disabled { opacity: 0.55; cursor: wait; transform: none; }
+input[type="file"] { color: var(--muted); max-width: 100%; }
+input[type="file"]::file-selector-button { margin-right: 12px; background: transparent; color: var(--text); border: 1px solid var(--line); }
+
+button.quiet { background: none; color: var(--muted); padding: 4px 6px; font-size: 0.9rem; text-decoration: underline; box-shadow: none; }
+button.quiet:hover, button.quiet:focus-visible { color: var(--orange-soft); transform: none; box-shadow: none; }
+button.record { font-size: 1.15rem; padding: 12px 28px; margin: 4px 0 8px; }
+button.record::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 10px; border-radius: 50%; background: var(--black); vertical-align: 1px; }
+button.live { background: var(--orange); animation: heartbeat 1.4s ease-out infinite; }
+button.live::before { background: #d4140b; animation: blink-dot 1s steps(2) infinite; }
 
 .meta { color: var(--muted); font-size: 0.85rem; }
 .status { font-style: italic; color: var(--muted); }
@@ -82,30 +155,32 @@ dl.details { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16p
 dl.details dt { color: var(--muted); }
 dl.details dd { margin: 0; }
 
-.transcript { white-space: pre-wrap; color: #cfc6b8; }
+details summary { cursor: pointer; color: var(--muted); }
+details summary:hover { color: var(--orange-soft); }
+.transcript { white-space: pre-wrap; color: #d4dbec; }
 .retelling, .retelling p { white-space: pre-wrap; } /* keep the retelling's paragraphs */
-.questions li { margin-bottom: 8px; }
+.questions li { margin-bottom: 10px; }
+.questions li::marker { color: var(--orange); }
 audio { width: 100%; margin: 8px 0; }
 
 /* ---------- ghost handwriting ---------- */
 
 .handwriting {
   font-family: "Caveat", "Segoe Print", cursive;
-  font-size: 1.6rem;
+  font-size: 1.65rem;
   line-height: 1.35;
   color: var(--ink);
-  text-shadow: 0 0 10px rgba(242, 163, 58, 0.18);
+  text-shadow: 0 0 12px rgba(255, 122, 24, 0.35);
 }
-.tagline { margin: 0; font-family: "IM Fell English", Georgia, serif; font-style: italic; color: var(--muted); }
-#greeting { margin: 4px 0 0; font-size: 1.4rem; color: var(--muted); }
+#greeting { margin: 14px 0 0; font-size: 1.5rem; color: #dfe6f8; }
 
 .whisper {
-  margin: 2px 0 0; font-family: "Caveat", cursive; font-size: 1.25rem; font-style: italic;
+  margin: 2px 0 0; font-family: "Caveat", cursive; font-size: 1.3rem; font-style: italic;
   animation: whisper-in 4s ease-out both;
   transition: opacity 4s ease-in;
 }
-.whisper a { color: #b9a98c; text-decoration: none; text-shadow: 0 0 12px rgba(200, 200, 255, 0.25); }
-.whisper a:hover { color: var(--marigold); }
+.whisper a { color: #b9c8ee; text-decoration: none; text-shadow: 0 0 14px rgba(170, 200, 255, 0.5); }
+.whisper a:hover { color: var(--orange-soft); }
 .whisper.fading { opacity: 0; }
 @keyframes whisper-in {
   from { opacity: 0; letter-spacing: 0.12em; filter: blur(3px); }
@@ -115,13 +190,13 @@ audio { width: 100%; margin: 8px 0; }
 /* Each new piece of text fades in like ink soaking into paper. */
 .ink { animation: ink-in 0.7s ease-out both; }
 @keyframes ink-in {
-  from { opacity: 0; filter: blur(4px); color: var(--marigold); }
+  from { opacity: 0; filter: blur(4px); color: var(--orange); }
   to   { opacity: 1; filter: blur(0); }
 }
 
 /* While the ghost writes, the whole passage flickers faintly, like candlelight. */
 .writing { animation: flicker 2.8s infinite; }
-.writing::after { content: "\2712"; margin-left: 4px; color: var(--marigold); opacity: 0.7; }
+.writing::after { content: "\2712"; margin-left: 4px; color: var(--orange); opacity: 0.8; }
 @keyframes flicker {
   0%, 100% { opacity: 1; }
   42% { opacity: 0.93; }
@@ -144,23 +219,36 @@ a.cite.short::before { content: "\2767"; }
 /* Registered so the browser can animate it: a relit candle's flame grows back smoothly. */
 @property --life { syntax: "<number>"; inherits: true; initial-value: 1; }
 
-.ofrenda {
-  position: relative;
-  padding-top: 26px;
-  /* a string of marigolds along the top edge */
-  background:
-    radial-gradient(circle at 11px 9px, #f7b84a 0 6px, #e0821e 7px, transparent 8px) 0 0 / 22px 18px repeat-x,
-    var(--panel);
+/* A string of lights along the top edge: orange and white bulbs that twinkle in turn. */
+.ofrenda { padding-top: 30px; overflow: hidden; }
+.ofrenda::before, .ofrenda::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 22px; pointer-events: none;
+  background: radial-gradient(circle at 11px 11px, #ffd2a0 0 2px, var(--orange) 4px, rgba(255, 122, 24, 0.35) 7px, transparent 9px) 0 0 / 44px 22px repeat-x;
+  animation: twinkle 2.6s ease-in-out infinite alternate;
+}
+.ofrenda::after {
+  background: radial-gradient(circle at 33px 11px, #ffffff 0 2px, #dfe8ff 4px, rgba(220, 232, 255, 0.35) 7px, transparent 9px) 0 0 / 44px 22px repeat-x,
+              linear-gradient(rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.12)) 0 4px / 100% 1px no-repeat;
+  animation-delay: -1.3s;
 }
 .filter { display: inline-flex; gap: 8px; align-items: center; }
+.filter select { padding: 3px 12px; }
 .book-link { margin-left: 16px; }
-.filter select { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 2px 6px; }
+
+/* A cobweb in the corner, and its spider going up and down on a thread. */
+.web { position: absolute; top: 0; right: 0; width: 150px; height: 190px; overflow: hidden; pointer-events: none; }
+.web svg { position: absolute; top: 0; right: 0; width: 130px; height: 130px; fill: none; stroke: rgba(235, 240, 255, 0.28); stroke-width: 0.8; }
+.spider { position: absolute; top: 34px; right: 44px; width: 26px; animation: dangle 7s ease-in-out infinite; }
+.spider::before { content: ""; position: absolute; bottom: 70%; left: 50%; width: 1px; height: 200px; background: rgba(235, 240, 255, 0.4); }
+.spider svg { display: block; width: 100%; fill: #05070e; filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.5)); }
+.spider .legs { fill: none; stroke: #05070e; stroke-width: 1.6; stroke-linecap: round; }
+.spider .eye { fill: var(--orange); }
 
 .wall {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: 28px 12px;
-  padding: 20px 0 8px;
+  gap: 30px 12px;
+  padding: 22px 0 8px;
   align-items: end;
 }
 
@@ -169,30 +257,35 @@ a.cite.short::before { content: "\2767"; }
   display: flex; flex-direction: column; align-items: center;
   text-decoration: none; color: var(--text);
   transition: --life 1.8s ease-out;
+  animation: rise 0.7s ease-out both;
+  animation-delay: calc(0.3s + var(--i, 0) * 0.09s);
 }
-.candle:hover .label, .candle:focus-visible .label { color: var(--marigold); }
+.candle:hover, .candle:focus-visible { text-shadow: none; }
+.candle:hover .label, .candle:focus-visible .label { color: var(--orange-soft); }
 
 .flame-wrap {
   height: 40px; display: flex; align-items: flex-end;
   transform: scale(calc(0.45 + 0.55 * var(--life)));
   transform-origin: 50% 100%;
   opacity: calc(0.2 + 0.8 * var(--life));
+  transition: transform 0.3s;
 }
+.candle:hover .flame-wrap { transform: scale(calc(0.6 + 0.7 * var(--life))); }
 .flame {
   width: 16px; height: 34px;
   border-radius: 50% 50% 45% 45% / 65% 65% 35% 35%;
-  background: radial-gradient(ellipse at 50% 78%, #fffbe8 0 12%, #ffd77d 30%, var(--marigold) 58%, rgba(230, 90, 20, 0) 76%);
-  filter: drop-shadow(0 0 10px rgba(242, 163, 58, 0.85));
+  background: radial-gradient(ellipse at 50% 78%, #ffffff 0 12%, #ffd08a 30%, var(--orange) 58%, rgba(255, 90, 0, 0) 76%);
+  filter: drop-shadow(0 0 10px rgba(255, 122, 24, 0.9));
   transform-origin: 50% 100%;
   animation: dance 2.4s ease-in-out infinite alternate;
 }
-.wick { width: 2px; height: 6px; background: #1c1a17; }
+.wick { width: 2px; height: 6px; background: #0b0c10; }
 .wax {
   width: 34px; height: var(--wax, 64px);
   border-radius: 5px 5px 2px 2px;
-  background: linear-gradient(90deg, #cdbf9f, #f4ecd9 45%, #c4b593);
-  box-shadow: 0 -6px calc(40px * var(--life)) calc(8px * var(--life)) rgba(242, 163, 58, calc(0.28 * var(--life)));
-  filter: brightness(calc(0.55 + 0.45 * var(--life)));
+  background: linear-gradient(90deg, #cfd3dd, #ffffff 45%, #c3c8d4);
+  box-shadow: 0 -6px calc(40px * var(--life)) calc(8px * var(--life)) rgba(255, 122, 24, calc(0.3 * var(--life)));
+  filter: brightness(calc(0.5 + 0.5 * var(--life)));
 }
 .candle .label {
   margin-top: 10px; max-width: 140px; text-align: center;
@@ -205,13 +298,164 @@ a.cite.short::before { content: "\2767"; }
 .candle:not(.lit) .flame { background: none; filter: none; animation: none; }
 .candle:not(.lit) .flame::before {
   content: ""; display: block; width: 3px; height: 28px; margin: 0 auto;
-  background: linear-gradient(to top, rgba(200, 200, 210, 0.45), transparent);
+  background: linear-gradient(to top, rgba(210, 220, 240, 0.5), transparent);
   border-radius: 2px; animation: smoke 3s ease-in-out infinite;
 }
 .candle.failed .label { color: var(--bad); }
 
 .candle.relit .flame { animation: relight 1.2s ease-out, dance 2.4s ease-in-out 1.2s infinite alternate; }
 
+/* ---------- the seance: a crystal ball that stirs while the ghost answers ---------- */
+
+#seance h2 { padding-right: 84px; }
+.orb {
+  position: absolute; top: 16px; right: 24px; width: 62px; height: 62px; border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, rgba(255, 255, 255, 0.95) 0 5%, rgba(170, 195, 255, 0.4) 16%, rgba(30, 60, 150, 0.6) 55%, rgba(4, 8, 24, 0.95) 100%);
+  box-shadow: 0 0 26px rgba(130, 165, 255, 0.35), inset 0 0 16px rgba(255, 255, 255, 0.18);
+  transition: box-shadow 0.6s;
+}
+.orb span {
+  position: absolute; inset: 12%; border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent, rgba(255, 122, 24, 0.55), transparent 35%, rgba(255, 255, 255, 0.3), transparent 70%);
+  filter: blur(4px); animation: swirl 7s linear infinite;
+}
+.orb::after {
+  content: ""; position: absolute; left: 13px; right: 13px; bottom: -9px; height: 11px;
+  background: linear-gradient(#1c1208, #050302); border-top: 2px solid var(--orange); border-radius: 3px 3px 6px 6px;
+}
+#seance:has(.writing) .orb, #seance:has(button:disabled) .orb { box-shadow: 0 0 46px rgba(255, 122, 24, 0.8), inset 0 0 22px rgba(255, 180, 120, 0.5); }
+#seance:has(.writing) .orb span, #seance:has(button:disabled) .orb span { animation-duration: 1.4s; }
+#seance-answer { margin-top: 12px; }
+
+/* ---------- the story page ---------- */
+
+/* Unfinished business is carved on a gravestone. */
+section.unfinished {
+  margin: 24px 0; padding: 36px 24px 18px;
+  background: linear-gradient(180deg, #27324f, #151c33);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 140px 140px 10px 10px / 70px 70px 10px 10px;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.07), inset 0 -24px 40px rgba(0, 0, 0, 0.35), 0 14px 30px rgba(0, 0, 0, 0.45);
+}
+section.unfinished h3 {
+  margin-top: 0; text-align: center; text-transform: uppercase; letter-spacing: 0.22em; font-size: 1rem;
+  color: #d3d9ea; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.18), 0 -1px 0 rgba(0, 0, 0, 0.7);
+}
+section.unfinished > .handwriting { text-align: center; margin: 0 0 8px; }
+
+/* The haunted retelling is told beside a dying fire. */
+section:has(> .retelling) { isolation: isolate; padding: 4px 18px 20px; border-radius: 14px; overflow: hidden; }
+section:has(> .retelling)::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(ellipse at 50% 115%, rgba(255, 122, 24, 0.32), rgba(255, 60, 0, 0.08) 45%, transparent 70%);
+  animation: campfire 3.2s ease-in-out infinite;
+}
+
+/* ---------- the night outside ---------- */
+
+.scene { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.defs { position: absolute; }
+
+.stars {
+  position: absolute; inset: 0 0 30% 0;
+  background:
+    radial-gradient(1px 1px at 20px 30px, #fff, transparent),
+    radial-gradient(1px 1px at 90px 120px, #dfe8ff, transparent),
+    radial-gradient(1.5px 1.5px at 160px 60px, #fff, transparent),
+    radial-gradient(1px 1px at 210px 170px, #fff, transparent),
+    radial-gradient(1px 1px at 60px 200px, #cfdcff, transparent);
+  background-size: 240px 240px;
+  opacity: 0.7;
+}
+.stars.twinkle { background-size: 330px 330px; background-position: 70px 40px; animation: twinkle 3.5s ease-in-out infinite alternate; }
+
+.moon {
+  position: absolute; top: 56px; right: max(16px, 7vw); width: 104px; height: 104px; border-radius: 50%;
+  background:
+    radial-gradient(circle at 64% 40%, rgba(150, 165, 200, 0.45) 0 7%, transparent 8%),
+    radial-gradient(circle at 38% 66%, rgba(150, 165, 200, 0.35) 0 10%, transparent 11%),
+    radial-gradient(circle at 30% 32%, rgba(150, 165, 200, 0.3) 0 5%, transparent 6%),
+    radial-gradient(circle at 40% 38%, #ffffff, #eef2fc 50%, #c9d3ec 100%);
+  box-shadow: 0 0 50px 12px rgba(220, 230, 255, 0.28), 0 0 160px 60px rgba(110, 145, 255, 0.14);
+  animation: moon-glow 8s ease-in-out infinite alternate;
+}
+.cloud {
+  position: absolute; width: 340px; height: 60px; border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(28, 44, 90, 0.85), rgba(28, 44, 90, 0) 70%);
+  animation: drift 70s linear infinite;
+}
+.cloud.c1 { top: 90px; }
+.cloud.c2 { top: 150px; width: 260px; animation-duration: 95s; animation-delay: -40s; }
+
+.bat { position: absolute; left: 0; width: 34px; height: 17px; opacity: 0; fill: #04060c; animation: fly 22s linear infinite; }
+.bat svg { display: block; width: 100%; height: 100%; animation: flap 0.28s ease-in-out infinite alternate; }
+.bat.b1 { top: 12vh; }
+.bat.b2 { top: 22vh; width: 26px; animation-duration: 29s; animation-delay: -9s; }
+.bat.b3 { top: 7vh; width: 22px; animation-duration: 37s; animation-delay: -21s; }
+
+/* Moonlit haze low in the sky, so the black skyline stands out against it. */
+.horizon {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 45vh;
+  background: radial-gradient(ellipse 70% 80% at 60% 100%, rgba(70, 105, 200, 0.42), rgba(40, 65, 140, 0.15) 50%, transparent 75%);
+}
+.skyline { position: absolute; left: 0; bottom: 0; width: 100%; height: clamp(120px, 22vh, 220px); }
+.skyline .land { fill: #02040a; }
+.skyline .trees { fill: none; stroke: #02040a; stroke-width: 3.5; stroke-linecap: round; }
+.skyline .trees .trunk { stroke-width: 8; }
+.skyline .trees .twig { stroke-width: 2; }
+.skyline .windows { fill: var(--orange); filter: drop-shadow(0 0 6px rgba(255, 122, 24, 0.9)); }
+.skyline .windows .late { animation: lamp 11s steps(1) infinite; }
+.skyline .jack ellipse { fill: var(--orange); }
+.skyline .jack .face { fill: #2a0e00; }
+.skyline .jack .stem { fill: #02040a; }
+.skyline .jack { filter: drop-shadow(0 0 8px rgba(255, 122, 24, 0.85)); animation: flicker 2.2s infinite; }
+
+.fog {
+  position: absolute; left: 0; bottom: 0; width: 200%; height: 34vh;
+  background: radial-gradient(ellipse 22% 60% at 25% 85%, rgba(200, 215, 255, 0.11), transparent 70%),
+              radial-gradient(ellipse 18% 45% at 70% 95%, rgba(200, 215, 255, 0.09), transparent 70%);
+  background-size: 50% 100%;
+  animation: roll 48s linear infinite;
+}
+.fog.f2 { height: 24vh; opacity: 0.8; animation-duration: 70s; animation-direction: reverse; }
+
+/* The visitor carries a faint lantern. */
+.lantern {
+  position: fixed; left: 0; top: 0; z-index: 3; width: 520px; height: 520px; margin: -260px 0 0 -260px;
+  border-radius: 50%; pointer-events: none; mix-blend-mode: screen; opacity: 0;
+  background: radial-gradient(circle, rgba(255, 140, 50, 0.09), transparent 65%);
+  transition: opacity 0.6s;
+}
+.lantern.on { opacity: 1; }
+
+/* ---------- motion ---------- */
+
+@keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+@keyframes bob { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-9px) rotate(2deg); } }
+@keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
+@keyframes boo { 0% { transform: scale(1); } 30% { transform: scale(1.35) translateY(-6px); } 60% { transform: scale(0.95) rotate(-6deg); } 100% { transform: scale(1); } }
+@keyframes say-boo { 0% { opacity: 0; transform: scale(0.3); } 15%, 75% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1) translateY(-8px); } }
+@keyframes sign-flicker { 0%, 88%, 92%, 100% { opacity: 1; } 89% { opacity: 0.45; } 90% { opacity: 1; } 91% { opacity: 0.65; } }
+@keyframes heartbeat { 0% { box-shadow: 0 0 0 0 rgba(255, 122, 24, 0.7); } 100% { box-shadow: 0 0 0 20px rgba(255, 122, 24, 0); } }
+@keyframes blink-dot { 50% { opacity: 0.2; } }
+@keyframes twinkle { from { opacity: 0.45; } to { opacity: 1; } }
+@keyframes dangle { 0%, 100% { transform: translateY(0); } 45% { transform: translateY(70px); } 60% { transform: translateY(62px); } }
+@keyframes swirl { to { transform: rotate(360deg); } }
+@keyframes campfire { 0%, 100% { opacity: 1; } 30% { opacity: 0.7; } 55% { opacity: 0.95; } 75% { opacity: 0.6; } }
+@keyframes moon-glow { from { box-shadow: 0 0 40px 8px rgba(220, 230, 255, 0.22), 0 0 140px 50px rgba(110, 145, 255, 0.1); } to { box-shadow: 0 0 60px 16px rgba(220, 230, 255, 0.32), 0 0 180px 70px rgba(110, 145, 255, 0.16); } }
+@keyframes drift { from { transform: translateX(-400px); } to { transform: translateX(110vw); } }
+@keyframes fly {
+  0%   { opacity: 1; transform: translate(-60px, 0); }
+  20%  { transform: translate(18vw, -5vh); }
+  40%  { transform: translate(40vw, 6vh); }
+  60%  { transform: translate(62vw, -3vh); }
+  80%  { transform: translate(84vw, 5vh); }
+  99%  { opacity: 1; transform: translate(calc(100vw + 60px), -2vh); }
+  100% { opacity: 0; transform: translate(calc(100vw + 60px), -2vh); }
+}
+@keyframes flap { from { transform: scaleY(1); } to { transform: scaleY(0.35); } }
+@keyframes lamp { 0%, 60% { opacity: 1; } 61%, 80% { opacity: 0.15; } 81% { opacity: 1; } }
+@keyframes roll { to { transform: translateX(-50%); } }
 @keyframes dance {
   0%   { transform: rotate(-2deg) scaleY(1); }
   40%  { transform: rotate(1.5deg) scaleY(1.06); }
@@ -228,12 +472,28 @@ a.cite.short::before { content: "\2767"; }
   50% { transform: translateX(3px) skewX(-12deg); opacity: 0.25; }
 }
 
+@media (max-width: 600px) {
+  section, article { padding: 6px 16px 16px; }
+  .moon { top: 18px; width: 58px; height: 58px; }
+  .mascot { width: 48px; height: 60px; }
+  .web { transform: scale(0.75); transform-origin: top right; }
+  .book-link { display: block; margin: 6px 0 0; }
+}
+
 /* ---------- plain mode: neutral text, no effects ---------- */
 
+body.plain .scene, body.plain .lantern, body.plain .mascot, body.plain .web, body.plain .orb { display: none; }
+body.plain h1 a { animation: none; }
 body.plain .handwriting { font-family: Georgia, "Nirmala UI", serif; font-size: 1rem; text-shadow: none; color: var(--text); }
 body.plain .writing { animation: none; }
 body.plain .ink { animation: none; }
+body.plain section.unfinished { padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none; }
+body.plain section.unfinished h3 { text-align: left; text-transform: none; letter-spacing: normal; font-size: 1.25rem; color: var(--orange-soft); text-shadow: none; }
+body.plain section:has(> .retelling)::after { display: none; }
+body.plain #seance h2 { padding-right: 0; }
 
+/* Reduced motion: everything settles into its final, still state. */
 @media (prefers-reduced-motion: reduce) {
-  .ink, .writing, .flame, .candle.relit .flame, .candle:not(.lit) .flame::before, button.live, .whisper { animation: none; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; animation-delay: 0s !important; transition-duration: 0.01ms !important; }
+  .bat, .lantern, .cloud { display: none; }
 }
