@@ -15,14 +15,21 @@ Reply with JSON only, using these fields:
 - summary: 2 or 3 sentences in English describing what happens in the story, addressed to the \
 storyteller as "you", e.g. "You spent a winter at your grandmother's house in Shimla..."
 - people: names or relationships of the people in the story, e.g. "Dadi (grandmother)", "Ravi". \
-Write Hindi names in Latin script.
-- places: places named or described, e.g. "Allahabad", "the hostel terrace".
-- eras: approximate years, decades or stages of life, e.g. "1990s", "Diwali 2004", "childhood".
+Write Hindi names in Latin script. Keep each person as the speaker names them; never merge two people.
+- places: only places with a name, e.g. "Allahabad", "Lucknow", "St. Mary's School", "Nani's house". \
+Leave out generic places such as "the corridor", "a temple" or "room 307".
+- eras: only a year, a decade or a stage of life, e.g. "1990s", "Diwali 2004", "1942", "childhood", \
+"college". Leave out vague times such as "the past", "night" or a month on its own.
 - mood: the one word that best fits the feeling of the story, exactly one of: joyful, nostalgic, \
 loving, poignant, mysterious, eerie.
 - keepsakes: notable objects, recipes, sayings or songs that are mentioned.
 - unfinished_business: 2 to 4 short questions, addressed to the speaker as "you", about things the \
-story mentions but leaves unresolved or unexplained. Only ask about what is actually in the story."""
+story mentions but leaves unresolved or unexplained. Never ask about something the transcript already \
+says: if it names the car, do not ask what kind of car it was; if it says who was there, do not ask who."""
+
+CHECK_QUESTIONS = """Now check your questions against the transcript. For each question, in order, \
+answer true if the transcript already answers it (even in other words), otherwise false. \
+Reply with JSON only: {"answered": [true or false for each question]}."""
 
 
 def analyse_user(transcript: str, answering: str | None = None) -> str:

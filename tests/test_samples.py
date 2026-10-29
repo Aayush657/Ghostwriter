@@ -12,6 +12,7 @@ def test_samples_are_analysed_once_and_marked(data_dir, analysis, monkeypatch):
 
     monkeypatch.setattr(llm, "analyse_story", fake_analyse)
     monkeypatch.setattr(llm, "write_note", lambda story: f"A note about {story['title']}.")
+    monkeypatch.setattr(llm, "unanswered_questions", lambda transcript, analysis, answering=None: analysis.unfinished_business)
 
     ids = samples.seed()
     assert len(ids) == 4
@@ -32,6 +33,7 @@ def test_a_note_that_fails_never_fails_the_story(data_dir, analysis, monkeypatch
 
     monkeypatch.setattr(llm, "analyse_story", lambda transcript, answering=None: analysis)
     monkeypatch.setattr(llm, "write_note", no_gemma)
+    monkeypatch.setattr(llm, "unanswered_questions", lambda transcript, analysis, answering=None: analysis.unfinished_business)
     story_id = db.create_story()
     db.update_story(story_id, transcript="a story")
 

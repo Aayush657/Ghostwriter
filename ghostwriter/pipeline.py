@@ -54,6 +54,7 @@ def _run(story_id: int) -> None:
     db.update_story(story_id, status="thinking", error=None)
     answering = story["answers"]["text"] if story.get("answers") else None
     analysis = llm.analyse_story(story["transcript"], answering)
+    analysis.unfinished_business = llm.unanswered_questions(story["transcript"], analysis, answering)
     db.save_analysis(story_id, analysis, status="noting")
 
     # The Archivist's note is written now, so opening the story never waits for it.

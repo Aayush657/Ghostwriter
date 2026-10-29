@@ -10,7 +10,7 @@ from contextlib import contextmanager
 import httpx
 from pydantic import ValidationError
 
-from ghostwriter import prompts
+from ghostwriter import prompts, tags
 from ghostwriter.config import settings
 from ghostwriter.models import StoryAnalysis
 
@@ -125,16 +125,47 @@ def analyse_story(transcript: str, answering: str | None = None) -> StoryAnalysi
     ]
     reply = chat(messages, schema=schema, temperature=0.2)
     try:
-        return StoryAnalysis.model_validate_json(reply)
+        return tags.clean(StoryAnalysis.model_validate_json(reply))
     except ValidationError as exc:
         log.warning("story JSON invalid, asking Gemma to repair it: %s", exc)
         messages += [{"role": "assistant", "content": reply},
                      {"role": "user", "content": prompts.repair(str(exc))}]
     reply = chat(messages, schema=schema, temperature=0)
     try:
-        return StoryAnalysis.model_validate_json(reply)
+        return tags.clean(StoryAnalysis.model_validate_json(reply))
     except ValidationError as exc:
         raise LLMError("The Archivist couldn't make sense of this story. Try again.") from exc
+
+
+ANSWERED_SCHEMA = {"type": "object", "properties": {"answered": {"type": "array", "items": {"type": "boolean"}}},
+                   "required": ["answered"]}
+
+
+def unanswered_questions(transcript: str, analysis: StoryAnalysis, answering: str | None = None) -> list[str]:
+    """Drop follow-up questions the transcript already answers ("What kind of car?" when it says "a Fiat").
+
+    Gemma checks its own questions in the same conversation, so Ollama reuses the transcript it has
+    already read and the check costs a few seconds. If the check fails, every question is kept.
+    """
+    questions = analysis.unfinished_business
+    messages = [
+        {"role": "system", "content": prompts.ANALYSE_SYSTEM},
+        {"role": "user", "content": prompts.analyse_user(transcript, answering)},
+        {"role": "assistant", "content": analysis.model_dump_json()},
+        {"role": "user", "content": prompts.CHECK_QUESTIONS},
+    ]
+    try:
+        answered = json.loads(chat(messages, schema=ANSWERED_SCHEMA, temperature=0))["answered"]
+    except (LLMError, ValueError, KeyError, TypeError) as exc:
+        log.warning("question check skipped: %s", exc)
+        return questions
+    if len(answered) != len(questions):
+        return questions
+    kept = [q for q, done in zip(questions, answered) if not done]
+    if len(kept) < len(questions):
+        log.info("dropped questions the transcript already answers: %s",
+                 [q for q, done in zip(questions, answered) if done])
+    return kept
 
 
 def write_note(story: dict) -> str:

@@ -32,6 +32,7 @@ export async function streamEvents(path, body, handlers, signal) {
   let buffer = "";
   for (;;) {
     const { value, done } = await reader.read();
+    signal?.throwIfAborted(); // text already on its way is dropped once the visitor cancels
     if (done) return;
     buffer += value;
     let end;

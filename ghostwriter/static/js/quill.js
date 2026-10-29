@@ -4,34 +4,42 @@ import { el } from "./dom.js";
 
 export function quill(node) {
   node.replaceChildren();
-  node.classList.add("handwriting", "writing");
+  node.classList.add("ghost-text", "writing");
   let text = "";
+  let cited = [];
   return {
     write(piece) {
       text += piece;
       node.append(el("span", { className: "ink", textContent: piece }));
     },
-    // When writing ends, re-render the text once, turning [S12]-style citations into story links.
+    // When writing ends, re-render the text once, turning [S12]-style citations into small numbered links.
     finish(linkFor = () => null) {
       node.classList.remove("writing");
-      node.replaceChildren(...withCitations(text, linkFor));
+      const { parts, order } = withCitations(text, linkFor);
+      cited = order;
+      node.replaceChildren(...parts);
       return text;
     },
     get text() { return text; },
+    get cited() { return cited; }, // story ids in the order of their numbers: [1], [2], ...
   };
 }
 
+// "...in Lucknow [S3]. A brass pot [S3]." -> "...in Lucknow[1]. A brass pot."
+// Sources are numbered by first citation, and repeats of the same source in a row show one mark.
 function withCitations(text, linkFor) {
-  const named = new Set(); // show a story's title on its first citation, then just a small mark
-  return text.split(/(\[S\d+\])/).filter(Boolean).map((part) => {
-    const id = part.match(/^\[S(\d+)\]$/)?.[1];
+  const order = [];
+  let last = null;
+  const parts = text.split(/\s*(\[S\d+\])/).filter(Boolean).map((part) => {
+    const id = Number(part.match(/^\[S(\d+)\]$/)?.[1]);
     if (!id) return part;
-    const link = linkFor(Number(id));  // {href, label} or null
-    // A citation of a story Gemma was never shown is dropped rather than shown as a dead link.
-    if (!link) return "";
-    const first = !named.has(id);
-    named.add(id);
-    return el("a", { href: link.href, className: first ? "cite" : "cite short", title: link.label,
-                     textContent: first ? link.label : "" });
+    const link = linkFor(id); // {href, label}, or null for a story Gemma was never shown: dropped
+    if (!link || id === last) return "";
+    last = id;
+    if (!order.includes(id)) order.push(id);
+    const n = order.indexOf(id) + 1;
+    return el("sup", { className: "cite" },
+      el("a", { href: link.href, title: link.label, ariaLabel: `Source ${n}: ${link.label}`, textContent: `[${n}]` }));
   });
+  return { parts, order };
 }

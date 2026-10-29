@@ -59,3 +59,24 @@ def test_gemma_must_pick_one_of_the_candle_moods():
     from ghostwriter.models import StoryAnalysis
     schema = StoryAnalysis.model_json_schema()
     assert schema["properties"]["mood"]["enum"] == ["joyful", "nostalgic", "loving", "poignant", "mysterious", "eerie"]
+
+
+def test_analysis_tags_are_tidied(monkeypatch, analysis):
+    messy = analysis.model_copy(update={"places": ["Allahabad", "the corridor"], "eras": ["1990s", "the past"]})
+    fake_replies(monkeypatch, [messy.model_dump_json()])
+    result = llm.analyse_story("a story")
+    assert result.places == ["Allahabad"] and result.eras == ["1990s"]
+
+
+def test_questions_the_transcript_answers_are_dropped(monkeypatch, analysis):
+    calls = fake_replies(monkeypatch, ['{"answered": [false, true]}'])
+    kept = llm.unanswered_questions("Dadi lit a brass lamp on the terrace.", analysis)
+    assert kept == ["What happened to the brass lamp?"]
+    assert calls[0][-2]["role"] == "assistant"  # same conversation, so Ollama reuses what it read
+
+
+def test_a_failed_question_check_keeps_every_question(monkeypatch, analysis):
+    fake_replies(monkeypatch, ['{"answered": [true]}'])  # wrong length
+    assert llm.unanswered_questions("a story", analysis) == analysis.unfinished_business
+    fake_replies(monkeypatch, ["not json"])
+    assert llm.unanswered_questions("a story", analysis) == analysis.unfinished_business
