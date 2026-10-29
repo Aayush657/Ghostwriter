@@ -106,9 +106,13 @@ title 10.7:1, its date line 6.0:1).
   smaller moon under 400 px (360-430 px checked); themed memory book + print stylesheet.
 
 ## Known issues
-- **Whisper heard Hindi as Urdu.** The browser recording in demo-data (story 6) went through the whole
-  flow, but Whisper detected "ur": once garbled, once Hindi words in Urdu script. A language setting
-  (e.g. `GW_WHISPER_LANGUAGE=hi`) would fix it; not added (user asked not to focus on Hindi).
+- **Whisper heard Hindi as Urdu.** The browser recording in demo-data (story 6, 105 s) went through the
+  whole flow, but Whisper detected "ur" (p=0.56): once garbled, once Hindi words in Urdu script.
+  Oct 29: added `GW_WHISPER_LANGUAGE` (empty = auto-detect, the default). On story 6 with `small`:
+  auto gave Urdu script in 6.6 s and was the closest to what was said; `hi` gave Devanagari (p=1.00)
+  but more garbled, in 52 s; `en` translated it into nonsense in 27 s. So on this clip the recording
+  and the `small` model are the real limit, not only the language guess. Not tried: `medium`
+  (not downloaded) or a clearer recording.
 - Not verified here: the browser's print preview (a native dialog; print CSS is in place), and
   `prefers-reduced-motion` (can't be emulated in the browser pane; CSS reviewed).
 - Processing can't be cancelled (Whisper can't stop halfway); the page says you can leave it.

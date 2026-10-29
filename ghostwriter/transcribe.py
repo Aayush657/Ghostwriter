@@ -41,10 +41,15 @@ def _model():
 
 
 def transcribe(wav: Path) -> Transcript:
-    """Transcribe a 16 kHz mono WAV. The language (Hindi, English, ...) is auto-detected."""
+    """Transcribe a 16 kHz mono WAV. The language is auto-detected unless GW_WHISPER_LANGUAGE is set."""
     start = time.perf_counter()
-    # vad_filter skips long silences, which speeds things up and avoids Whisper "hallucinating" text.
-    segments, info = _model().transcribe(str(wav), vad_filter=True, beam_size=5)
+    language = settings.whisper_language.strip().lower() or None
+    try:
+        # vad_filter skips long silences, which speeds things up and avoids Whisper "hallucinating" text.
+        segments, info = _model().transcribe(str(wav), vad_filter=True, beam_size=5, language=language)
+    except ValueError:  # faster-whisper rejects unknown language codes
+        raise TranscribeError(f"Whisper doesn't know the language code \"{language}\" "
+                              "(GW_WHISPER_LANGUAGE in .env). Use one like hi or en, or leave it empty.") from None
     text = " ".join(seg.text.strip() for seg in segments).strip()  # decoding happens in this loop
     if not text:
         raise TranscribeError("Only silence was heard in this recording.")

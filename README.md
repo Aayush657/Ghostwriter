@@ -170,6 +170,9 @@ Intel i7-13620H, 16 GB RAM, integrated graphics only (everything on the CPU):
   "kheer". Tags written by Gemma (names, places, objects) catch many cross-language cases, but not all.
 - **Whisper `small` mishears names** (a test clip turned "Shimla" into "Chimla"). `medium` is more
   accurate and slower; it is one line in `.env`.
+- **Whisper sometimes guesses the wrong language,** e.g. Hindi written in Urdu script, on a noisy
+  recording. `GW_WHISPER_LANGUAGE=hi` in `.env` forces Hindi (Devanagari, English words included);
+  on the noisy test clip it did not make the words more accurate, and it was slower.
 - **Gemma's follow-up questions are sometimes slightly off**, e.g. asking about a song the
   grandmother "mentioned" when the storyteller only heard humming.
 - **The ghost speaks English.** Hindi stories are summarised and answered in English; the voice is an
@@ -181,13 +184,14 @@ Intel i7-13620H, 16 GB RAM, integrated graphics only (everything on the CPU):
 
 ## Configuration
 
-Copy `.env.example` to `.env`. Model names, paths and feature flags (ghost voice, plain mode by
-default) are documented there, with the prefix `GW_`.
+Copy `.env.example` to `.env`. Model names, paths, the Whisper language (auto-detected unless you
+set `GW_WHISPER_LANGUAGE`, e.g. `hi`) and feature flags (ghost voice, plain mode by default) are
+documented there, with the prefix `GW_`.
 
 ## Development
 
 ```powershell
-.venv\Scripts\python.exe -m pytest                        # 69 tests; Gemma and Whisper are faked
+.venv\Scripts\python.exe -m pytest                        # 72 tests; Gemma and Whisper are faked
 .venv\Scripts\python.exe -m ghostwriter.transcribe a.wav  # Whisper timing on one file
 .venv\Scripts\python.exe -m ghostwriter.tts "Hello"       # the ghost voice on one line
 ```

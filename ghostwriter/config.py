@@ -26,6 +26,7 @@ class Settings(BaseSettings):
 
     whisper_model: str = "small"
     whisper_compute_type: str = "int8"
+    whisper_language: str = ""  # e.g. "hi" to force Hindi; empty means auto-detect
 
     tts_enabled: bool = True
     piper_bin: str = "piper"  # or the full path to piper.exe
