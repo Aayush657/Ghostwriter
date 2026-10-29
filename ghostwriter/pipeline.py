@@ -1,4 +1,5 @@
-"""The story pipeline: original audio -> 16 kHz WAV -> transcript -> Gemma's analysis -> database.
+"""The story pipeline: original audio -> 16 kHz WAV -> transcript -> Gemma's analysis -> the
+Archivist's note -> database.
 
 Jobs run one at a time, so Whisper and Gemma never fight over RAM. Each step saves its
 result before the next one starts: a failure never loses earlier work, and a retry
@@ -52,4 +53,14 @@ def _run(story_id: int) -> None:
 
     db.update_story(story_id, status="thinking", error=None)
     answering = story["answers"]["text"] if story.get("answers") else None
-    db.save_analysis(story_id, llm.analyse_story(story["transcript"], answering))
+    analysis = llm.analyse_story(story["transcript"], answering)
+    db.save_analysis(story_id, analysis, status="noting")
+
+    # The Archivist's note is written now, so opening the story never waits for it.
+    story = db.get_story(story_id)
+    if not story["reaction"]:
+        try:
+            db.update_story(story_id, reaction=llm.write_note(story))
+        except LLMError as exc:  # the story is still complete; the page writes the note when opened
+            log.warning("story %s: note not written: %s", story_id, exc)
+    db.update_story(story_id, status="ready")

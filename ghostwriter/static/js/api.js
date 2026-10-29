@@ -7,13 +7,22 @@ export async function api(path, options) {
   return body;
 }
 
+// Send JSON with any method (PATCH, DELETE, ...).
+export const send = (path, method, body) => api(path, {
+  method,
+  headers: body ? { "Content-Type": "application/json" } : {},
+  body: body ? JSON.stringify(body) : undefined,
+});
+
 // POST and read a Server-Sent Events reply as it arrives.
 // `handlers` maps event names ("token", "done", ...) to functions that get the parsed data.
-export async function streamEvents(path, body, handlers) {
+// Aborting `signal` stops the request; the server then stops Gemma too.
+export async function streamEvents(path, body, handlers, signal) {
   const res = await fetch(path, {
     method: "POST",
     headers: body ? { "Content-Type": "application/json" } : {},
     body: body ? JSON.stringify(body) : undefined,
+    signal,
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));

@@ -135,3 +135,8 @@ def analyse_story(transcript: str, answering: str | None = None) -> StoryAnalysi
         return StoryAnalysis.model_validate_json(reply)
     except ValidationError as exc:
         raise LLMError("The Archivist couldn't make sense of this story. Try again.") from exc
+
+
+def write_note(story: dict) -> str:
+    """The Archivist's note about a story, written once while the story is processed."""
+    return chat(prompts.reaction_messages(story), temperature=0.8).strip()

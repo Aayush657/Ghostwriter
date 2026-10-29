@@ -1,11 +1,11 @@
 // Ghostwriter page logic: Seance, the archive, story pages, the Archivist's voice.
 
 import { $, el, localTime, present } from "./dom.js";
-import { api, streamEvents } from "./api.js";
+import { api, send, streamEvents } from "./api.js";
 import { quill } from "./quill.js";
 import { micProblem, startRecording } from "./recorder.js";
 
-const IN_PROGRESS = ["queued", "transcribing", "thinking"];
+const IN_PROGRESS = ["queued", "transcribing", "thinking", "noting"];
 const AUDIO_TYPES = ".wav,.mp3,.m4a,.webm,.ogg";
 
 // Everything the page says, in the Archivist's voice and in plain mode.
@@ -53,13 +53,43 @@ const VOICE = {
     retelling: "A haunted retelling",
     retellingNote: "Told by the Archivist beside a dying fire. A retelling, not the memory itself, which stays exactly as you gave it.",
     retell: "Retell it as a ghost story",
-    patience: "First the ghost listens, then it reads. It takes roughly a minute for every minute you spoke.",
+    patience: "This takes about a minute for every minute you spoke. You can leave this page; the ghost keeps working.",
     status: { queued: "waiting its turn...", transcribing: "the ghost is listening...",
-              thinking: "the ghost is reading...", failed: "the ink ran dry" },
+              thinking: "the ghost is reading...", noting: "the ghost is writing its note...", failed: "the ink ran dry" },
+    stages: { transcribing: "Listening (writing down your words)", thinking: "Reading (title, summary, tags)",
+              noting: "Writing the note" },
     tryAgain: "Try again",
     offering: "Offering it to the ghost...",
-    accepted: "The ghost has it. It will write it down soon.",
+    accepted: "The ghost has your story. Watch it being written down",
     refused: "The ghost refused it: ",
+    cancel: "Cancel",
+    stopped: "Stopped. Nothing new was kept.",
+    seanceStopped: "The candles are snuffed. The séance has ended.",
+    emptyQuestion: "Ask me something first, my dear: a name, a place, a time.",
+    writingNote: "The Archivist is writing its note...",
+    writingRetelling: "The Archivist is telling it anew...",
+    writeNote: "Write the note now",
+    retellAgain: "Retell it again",
+    retellAgainTitle: "Tell it anew?",
+    retellAgainText: "The Archivist will tell this memory again, and this telling will be replaced. Your story itself is never changed.",
+    retellAgainOk: "Tell it anew",
+    rename: "Rename",
+    renameLabel: "New title",
+    save: "Save",
+    cancelEdit: "Cancel",
+    editWords: "Correct the words",
+    edited: "You corrected these words. Whisper's original transcript is kept too.",
+    rereadOffer: "The words are kept. Shall the ghost read them again, for a new title, summary, tags and questions?",
+    reread: "Let the ghost re-read it",
+    notNow: "Not now",
+    editTags: "Edit tags",
+    tagsHint: "Rename a tag to fix it. Give it the same name as another tag to merge them. Clear it to remove it.",
+    deleteStory: "Delete this memory",
+    deleteTitle: "Burn this memory?",
+    deleteText: "The recording, the transcript, the Archivist's note and the retelling will all be gone, for good.",
+    deleteOk: "Delete it forever",
+    keepIt: "Keep it",
+    deleted: "The memory has been laid to rest.",
   },
   plain: {
     greeting: (n) => `${n} ${n === 1 ? "story" : "stories"} saved.`,
@@ -72,6 +102,7 @@ const VOICE = {
     sources: "Sources:",
     trouble: "Error: ",
     speak: "Read aloud",
+    reaction: "AI note",
     unwell: "Some local services are not available:",
     give: "Add a story",
     giveHint: "",
@@ -89,7 +120,6 @@ const VOICE = {
     emptyAction: "Add your first story",
     filterEmpty: "No story matches that filter.",
     book: "Export all stories (printable)",
-    reaction: "",
     unfinished: "Follow-up questions",
     unfinishedHint: "",
     unfinishedIntro: "",
@@ -102,12 +132,41 @@ const VOICE = {
     retelling: "Ghost-story retelling",
     retellingNote: "A creative retelling written by Gemma. The original story is unchanged.",
     retell: "Retell as a ghost story",
-    patience: "Transcribing with Whisper, then analysing with Gemma: roughly a minute per minute of audio.",
-    status: { queued: "queued", transcribing: "transcribing...", thinking: "analysing...", failed: "failed" },
+    patience: "Roughly a minute per minute of audio. You can leave this page; processing continues.",
+    status: { queued: "queued", transcribing: "transcribing...", thinking: "analysing...", noting: "writing the AI note...", failed: "failed" },
+    stages: { transcribing: "Transcribing (Whisper)", thinking: "Analysing (Gemma)", noting: "Writing the AI note (Gemma)" },
     tryAgain: "Retry",
     offering: "Uploading...",
-    accepted: "Uploaded. Processing will finish shortly.",
+    accepted: "Uploaded. Open the story",
     refused: "Upload failed: ",
+    cancel: "Cancel",
+    stopped: "Stopped.",
+    seanceStopped: "Stopped.",
+    emptyQuestion: "Type a question first.",
+    writingNote: "Writing the AI note...",
+    writingRetelling: "Writing the retelling...",
+    writeNote: "Write the AI note",
+    retellAgain: "Retell again",
+    retellAgainTitle: "Replace the retelling?",
+    retellAgainText: "A new retelling will replace this one. The story itself is not changed.",
+    retellAgainOk: "Replace it",
+    rename: "Rename",
+    renameLabel: "New title",
+    save: "Save",
+    cancelEdit: "Cancel",
+    editWords: "Edit transcript",
+    edited: "Edited. The original transcript is kept too.",
+    rereadOffer: "Saved. Analyse the edited transcript again (title, summary, tags, questions)?",
+    reread: "Analyse again",
+    notNow: "Not now",
+    editTags: "Edit tags",
+    tagsHint: "Rename a tag to fix it. Use the name of another tag to merge them. Clear it to remove it.",
+    deleteStory: "Delete story",
+    deleteTitle: "Delete this story?",
+    deleteText: "The recording, transcript, AI note and retelling will be permanently deleted.",
+    deleteOk: "Delete",
+    keepIt: "Cancel",
+    deleted: "Story deleted.",
   },
 };
 
@@ -193,12 +252,42 @@ function speakButton(text) {
 
 // --------------------------------------------------------------------------- Seance
 
+// --------------------------------------------------------------------------- waiting on Gemma
+
+const mmss = (ms) => {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+};
+
+// A ticking "0:42". One timer (in start()) updates every clock on the page.
+function clock(since = Date.now()) {
+  const node = el("span", { className: "elapsed", textContent: mmss(Date.now() - since) });
+  node.dataset.since = since;
+  return node;
+}
+
+// "Working on it" line: what is happening, how long it has taken, and a Cancel button if it can stop.
+const working = (text, onCancel) => el("p", { className: "status working", role: "status" },
+  `${text} `, clock(), onCancel && el("button", { type: "button", className: "quiet", textContent: voice().cancel, onclick: onCancel }));
+
+// --------------------------------------------------------------------------- Seance
+
+let seanceRun = null; // the question being answered, so a new one (or Cancel) can stop it
+
+function clearSeance() {
+  seanceRun?.abort();
+  seanceRun = null;
+  $("#seance-answer").replaceChildren();
+  $("#seance-sources").replaceChildren();
+}
+
 async function askSeance(question) {
+  clearSeance();
   const answer = $("#seance-answer");
   const sourcesLine = $("#seance-sources");
   const button = $("#seance-form button");
-  sourcesLine.replaceChildren();
-  answer.replaceChildren(el("p", { className: "status", textContent: voice().consulting }));
+  const run = seanceRun = new AbortController();
+  sourcesLine.replaceChildren(working(voice().consulting, () => run.abort()));
   button.disabled = true;
 
   let sources = [];
@@ -223,11 +312,12 @@ async function askSeance(question) {
           text && speakButton(text),
         ]));
       },
-    });
+    }, run.signal);
   } catch (err) {
-    showError(err.message);
+    if (err.name !== "AbortError") showError(err.message);
+    else if (run === seanceRun) { answer.replaceChildren(el("p", { className: "status", textContent: voice().seanceStopped })); sourcesLine.replaceChildren(); }
   } finally {
-    button.disabled = false;
+    if (seanceRun === null || run === seanceRun) button.disabled = false;
   }
 }
 
@@ -377,32 +467,43 @@ const written = new Map(); // "reaction:3" -> finished text, so re-renders never
 // written, otherwise streamed in, either straight away or when the visitor asks for it.
 function writtenBlock(story, kind, { heading, note, startNow }) {
   const key = `${kind}:${story.id}`;
+  const v = voice();
   const box = el("div", { className: kind });
-  const wrap = el("section", {}, el("h3", { textContent: heading }), note && el("p", { className: "meta", textContent: note }), box);
-  const finish = (text) => {
+  const tools = el("div", { className: "tools" }); // speak, retell again, or the working line
+  const wrap = el("section", {}, el("h3", { textContent: heading }), note && el("p", { className: "meta", textContent: note }), box, tools);
+  const startLabel = kind === "retelling" ? v.retell : v.writeNote;
+  const show = (text) => {
     written.set(key, text);
-    const button = speakButton(text);
-    if (button) wrap.append(button);
+    box.replaceChildren(el("p", { className: "ghost-text", textContent: text }));
+    tools.replaceChildren(...present([speakButton(text), kind === "retelling" && el("button", {
+      type: "button", className: "quiet", textContent: v.retellAgain,
+      onclick: async () => {
+        const yes = await confirmDialog({ title: v.retellAgainTitle, text: v.retellAgainText, ok: v.retellAgainOk, cancel: v.cancelEdit });
+        if (yes) write(true);
+      },
+    })]));
   };
-  const write = () => {
-    const pen = quill(box);
-    const showError = (message) => box.replaceChildren(
-      el("p", { className: "error", textContent: voice().trouble + message }));
-    streamEvents(`/api/stories/${story.id}/${kind}`, null, {
-      token: (data) => pen.write(data.text),
-      done: () => finish(pen.finish()),
-      error: (data) => showError(data.message),
-    }).catch((err) => showError(err.message));
+  const offer = () => tools.replaceChildren(el("button", { type: "button", textContent: startLabel, onclick: () => write() }));
+  // Stopped or failed: keep the earlier text if there was one, otherwise offer to start again.
+  const fallBack = (message, isError) => {
+    const before = written.get(key) ?? story[kind];
+    if (before) show(before); else { box.replaceChildren(); offer(); }
+    tools.prepend(el("p", { className: isError ? "error" : "status", textContent: message }));
+  };
+  const write = (again = false) => {
+    const run = new AbortController();
+    let pen = null;
+    tools.replaceChildren(working(kind === "retelling" ? v.writingRetelling : v.writingNote, () => run.abort()));
+    streamEvents(`/api/stories/${story.id}/${kind}${again ? "?again=true" : ""}`, null, {
+      token: (data) => { pen ??= quill(box); pen.write(data.text); },
+      done: () => show(pen ? pen.finish() : ""),
+      error: (data) => fallBack(v.trouble + data.message, true),
+    }, run.signal).catch((err) => fallBack(err.name === "AbortError" ? v.stopped : v.trouble + err.message, err.name !== "AbortError"));
   };
   const known = written.get(key) ?? story[kind];
-  if (known) {
-    box.append(el("p", { className: "handwriting", textContent: known }));
-    finish(known);
-  } else if (startNow) {
-    write();
-  } else {
-    box.append(el("button", { textContent: voice().retell, onclick: write }));
-  }
+  if (known) show(known);
+  else if (startNow) write();
+  else offer();
   return wrap;
 }
 
@@ -443,8 +544,7 @@ async function toggleRecording(button, answersQuestionId = null) {
     const label = button.textContent;
     const started = Date.now();
     const tick = () => {
-      const s = Math.floor((Date.now() - started) / 1000);
-      button.textContent = `${voice().stop} (${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")})`;
+      button.textContent = `${voice().stop} (${mmss(Date.now() - started)})`;
     };
     tick();
     button.classList.add("live");
@@ -456,28 +556,157 @@ async function toggleRecording(button, answersQuestionId = null) {
   }
 }
 
-function renderStory(s) {
+const TAG_KINDS = [["person", "People"], ["place", "Places"], ["era", "When"], ["keepsake", "Keepsakes"]];
+const STAGES = ["transcribing", "thinking", "noting"];
+const progressSince = new Map(); // story id -> when this page first saw it being processed
+const editable = (s) => s.status === "ready" || s.status === "failed";
+
+// Which step the ghost is on, and for how long. (Whisper can't be stopped halfway, so no Cancel here.)
+function progress(s) {
+  const v = voice();
+  if (!progressSince.has(s.id)) progressSince.set(s.id, Date.now());
+  const now = STAGES.indexOf(s.status);
+  const done = (stage, i) => i < now || (stage === "transcribing" && Boolean(s.transcript));
+  return el("div", { className: "progress", role: "status" },
+    el("ol", { className: "stages" }, ...STAGES.map((stage, i) => el("li", {
+      className: done(stage, i) ? "done" : i === now ? "now" : "",
+      textContent: v.stages[stage],
+    }))),
+    el("p", { className: "status" }, s.status === "queued" ? `${v.status.queued} ` : "", clock(progressSince.get(s.id))),
+    el("p", { className: "meta", textContent: v.patience }),
+  );
+}
+
+// The title, with a Rename button that swaps it for a small form.
+function titleRow(s) {
+  const v = voice();
+  const heading = el("h2", { tabIndex: -1, textContent: statusText(s) });
+  if (!editable(s) || !s.title) return heading;
+  const row = el("div", { className: "title-row" }, heading);
+  row.append(el("button", { type: "button", className: "quiet", textContent: v.rename, onclick: () => {
+    const input = el("input", { type: "text", value: s.title, maxLength: 120, required: true, ariaLabel: v.renameLabel });
+    const form = el("form", { className: "inline-edit" }, input,
+      el("button", { type: "submit", textContent: v.save }),
+      el("button", { type: "button", className: "quiet", textContent: v.cancelEdit, onclick: () => form.replaceWith(row) }));
+    form.onsubmit = (event) => { event.preventDefault(); saveStory(s.id, { title: input.value.trim() }, form); };
+    row.replaceWith(form);
+    input.select();
+  } }));
+  return row;
+}
+
+async function saveStory(id, changes, near) {
+  near.querySelector(".error")?.remove();
+  try {
+    await send(`/api/stories/${id}`, "PATCH", changes);
+    await refresh(true);
+  } catch (err) {
+    near.append(el("p", { className: "error", textContent: voice().trouble + err.message }));
+  }
+}
+
+// People, places, eras and keepsakes, with an editor to rename, merge or remove them.
+function tagsBlock(s) {
+  const v = voice();
   const e = s.entities || {};
+  const kinds = TAG_KINDS.filter(([kind]) => e[kind]?.length);
+  const list = el("dl", { className: "details" },
+    ...kinds.flatMap(([kind, label]) => entityRow(label, e[kind])), ...entityRow("Mood", s.mood && [s.mood]));
+  if (!editable(s) || kinds.length === 0) return list;
+  const wrap = el("div", { className: "tags" }, list);
+  wrap.append(el("button", { type: "button", className: "quiet", textContent: v.editTags, onclick: () => {
+    const fields = [];
+    const form = el("form", { className: "tags-edit" },
+      el("p", { className: "meta", textContent: v.tagsHint }),
+      ...kinds.map(([kind, label]) => el("fieldset", {}, el("legend", { textContent: label }),
+        ...e[kind].map((value) => {
+          const input = el("input", { type: "text", value, maxLength: 80, ariaLabel: `${label}: ${value}` });
+          fields.push({ kind, old: value, input });
+          return input;
+        }))),
+      el("div", { className: "row" },
+        el("button", { type: "submit", textContent: v.save }),
+        el("button", { type: "button", className: "quiet", textContent: v.cancelEdit, onclick: () => form.replaceWith(wrap) })));
+    form.onsubmit = async (event) => {
+      event.preventDefault();
+      form.querySelector(".error")?.remove();
+      try {
+        for (const { kind, old, input } of fields) {
+          if (input.value.trim() !== old) await send(`/api/stories/${s.id}/tags`, "POST", { kind, old, new: input.value.trim() });
+        }
+        await refresh(true);
+      } catch (err) {
+        form.append(el("p", { className: "error", textContent: v.trouble + err.message }));
+      }
+    };
+    wrap.replaceWith(form);
+    fields[0].input.focus();
+  } }));
+  return wrap;
+}
+
+// "The words as they were spoken", with an editor; saving offers to let Gemma read them again.
+function transcriptBlock(s) {
+  const v = voice();
+  const details = el("details", { className: "words" },
+    el("summary", { textContent: `${v.transcript} (${s.language || "?"})` }),
+    el("p", { className: "transcript", textContent: s.transcript }));
+  if (s.transcript_original) details.append(el("p", { className: "meta", textContent: v.edited }));
+  if (!editable(s)) return details;
+  details.append(el("button", { type: "button", className: "quiet", textContent: v.editWords, onclick: () => {
+    const box = el("textarea", { value: s.transcript, rows: 8, required: true, ariaLabel: v.transcript });
+    const form = el("form", { className: "transcript-edit" }, box,
+      el("div", { className: "row" },
+        el("button", { type: "submit", textContent: v.save }),
+        el("button", { type: "button", className: "quiet", textContent: v.cancelEdit, onclick: () => refresh(true) })));
+    form.onsubmit = async (event) => {
+      event.preventDefault();
+      form.querySelector(".error")?.remove();
+      try {
+        await send(`/api/stories/${s.id}`, "PATCH", { transcript: box.value });
+        form.replaceWith(el("div", { className: "reread", role: "status" },
+          el("p", { textContent: v.rereadOffer }),
+          el("button", { type: "button", textContent: v.reread, onclick: () => reread(s.id) }), " ",
+          el("button", { type: "button", className: "quiet", textContent: v.notNow, onclick: () => refresh(true) })));
+      } catch (err) {
+        form.append(el("p", { className: "error", textContent: v.trouble + err.message }));
+      }
+    };
+    details.replaceChildren(details.firstChild, form);
+    box.focus();
+  } }));
+  return details;
+}
+
+function deleteButton(s) {
+  const v = voice();
+  return editable(s) && el("button", { type: "button", className: "danger", textContent: v.deleteStory, onclick: async () => {
+    if (!await confirmDialog({ title: v.deleteTitle, text: v.deleteText, ok: v.deleteOk, cancel: v.keepIt })) return;
+    try {
+      await send(`/api/stories/${s.id}`, "DELETE");
+      toast(v.deleted);
+      location.hash = "#/";
+    } catch (err) {
+      toast(v.trouble + err.message);
+    }
+  } });
+}
+
+function renderStory(s) {
   const v = voice();
   return present([
-    el("a", { href: "#/", className: "meta", textContent: v.back }),
-    el("h2", { textContent: statusText(s) }),
-    IN_PROGRESS.includes(s.status) && el("p", { className: "status", textContent: v.patience }),
+    el("a", { href: "#/", className: "meta back", textContent: v.back }),
+    titleRow(s),
+    IN_PROGRESS.includes(s.status) && progress(s),
     Boolean(s.is_sample) && el("p", { className: "meta", textContent: "A fictional sample story, written for the demo." }),
     s.answers && el("p", { className: "meta" }, "An answer to: ",
       el("a", { href: `#/story/${s.answers.story_id}`, textContent: s.answers.text })),
     s.status === "failed" && el("p", { className: "error", textContent: s.error }),
     s.status === "failed" && el("button", { textContent: v.tryAgain, onclick: () => retry(s.id) }),
-    !plain && s.status === "ready" && writtenBlock(s, "reaction", { heading: v.reaction, startNow: true }),
-    s.summary && el("p", { textContent: s.summary }),
-    s.audio_original && el("audio", { controls: true, preload: "none", src: `/api/stories/${s.id}/audio` }),
-    el("dl", { className: "details" },
-      ...entityRow("People", e.person),
-      ...entityRow("Places", e.place),
-      ...entityRow("When", e.era),
-      ...entityRow("Keepsakes", e.keepsake),
-      ...entityRow("Mood", s.mood && [s.mood]),
-    ),
+    s.status === "ready" && writtenBlock(s, "reaction", { heading: v.reaction, startNow: true }),
+    s.summary && el("p", { className: "summary", textContent: s.summary }),
+    s.audio_original && el("audio", { controls: true, preload: "metadata", src: `/api/stories/${s.id}/audio`, ariaLabel: "The original recording" }),
+    tagsBlock(s),
     s.questions.length > 0 && el("section", { className: "unfinished" },
       el("h3", { textContent: v.unfinished }),
       v.unfinishedHint && el("p", { className: "hint", textContent: v.unfinishedHint }),
@@ -485,10 +714,8 @@ function renderStory(s) {
       el("ul", { className: "questions" }, ...s.questions.map(questionItem)),
     ),
     s.status === "ready" && writtenBlock(s, "retelling", { heading: v.retelling, note: v.retellingNote, startNow: false }),
-    s.transcript && el("details", {},
-      el("summary", { textContent: `${v.transcript} (${s.language || "?"})` }),
-      el("p", { className: "transcript", textContent: s.transcript }),
-    ),
+    s.transcript && transcriptBlock(s),
+    deleteButton(s),
   ]);
 }
 
@@ -502,25 +729,59 @@ async function showStory(id) {
     page.replaceChildren(...renderStory(story));
     return story;
   } catch {
-    page.replaceChildren(el("p", { className: "handwriting", textContent: voice().missing }));
+    page.replaceChildren(
+      el("a", { href: "#/", className: "meta back", textContent: voice().back }),
+      el("h2", { tabIndex: -1, className: "handwriting", textContent: voice().missing }));
     return null;
   }
 }
 
+// --------------------------------------------------------------------------- dialogs and notices
+
+// An in-page confirmation (a real <dialog>: keyboard and screen-reader friendly, Esc cancels).
+function confirmDialog({ title, text, ok, cancel }) {
+  const dialog = $("#confirm");
+  $("#confirm-title").textContent = title;
+  $("#confirm-text").textContent = text;
+  $("#confirm-ok").textContent = ok;
+  $("#confirm-cancel").textContent = cancel;
+  dialog.returnValue = "";
+  dialog.showModal();
+  $("#confirm-cancel").focus(); // the safe choice is the default
+  return new Promise((resolve) => dialog.addEventListener("close", () => resolve(dialog.returnValue === "ok"), { once: true }));
+}
+
+let toastTimer = null;
+function toast(text) {
+  const node = $("#toast");
+  node.textContent = text;
+  node.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { node.hidden = true; }, 5000);
+}
+
 // --------------------------------------------------------------------------- actions
 
-async function upload(file, answersQuestionId) {
-  const form = new FormData();
-  form.append("file", file);
-  if (answersQuestionId) form.append("answers_question_id", answersQuestionId);
+let statusTimer = null;
+async function upload(file, answersQuestionId, form = null) {
+  const data = new FormData();
+  data.append("file", file);
+  if (answersQuestionId) data.append("answers_question_id", answersQuestionId);
   const status = $("#upload-status");
-  status.textContent = voice().offering;
+  const button = form?.querySelector("button");
+  clearTimeout(statusTimer);
+  status.replaceChildren(voice().offering);
+  if (button) button.disabled = true;
   try {
-    const { id } = await api("/api/stories", { method: "POST", body: form });
-    status.textContent = voice().accepted;
+    const { id } = await api("/api/stories", { method: "POST", body: data });
+    form?.reset();
+    status.replaceChildren(el("a", { href: `#/story/${id}`, textContent: voice().accepted }));
+    statusTimer = setTimeout(() => status.replaceChildren(), 30000);
     location.hash = `#/story/${id}`;
   } catch (err) {
-    status.textContent = voice().refused + err.message;
+    status.replaceChildren(el("span", { className: "error", textContent: voice().refused + err.message }));
+  } finally {
+    if (button) button.disabled = false;
   }
 }
 
@@ -529,6 +790,22 @@ async function retry(id) {
   refresh(true);
 }
 
+async function reread(id) {
+  try {
+    await api(`/api/stories/${id}/reread`, { method: "POST" });
+    written.delete(`reaction:${id}`); // the note is rewritten for the new words
+    progressSince.delete(id);
+  } catch (err) {
+    toast(voice().trouble + err.message);
+  }
+  refresh(true);
+}
+
+// The home page (candle wall, Seance, new story) and a story are separate views. Going back
+// returns to where you were on the home page.
+let homeScroll = null;
+addEventListener("scroll", () => { if (!document.body.classList.contains("reading")) homeScroll = scrollY; }, { passive: true });
+
 // Re-render the list (and the open story if it may have changed); poll while anything is processing.
 let pollTimer = null;
 async function refresh(force = false) {
@@ -536,15 +813,23 @@ async function refresh(force = false) {
   const stories = await loadStories();
   const id = Number(location.hash.match(/^#\/story\/(\d+)$/)?.[1]) || null;
   if (id === null) {
-    if (shown.id !== null) window.scrollTo({ top: 0, behavior: "smooth" });
-    $("#story").hidden = true;
+    if (document.body.classList.contains("reading")) {
+      const left = shown.id;
+      document.body.classList.remove("reading");
+      $("#story").hidden = true;
+      if (homeScroll === null) $("#archive").scrollIntoView();
+      else window.scrollTo(0, homeScroll);
+      document.querySelector(`.candle[href="#/story/${left}"]`)?.focus({ preventScroll: true });
+    }
     shown = { id: null, status: null };
   } else if (force || id !== shown.id || IN_PROGRESS.includes(shown.status)) {
     const isNew = id !== shown.id;
+    document.body.classList.add("reading");
     const story = await showStory(id);
     shown = { id, status: story?.status ?? null };
     if (isNew) {
-      $("#story").scrollIntoView({ behavior: "smooth", block: "start" });
+      window.scrollTo(0, 0);
+      $("#story h2")?.focus({ preventScroll: true }); // keyboard and screen-reader users land on the title
       if (story) relight(id);
     }
   }
@@ -602,7 +887,13 @@ async function start() {
     event.preventDefault();
     const question = event.target.question.value.trim();
     if (question) askSeance(question);
+    else {
+      clearSeance();
+      $("#seance-answer").replaceChildren(el("p", { className: "status", textContent: voice().emptyQuestion }));
+      event.target.question.focus();
+    }
   });
+  $("#seance-form").question.addEventListener("input", (event) => { if (!event.target.value.trim()) clearSeance(); });
   $("#record-button").addEventListener("click", (event) => toggleRecording(event.currentTarget));
   $("#filter").addEventListener("change", renderWall);
   $(".legend").addEventListener("click", (event) => {
@@ -615,10 +906,13 @@ async function start() {
   $("#upload-form").addEventListener("submit", (event) => {
     event.preventDefault();
     const file = event.target.file.files[0];
-    if (file) upload(file);
+    if (file) upload(file, null, event.target);
   });
   window.addEventListener("hashchange", () => refresh());
   haunt();
+  setInterval(() => document.querySelectorAll(".elapsed").forEach((node) => {
+    node.textContent = mmss(Date.now() - Number(node.dataset.since));
+  }), 1000);
 
   // The "how it works" strip, until the visitor hides it (remembered if storage is allowed).
   try { $("#how").hidden = localStorage.getItem("ghostwriter.howHidden") === "1"; } catch { /* show it */ }

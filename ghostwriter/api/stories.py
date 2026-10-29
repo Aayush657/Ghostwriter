@@ -1,15 +1,18 @@
-"""Story routes: upload a recording, list the archive, read one story, play its audio, retry a failure."""
+"""Story routes: upload a recording, list the archive, read, edit, re-read and delete one story,
+play its audio, retry a failure, and the things Gemma writes about it."""
 
 from __future__ import annotations
 
 from collections.abc import Iterator
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Literal
 
-from fastapi import APIRouter, BackgroundTasks, Form, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Form, HTTPException, Response, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
+from pydantic import BaseModel, Field
 
-from ghostwriter import db, llm, pipeline, prompts
+from ghostwriter import db, llm, pipeline, prompts, tts
 from ghostwriter.api.sse import sse, stream
 from ghostwriter.audio import ALLOWED_EXTENSIONS
 from ghostwriter.config import settings
@@ -68,6 +71,68 @@ def get_story(story_id: int) -> dict:
     return _story_or_404(story_id)
 
 
+class StoryEdit(BaseModel):
+    title: str | None = Field(None, min_length=1, max_length=120)
+    transcript: str | None = Field(None, min_length=1, max_length=100_000)
+
+
+@router.patch("/{story_id}")
+def edit_story(story_id: int, edit: StoryEdit) -> dict:
+    """Rename a story or correct its transcript. Whisper's original words are kept the first time."""
+    story = _idle_story_or_409(story_id)
+    changes = {}
+    if edit.title is not None:
+        changes["title"] = edit.title.strip()
+    if edit.transcript is not None and edit.transcript.strip() != story["transcript"]:
+        changes["transcript"] = edit.transcript.strip()
+        if story["transcript_original"] is None:
+            changes["transcript_original"] = story["transcript"]
+    if changes:
+        db.update_story(story_id, **changes)
+    return db.get_story(story_id)
+
+
+@router.post("/{story_id}/reread", status_code=202)
+def reread_story(story_id: int, background: BackgroundTasks) -> dict:
+    """Let Gemma read the (corrected) transcript again: new title, summary, tags, questions and note.
+
+    The recording and the retelling are kept; answered questions keep their answers.
+    """
+    story = _idle_story_or_409(story_id)
+    if not story["transcript"]:
+        raise HTTPException(409, "There are no words to re-read yet.")
+    db.update_story(story_id, status="queued", error=None, reaction=None)
+    background.add_task(pipeline.process_story, story_id)
+    return {"id": story_id}
+
+
+@router.delete("/{story_id}", status_code=204)
+def delete_story(story_id: int) -> Response:
+    """Delete a story for good: its recordings, transcript, tags, questions, note, retelling and voice files."""
+    story = _idle_story_or_409(story_id)
+    files = [settings.data_dir / p for p in (story["audio_original"], story["audio_wav"]) if p]
+    files += [tts.cache_path(text, ghostly) for text in (story["reaction"], story["retelling"]) if text
+              for ghostly in (True, False)]
+    db.delete_story(story_id)
+    for path in files:
+        path.unlink(missing_ok=True)
+    return Response(status_code=204)
+
+
+class TagEdit(BaseModel):
+    kind: Literal["person", "place", "era", "keepsake"]
+    old: str = Field(min_length=1, max_length=200)
+    new: str = Field("", max_length=80)  # "" removes the tag
+
+
+@router.post("/{story_id}/tags")
+def edit_tag(story_id: int, edit: TagEdit) -> dict:
+    """Rename, merge or remove one of this story's tags (other stories are not touched)."""
+    _idle_story_or_409(story_id)
+    db.rename_tag(story_id, edit.kind, edit.old, edit.new)
+    return db.get_story(story_id)
+
+
 @router.get("/{story_id}/audio")
 def story_audio(story_id: int) -> FileResponse:
     """The original recording, exactly as it was given."""
@@ -104,15 +169,19 @@ def story_reaction(story_id: int) -> StreamingResponse:
 
 
 @router.post("/{story_id}/retelling")
-def story_retelling(story_id: int) -> StreamingResponse:
-    """The memory retold as a campfire ghost story. Stored apart: the original is never changed."""
+def story_retelling(story_id: int, again: bool = False) -> StreamingResponse:
+    """The memory retold as a campfire ghost story. Stored apart: the original is never changed.
+
+    `again=true` tells it anew; the old retelling is replaced only once the new one is complete.
+    """
     story = _ready_story_or_409(story_id)
-    return stream(_write_once(story, "retelling", prompts.retelling_messages(story), temperature=0.9))
+    return stream(_write_once(story, "retelling", prompts.retelling_messages(story), temperature=0.9, again=again))
 
 
-def _write_once(story: dict, column: str, messages: list[dict], temperature: float) -> Iterator[str]:
+def _write_once(story: dict, column: str, messages: list[dict], temperature: float,
+                again: bool = False) -> Iterator[str]:
     """Stream Gemma's text into `column` the first time; afterwards replay what was kept."""
-    if story[column]:
+    if story[column] and not again:
         yield sse("token", {"text": story[column]})
         yield sse("done", {})
         return
@@ -126,6 +195,14 @@ def _write_once(story: dict, column: str, messages: list[dict], temperature: flo
         return
     db.update_story(story["id"], **{column: "".join(pieces).strip()})
     yield sse("done", {})
+
+
+def _idle_story_or_409(story_id: int) -> dict:
+    """A story that no background job is working on, so it is safe to change."""
+    story = _story_or_404(story_id)
+    if story["status"] in db.IN_PROGRESS:
+        raise HTTPException(409, "The ghost is still working on this one. Try again when it has finished.")
+    return story
 
 
 def _ready_story_or_409(story_id: int) -> dict:

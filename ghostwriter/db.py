@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS stories (
     id                  INTEGER PRIMARY KEY,
     created_at          TEXT NOT NULL DEFAULT (datetime('now')),
     last_visited_at     TEXT NOT NULL DEFAULT (datetime('now')),
-    status              TEXT NOT NULL DEFAULT 'queued',  -- queued|transcribing|thinking|ready|failed
+    status              TEXT NOT NULL DEFAULT 'queued',  -- queued|transcribing|thinking|noting|ready|failed
     error               TEXT,
     answers_question_id INTEGER REFERENCES questions(id), -- set when this recording answers one
     audio_original      TEXT,   -- paths are relative to the data folder
@@ -79,15 +79,16 @@ SEARCH_COLUMNS = ["title", "summary", "tags", "transcript"]
 
 # Columns added after a database may already exist. init_db() adds any that are missing.
 ADDED_COLUMNS = {"reaction": "TEXT", "is_sample": "INTEGER NOT NULL DEFAULT 0", "tags": "TEXT",
-                 "retelling": "TEXT"}
+                 "retelling": "TEXT",
+                 "transcript_original": "TEXT"}  # Whisper's words, kept the first time someone edits them
 
 # Columns update_story() may touch. Column names can't be SQL parameters, so we whitelist them.
-UPDATABLE = {"status", "error", "audio_original", "audio_wav", "duration_s", "language",
-             "transcript", "last_visited_at", "reaction", "retelling"}
+UPDATABLE = {"status", "error", "audio_original", "audio_wav", "duration_s", "language", "title",
+             "transcript", "transcript_original", "last_visited_at", "reaction", "retelling"}
 
 ENTITY_KINDS = {"people": "person", "places": "place", "eras": "era", "keepsakes": "keepsake"}
 
-IN_PROGRESS = ("queued", "transcribing", "thinking")
+IN_PROGRESS = ("queued", "transcribing", "thinking", "noting")
 
 
 @contextmanager
@@ -153,21 +154,31 @@ def update_story(story_id: int, **fields: Any) -> None:
 
 
 def delete_story(story_id: int) -> None:
+    """Remove a story with its tags and questions (the search index follows through its trigger).
+
+    Recordings that answered one of its questions stay, as stories of their own.
+    """
     with connect() as con:
+        con.execute("UPDATE stories SET answers_question_id = NULL WHERE answers_question_id IN "
+                    "(SELECT id FROM questions WHERE story_id = ?)", (story_id,))
         con.execute("DELETE FROM stories WHERE id = ?", (story_id,))
 
 
-def save_analysis(story_id: int, analysis: StoryAnalysis) -> None:
-    """Store Gemma's findings and mark the story ready, all in one transaction."""
+def save_analysis(story_id: int, analysis: StoryAnalysis, status: str = "ready") -> None:
+    """Store Gemma's findings and set the story's status, all in one transaction.
+
+    Questions that were already answered by another recording are kept, with their answers.
+    """
     tags = " · ".join(v.strip() for field in ENTITY_KINDS for v in getattr(analysis, field) if v.strip())
     with connect() as con:
         con.execute(
-            "UPDATE stories SET title = ?, summary = ?, mood = ?, tags = ?, status = 'ready', error = NULL "
+            "UPDATE stories SET title = ?, summary = ?, mood = ?, tags = ?, status = ?, error = NULL "
             "WHERE id = ?",
-            (analysis.title, analysis.summary, analysis.mood, tags, story_id),
+            (analysis.title, analysis.summary, analysis.mood, tags, status, story_id),
         )
         con.execute("DELETE FROM entities WHERE story_id = ?", (story_id,))
-        con.execute("DELETE FROM questions WHERE story_id = ?", (story_id,))
+        con.execute("DELETE FROM questions WHERE story_id = ? AND id NOT IN "
+                    "(SELECT answers_question_id FROM stories WHERE answers_question_id IS NOT NULL)", (story_id,))
         for field, kind in ENTITY_KINDS.items():
             con.executemany(
                 "INSERT INTO entities (story_id, kind, value) VALUES (?, ?, ?)",
@@ -212,6 +223,24 @@ def list_stories() -> list[dict]:
         for r in rows:
             r["entities"] = entities.get(r["id"], {})
         return rows
+
+
+def rename_tag(story_id: int, kind: str, old: str, new: str) -> None:
+    """Rename one of a story's tags. Renaming to a tag it already has merges the two; "" removes it.
+
+    Only this story changes: "grandmother" in one story may be Nani, in another Dadi.
+    """
+    new = new.strip()
+    with connect() as con:
+        exists = con.execute("SELECT 1 FROM entities WHERE story_id = ? AND kind = ? AND value = ?",
+                             (story_id, kind, new)).fetchone()
+        if not new or exists:
+            con.execute("DELETE FROM entities WHERE story_id = ? AND kind = ? AND value = ?", (story_id, kind, old))
+        else:
+            con.execute("UPDATE entities SET value = ? WHERE story_id = ? AND kind = ? AND value = ?",
+                        (new, story_id, kind, old))
+        con.execute("UPDATE stories SET tags = (SELECT group_concat(value, ' · ') FROM entities "
+                    "WHERE story_id = ?) WHERE id = ?", (story_id, story_id))
 
 
 def question_exists(question_id: int) -> bool:

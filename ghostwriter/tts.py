@@ -36,6 +36,12 @@ def clean(text: str) -> str:
     return re.sub(r"\s+", " ", re.sub(r"\[S\d+\]", "", text)).strip()
 
 
+def cache_path(text: str, ghostly: bool = True) -> Path:
+    """Where the spoken version of `text` is (or would be) kept."""
+    key = hashlib.sha256(f"{settings.piper_voice}|{ghostly}|{clean(text)[:MAX_CHARS]}".encode()).hexdigest()[:24]
+    return settings.data_dir / "tts" / f"{key}.wav"
+
+
 def speak(text: str, ghostly: bool = True) -> Path:
     """Return a WAV file of `text` spoken by the Archivist, making it if it isn't cached yet."""
     if not settings.tts_enabled:
@@ -47,12 +53,11 @@ def speak(text: str, ghostly: bool = True) -> Path:
     if not voice.exists():
         raise TTSError(f"The voice model is missing from {voice}. Run scripts\\setup.ps1.")
 
-    key = hashlib.sha256(f"{settings.piper_voice}|{ghostly}|{text}".encode()).hexdigest()[:24]
-    out = settings.data_dir / "tts" / f"{key}.wav"
+    out = cache_path(text, ghostly)
     if out.exists():
         return out
     out.parent.mkdir(parents=True, exist_ok=True)
-    partial = out.with_name(f"{key}.{uuid.uuid4().hex[:8]}.part.wav")  # unique: requests may overlap
+    partial = out.with_name(f"{out.stem}.{uuid.uuid4().hex[:8]}.part.wav")  # unique: requests may overlap
 
     rate = json.loads(Path(f"{voice}.json").read_text(encoding="utf-8"))["audio"]["sample_rate"]
     try:
