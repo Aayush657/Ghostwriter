@@ -125,11 +125,13 @@ I tried to make it lie. Asked *"Was it my grandfather's ghost who made the tea?"
 appears anywhere in the story, it refused. Asked *"Did my great-grandfather ever come home from
 Rangoon?"*, it answered with the story's own ending: nobody in the family knows.
 
-### Ghost handwriting, candles and a voice
+### Ghost ink, candles and a voice
 
 Ollama streams tokens; FastAPI passes them on as Server-Sent Events; the browser adds each piece as a
-span that fades in from a blur, in the Caveat handwriting font, while the paragraph flickers faintly
-like candlelight. It turns the wait for a CPU-bound model into part of the séance.
+span that fades in from a blur, like ink soaking into paper, while the paragraph flickers faintly
+like candlelight. It turns the wait for a CPU-bound model into part of the séance. (My first version
+wrote everything in a handwriting font. It looked wonderful and was tiring to read, so long answers
+are now in a serif, and the handwriting is kept for the ghost's short lines.)
 
 Each candle's brightness is just `1 - days_since_visit / 30`, with a floor so it never quite goes out.
 A registered CSS custom property (`@property --life`) lets the flame grow back smoothly when you open

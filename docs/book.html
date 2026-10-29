@@ -18,11 +18,24 @@ dt { color: #7b6d5a; }
 dd { margin: 0; }
 .story { border-top: 1px solid #d6c7a6; margin-top: 40px; padding-top: 8px; }
 .cover { text-align: center; padding: 80px 0 40px; }
-.print { font: inherit; margin-top: 16px; padding: 6px 16px; cursor: pointer; }
+a { color: #7a3d0c; text-decoration-color: #d9a066; text-underline-offset: 3px; }
+a:hover, a:focus-visible { color: #b4520a; }
+ol li { margin: 4px 0; }
+.print {
+  font: inherit; margin-top: 18px; padding: 8px 22px; cursor: pointer; border: 0; border-radius: 999px;
+  background: #7a3d0c; color: #fff8ec; box-shadow: 0 2px 10px rgba(122, 61, 12, 0.3);
+}
+.print:hover, .print:focus-visible { background: #b4520a; outline: 2px solid #b4520a; outline-offset: 2px; }
+@page { margin: 18mm 16mm; }
 @media print {
   .print { display: none; }
-  body { background: none; }
+  body { background: none; font-size: 12pt; }
+  main { padding: 0; max-width: none; }
+  a { color: inherit; text-decoration: none; }
+  .cover { padding-top: 30vh; }
   .story { break-before: page; border: 0; margin: 0; }
+  h2, h3 { break-after: avoid; }
+  p, li { orphans: 3; widows: 3; }
 }
 </style>
 </head>
@@ -30,7 +43,7 @@ dd { margin: 0; }
 <main>
 <div class="cover">
 <h1>The Memory Book</h1>
-<p class="hand">4 memories, kept by the ghost in this laptop.</p>
+<p class="hand">4 memories, kept by the ghost on this computer.</p>
 <p class="meta">Written down by Ghostwriter on 29 October 2026.</p>
 <button class="print" onclick="print()">Print, or save as PDF</button>
 </div>
@@ -44,6 +57,23 @@ dd { margin: 0; }
 <h3>The words as they were spoken</h3><p class="transcript">When I was nine, we spent the winter at my grandmother&#x27;s house in Shimla. Every night at eleven, the old wall clock in the corridor would stop, and my grandmother would say, the clock is listening. One night I stayed awake to watch it. At exactly eleven the pendulum stopped, and I heard someone humming an old song in the kitchen. When I went to look, there was only a cup of tea on the table, still warm. My grandmother never told me who made it. The next morning the clock was running again, and she gave me her silver thimble and said, keep this, so they know you are family.</p>
 <h3>The Archivist wrote</h3><p class="hand">A strange hush rests upon this memory. The sound of humming from the kitchen, when the pendulum ceased its swing, catches the chill in my ethereal breast. A warm cup of tea sat upon the table.</p>
 <h3>Unfinished business</h3><ul><li>Who do you think was humming the old song in the kitchen?</li><li>What was the old song your grandmother mentioned?</li></ul>
+<h3>A haunted retelling</h3><p class="meta">A retelling by the Archivist, not the memory itself.</p><p class="hand">Hush now, my dear. Draw closer to the firelight.
+
+The wind bites hard tonight. It whispers through the pines. Picture this: Shimla in the deep winter. A house old and grand.
+
+I was small then. Nine summers spun on my shoulders. We stayed with Grandmother. The corridors breathed cold air.
+
+Each night, the great wall clock would falter. Precisely when the hands touched eleven. It would just cease. Grandmother sighed, always. She murmured, &quot;The clock listens.&quot;
+
+One night, sleep fled me. I watched that stillness. At the stroke of eleven, the pendulum hung motionless. Then, from the kitchen, a soft tune drifted out. Humming. An old, sweet song.
+
+I slipped out. The kitchen door creaked open a sliver. A single cup of tea rested on the wooden table. Warm. Still warm.
+
+I asked, but she would only watch me.
+
+The next morn, the clock ticked on, steady again. She pressed a silver thimble into my hand. &quot;Keep this,&quot; she said. &quot;So they know you are kin.&quot;
+
+But sometimes, when the silence deepens... I hear the kitchen humming, even when the clock runs true.</p>
 </section><section class="story" id="s2">
 <h2>Mysterious Room and Exam Notebook</h2>
 <p class="meta">28 October 2026 · eerie · fictional sample</p>
@@ -69,6 +99,7 @@ We saw it. We touched the binding. But we never shared its secrets. That noteboo
 <p>You recall your grandmother&#x27;s kadhi, which was famous throughout Lucknow, made in a large brass pot from her wedding. You remember her strict rule that the lid could not be lifted for at least an hour, a rule broken once by your uncle.</p>
 <dl><dt>People</dt><dd>Nani (grandmother), Mama (uncle)</dd><dt>Places</dt><dd>Lucknow</dd><dt>When</dt><dd>1980s</dd><dt>Keepsakes</dt><dd>brass pot, kadhi recipe</dd></dl>
 <h3>The words as they were spoken</h3><p class="transcript">नानी की कढ़ी पूरे लखनऊ में मशहूर थी. वो पीतल के एक बड़े पतीले में बनाती थीं, जो उनकी शादी में आया था. नानी कहती थीं, धीमी आँच और धीरज, यही असली मसाला है. कढ़ी को कम से कम एक घंटा पकाना होता था और बीच में कोई ढक्कन नहीं उठा सकता था. अस्सी के दशक में, एक बार मामा ने जल्दी में ढक्कन उठा दिया, और नानी ने कहा, अब पकौड़े रूठ जाएँगे. सच में उस दिन पकौड़े डूब गए. नानी के जाने के बाद वो पतीला किसके पास गया, ये मुझे नहीं पता.</p>
+<h3>The Archivist wrote</h3><p class="hand">The scent of slow patience clings to this recollection. A brass pot from a wedding. I sense the weight of that unspoken hour, when the uncle lifted the lid.</p>
 <h3>Unfinished business</h3><ul><li>Where did the brass pot go after your grandmother passed away?</li><li>What exactly happened to the pakoras that day?</li></ul>
 </section><section class="story" id="s4">
 <h2>A Promise Under the Verandah Lamp</h2>
@@ -76,6 +107,7 @@ We saw it. We touched the binding. But we never shared its secrets. That noteboo
 <p>You found a bundle of letters in your grandfather&#x27;s trunk, written by his father from Rangoon in 1942. The final letter held a poignant promise about returning home if the verandah lamp was lit.</p>
 <dl><dt>People</dt><dd>grandfather, grandfather&#x27;s father</dd><dt>Places</dt><dd>Rangoon, India</dd><dt>When</dt><dd>1942</dd><dt>Keepsakes</dt><dd>bundle of letters, red thread, lamp</dd></dl>
 <h3>The words as they were spoken</h3><p class="transcript">In my grandfather&#x27;s trunk there is a bundle of letters tied with red thread. They were written by his father from Rangoon in 1942, just before the family walked back to India. Most of the letters are about ordinary things, the price of rice, the monsoon, a dog called Moti. But the last letter only says, if the lamp on the verandah is lit, I am still coming home. My grandfather kept a lamp lit on his verandah every evening until he died. Nobody in the family knows if his father ever came back.</p>
+<h3>The Archivist wrote</h3><p class="hand">The quiet weight of that final vow settles deep within my ethereal self. It is the light of the verandah lamp that holds such a fragile hope captive.</p>
 <h3>Unfinished business</h3><ul><li>Did your grandfather ever know if his father came back?</li><li>What were the ordinary things mentioned in the letters besides the rice price and monsoon?</li></ul>
 </section>
 </main>

@@ -22,14 +22,21 @@ _Screenshots and a demo video: [PLACEHOLDER]_
   transcribes it with automatic language detection: Hindi, English, or the mix in between.
 - **Remembers.** Gemma 4 turns each transcript into validated JSON: a title, a 2-3 sentence summary,
   people, places, eras, mood, keepsakes (objects, recipes, sayings), and 2-4 follow-up questions.
-- **Unfinished business.** After each story the ghost raises the gaps it noticed. Answer by voice and
-  the answer is kept as a linked follow-up story.
+  Places must be named and times must be a year, decade or stage of life (checked after Gemma, too),
+  and the Archivist writes its note about the story while it is being processed.
+- **Unfinished business.** After each story the ghost raises the gaps it noticed, after checking that
+  the transcript doesn't already answer them. Answer by voice and the answer is kept as a linked
+  follow-up story.
 - **Seance.** Ask the archive a question. It searches your stories (SQLite FTS5), and Gemma answers
-  only from what it found, citing and linking each story. If nothing matches, Gemma isn't asked:
-  *"That memory was never given to me."* Buttons under the question box suggest what to ask, made
-  from the names, places and keepsakes that come up most in your stories.
-- **Ghost handwriting.** Gemma's words stream to the page as they are generated and fade in like ink,
-  in a handwriting font.
+  only from what it found, with small numbered citations and the sources listed once. If nothing
+  matches, Gemma isn't asked: *"That memory was never given to me."* Buttons under the question box
+  suggest what to ask, made from the names, places and keepsakes that come up most in your stories.
+- **Ink, not a wall of text.** Gemma's words stream to the page as they are generated and fade in like
+  ink. Long text is set in a readable serif; the handwriting face is kept for short accents.
+- **Your stories stay yours to fix.** Rename a story, correct the transcript (Whisper's original is
+  kept) and let the ghost re-read it, rename, merge or remove tags, or delete a story completely.
+- **Always says what it's doing.** Slow steps show the stage and a clock; Seance answers, notes and
+  retellings can be cancelled.
 - **Candle wall.** Every story is a candle on a wall strung with orange and white lights, under a
   moonlit sky with bats, fog and a haunted house (decoration only; plain mode hides it, and it holds
   still for reduced motion). Each story's mood picks its candle and flame colour: a dripping pillar,
@@ -38,10 +45,12 @@ _Screenshots and a demo video: [PLACEHOLDER]_
 - **Whispers.** On launch the ghost sometimes murmurs a line from one of your most faded stories.
 - **Ghost voice.** The Archivist can speak, using Piper text-to-speech with ffmpeg effects (lower
   pitch, an echoing room, a faint chorus). Optional.
-- **Haunted retelling.** One click retells a memory as a campfire bhoot-kahani. It is labelled as a
-  retelling and stored separately; the original is never changed.
+- **Haunted retelling.** One click retells a memory as a campfire bhoot-kahani; "Retell it again"
+  replaces it after asking. It is labelled as a retelling and stored separately; the original is
+  never changed.
 - **Memory book.** Export every story as one self-contained HTML file to print, save as PDF, or keep.
-- **Plain mode.** One switch for neutral wording and no effects.
+- **Plain mode.** One switch for literal wording, no animation and no decoration. Nothing is hidden:
+  the Archivist's note becomes the "AI note".
 
 It does **not** clone anyone's voice. To hear the storyteller, you play back their original
 recording.
@@ -178,7 +187,7 @@ default) are documented there, with the prefix `GW_`.
 ## Development
 
 ```powershell
-.venv\Scripts\python.exe -m pytest                        # 55 tests; Gemma and Whisper are faked
+.venv\Scripts\python.exe -m pytest                        # 69 tests; Gemma and Whisper are faked
 .venv\Scripts\python.exe -m ghostwriter.transcribe a.wav  # Whisper timing on one file
 .venv\Scripts\python.exe -m ghostwriter.tts "Hello"       # the ghost voice on one line
 ```

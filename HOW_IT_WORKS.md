@@ -13,7 +13,7 @@ people, places, eras, mood, keepsakes, follow-up questions --> SQLite (+ full-te
 ```
 
 Then you can ask the archive questions (Seance), and the Archivist answers only from your stories,
-written out live in a handwriting font.
+written out live, word by word.
 
 Everything runs on the laptop. The web page talks only to `127.0.0.1`; the server talks only to
 Ollama on `127.0.0.1:11434`; Whisper loads its weights from a folder on disk.
@@ -35,6 +35,15 @@ and fast enough: about 35 s of work per minute of audio with Whisper `small` on 
 - If the app is killed mid-job, the next start marks that story "interrupted" so it can be retried,
   instead of leaving it stuck forever.
 - Jobs run **one at a time** (a lock), so Whisper and Gemma never fight over 16 GB of RAM.
+- **Corrections never destroy.** Editing a transcript keeps Whisper's original words in
+  `transcript_original` (the first time). Re-reading reruns Gemma's analysis on the corrected words
+  but keeps the recording, the retelling, and any question another recording already answered.
+- **Deleting is the only destruction, and it asks first** (an in-page dialog; Esc or "Keep it"
+  cancels). It removes the story's rows, its search entry (a trigger), both audio files and the cached
+  voice files of its note and retelling. A recording that answered one of its questions stays, as a
+  story of its own. Nothing can be edited or deleted while a job is working on it (409).
+- **Database changes are additive**: `init_db()` only adds missing columns (`ADDED_COLUMNS`), so an
+  older archive opens unchanged.
 
 ## 4. Getting reliable JSON out of a small model
 
@@ -48,6 +57,19 @@ Three layers make that reliable:
 3. **One repair attempt**: if validation fails, Gemma is shown its own reply plus the exact error and
    asked to fix it, once. If that fails too, the story is marked failed (transcript kept) rather than
    storing half-broken data.
+
+Then two quality checks:
+
+- **Tags are tidied** (`tags.py`, tested): a place must have a name ("Jaipur", "Nani's house"), not
+  just a kind ("temple", "the corridor", "room 307"); a time must be a year, a decade or a stage of
+  life ("1942", "the eighties", "childhood"), not "the past", "night" or a month on its own. Repeats
+  are dropped. People are **never** merged: "grandmother" and "Nani (grandmother)" may be different
+  people, so only the storyteller merges them, story by story, from the tag editor.
+- **Follow-up questions are checked against the transcript.** In the same conversation, Gemma is asked
+  which of its questions the transcript already answers, and those are dropped ("What kind of car
+  was it?" when the story says "an old blue Fiat"). Because it is the same conversation, Ollama reuses
+  the transcript it has already read, so the check costs only a few seconds. If it fails, every
+  question is kept.
 
 ## 5. Search: SQLite FTS5 with the trigram tokenizer
 
@@ -90,20 +112,36 @@ threads instead of Ollama's 8 made no difference. So the Seance sends less:
 On stories five times the length of the samples this cut the prompt from ~1,050 to ~670 tokens and
 the first word from 17-23 s to 10-14 s. On the short samples it changes little (they were already small).
 
-## 7. Ghost handwriting (streaming)
+## 7. Ghost ink (streaming), progress and cancelling
 
 Ollama streams tokens as JSON lines. The server re-sends them to the browser as **Server-Sent
 Events** (`sources`, `token`, `done`, `error`). The page reads the stream with `fetch` and appends
-each piece as a `<span>` that fades in from a blur (CSS animation) in the Caveat handwriting font,
-while the whole passage flickers faintly like candlelight. `prefers-reduced-motion` and plain mode
-turn the effects off.
+each piece as a `<span>` that fades in from a blur (CSS animation), while the whole passage flickers
+faintly like candlelight. Long text is set in a serif at 18 px with a 1.6 line height and at most
+70 characters a line; the Caveat handwriting face is kept for short accents (the greeting, "You never
+told me...", the first line of the Archivist's note). `prefers-reduced-motion` and plain mode turn the
+effects off.
+
+Every slow step says what it is doing and for how long: processing shows its three stages
+(listening, reading, writing the note) with a clock; Seance answers, notes and retellings show a
+clock and a **Cancel** button. Cancelling aborts the `fetch` (an `AbortController`); the server's
+generator is closed when the connection drops, which closes its stream to Ollama, so Gemma stops too.
+Text already in flight is dropped, and a cancelled "retell again" keeps the old retelling, because
+the server only replaces it once the new one is complete. Whisper can't be stopped halfway, so
+processing has no Cancel; you can leave the page and it carries on.
+
+**Citations.** Gemma cites `[S12]`. The page numbers sources by first citation (`[1]`, `[2]`), shows
+one mark for a run of citations of the same source, and lists each source once under "Consulted".
 
 ## 8. The Archivist and plain mode
 
 All prompts live in `prompts.py`, so the voice is consistent and easy to tune. The persona is a
 system prompt (old-fashioned, gently dramatic, warm, never cruel). **Plain mode** swaps it for a
 neutral one and switches the page's wording and fonts. Follow-up questions are stored neutrally, and
-the Archivist's voice is applied only when they're presented, so plain mode stays plain.
+the Archivist's voice is applied only when they're presented, so plain mode stays plain. Plain mode
+also stops every animation and hides the decoration (night scene, string lights, glows), but never a
+feature: the Archivist's note stays, labelled "AI note". Every themed label also carries a plain
+subtitle ("The candle wall" / "Your stories"), so the ghost's wording never hides what a thing does.
 
 Two persona bugs taught the most. The Seance kept saying "the speaker" because Gemma copied the
 third-person summaries it was shown, so summaries are now written to "you". And once the ghost
@@ -146,6 +184,11 @@ of the text, so a line is only ever made once. Citation marks are removed before
 The Archivist's reaction to a story and the haunted retelling share one helper: if the text is
 already stored, replay it; otherwise stream it from Gemma and store it at the end. The retelling has
 its own column, so the original transcript and summary can never be overwritten by it (a test checks).
+
+The note is now written **during processing** (a fourth stage, "noting"), so opening a story is
+instant. If Gemma fails at that point the story is still finished, and the page writes the note when
+it's opened. "Retell it again" streams a new retelling and replaces the old one only when it is
+complete.
 
 ## 12. The memory book
 

@@ -86,7 +86,34 @@ _Last updated: Thu Oct 29, 2026_
 6. Me, after the user's recording: measure Whisper on real Hindi/Hinglish, try `medium` if needed, put
    the numbers in README / POST_DRAFT / docs, tune the ghost voice if asked.
 
+## Oct 29: fixes from the judging review (4 phases)
+
+All checked in the browser pane against a scratch copy of demo-data (destructive tests never touched
+demo-data); 69 tests pass. Migration verified on the copy and then on demo-data itself: 6 stories,
+2 retellings, 6 notes, 28 tags, 14 questions, the search index, audio and voice files all unchanged;
+only `transcript_original` was added. Contrast measured: every text colour passes AA (faintest candle
+title 10.7:1, its date line 6.0:1).
+- Phase 1 (clarity): how-it-works strip (dismissal remembered), plain subtitles under themed labels,
+  empty state, health lights moved to a footer as text, candle fading explained (note + tooltip).
+- Phase 2 (usability): story is its own view (scroll restored, direct links, not-found with back
+  link); rename; transcript editor + re-read; tag editor (rename/merge/remove, per story); delete with
+  an in-page dialog (rows, index, audio, voice cache); stage-by-stage progress with clocks; Cancel for
+  Seance, note and retelling; note written during processing; upload/Seance messages cleared; mic hint.
+- Phase 3 (AI quality): question check against the transcript; named places / real times only
+  (prompt + schema limits + tags.py); people never merged; numbered, collapsed citations; retell again.
+- Phase 4 (polish): serif for long text; voice button states; ghost poke with lines (reduced-motion
+  safe); quieter plain mode keeping the AI note; en-IN dates; themed audio player (preload metadata);
+  smaller moon under 400 px (360-430 px checked); themed memory book + print stylesheet.
+
 ## Known issues
+- **Whisper heard Hindi as Urdu.** The browser recording in demo-data (story 6) went through the whole
+  flow, but Whisper detected "ur": once garbled, once Hindi words in Urdu script. A language setting
+  (e.g. `GW_WHISPER_LANGUAGE=hi`) would fix it; not added (user asked not to focus on Hindi).
+- Not verified here: the browser's print preview (a native dialog; print CSS is in place), and
+  `prefers-reduced-motion` (can't be emulated in the browser pane; CSS reviewed).
+- Processing can't be cancelled (Whisper can't stop halfway); the page says you can leave it.
+  Its clock counts from when the page first saw the job, so it restarts on reload.
+- Re-reading replaces a hand-made title with Gemma's new one (re-read redoes the title by design).
 
 - **Oct 29, Gemma failed to load: out of memory.** Seance returned Ollama's raw error ("unable to
   allocate CPU_REPACK buffer" of 1.5 GB). Free RAM was 3.4 of 15.7 GB (Chrome ~2.1 GB, Claude ~1.8 GB,
