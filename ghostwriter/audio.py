@@ -37,7 +37,7 @@ def probe(path: Path) -> float | None:
         raise AudioError("That file took too long to open. Try another recording.") from None
     except subprocess.CalledProcessError as exc:
         log.info("ffprobe refused %s: %s", path.name, exc.stderr.strip()[-300:])
-        raise AudioError("That file isn't a recording the ghost can hear. Choose an audio file "
+        raise AudioError("That file isn't a recording. Choose an audio file "
                          "(wav, mp3, m4a, webm or ogg).") from None
     info = json.loads(out or "{}")
     if not info.get("streams"):

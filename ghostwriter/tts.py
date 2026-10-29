@@ -83,7 +83,7 @@ def cache_path(text: str, ghostly: bool = True) -> Path:
 def speak(text: str, ghostly: bool = True) -> Path:
     """Return a WAV file of `text` spoken by the Archivist, making it if it isn't cached yet."""
     if not settings.tts_enabled:
-        raise TTSError("The ghost's voice is turned off (GW_TTS_ENABLED=false in .env).")
+        raise TTSError("The voice is turned off (GW_TTS_ENABLED=false in .env).")
     text = clean(text)[:MAX_CHARS]
     if not text:
         raise TTSError("There is nothing to say.")

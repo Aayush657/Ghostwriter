@@ -156,7 +156,7 @@ def analyse_story(transcript: str, answering: dict | None = None) -> StoryAnalys
     except ValidationError as exc:
         if META_TEXT.search(reply):
             raise UnclearStory() from exc
-        raise LLMError("The Archivist couldn't make sense of this story. Try again.") from exc
+        raise LLMError("Gemma couldn't make sense of this story. Try again.") from exc
 
 
 DROP_SCHEMA = {"type": "object", "properties": {"drop": {"type": "array", "items": {"type": "boolean"}}},

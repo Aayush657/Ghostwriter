@@ -43,7 +43,7 @@ async def upload_story(
     ext = Path(file.filename or "").suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:
         allowed = ", ".join(sorted(ALLOWED_EXTENSIONS))
-        raise HTTPException(415, f"The ghost can't read '{ext or 'that'}' files. Try one of: {allowed}.")
+        raise HTTPException(415, f"'{ext or 'That'}' files can't be used. Choose one of: {allowed}.")
     if answers_question_id is not None and not db.question_exists(answers_question_id):
         raise HTTPException(404, "That question doesn't exist.")
 
@@ -253,14 +253,14 @@ def _idle_story_or_409(story_id: int) -> dict:
     """A story that no background job is working on, so it is safe to change."""
     story = _story_or_404(story_id)
     if story["status"] in db.IN_PROGRESS:
-        raise HTTPException(409, "The ghost is still working on this one. Try again when it has finished.")
+        raise HTTPException(409, "This story is still being processed. Try again when it has finished.")
     return story
 
 
 def _ready_story_or_409(story_id: int) -> dict:
     story = _story_or_404(story_id)
     if story["status"] != "ready":
-        raise HTTPException(409, "The ghost hasn't finished reading this one yet.")
+        raise HTTPException(409, "This story hasn't finished processing yet.")
     return story
 
 
