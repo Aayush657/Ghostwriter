@@ -1,0 +1,4 @@
+# For the browser smoke test (tests/test_smoke.py). It drives the Google Chrome you already have,
+# so no browser download is needed. Install: pip install -r requirements-dev.txt
+-r requirements.txt
+playwright==1.55.0

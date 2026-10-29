@@ -91,10 +91,10 @@ def check_ollama() -> list[Check]:
                       "Start Ollama from the Start menu, or run: ollama serve")]
     server = Check("Ollama", True, f"version {version} at {url}")
     if has_model(installed, settings.embed_model):
-        meaning = Check("Meaning search", True, f"{settings.embed_model}: the Seance finds stories by meaning",
+        meaning = Check("Meaning search", True, f"{settings.embed_model}: questions find stories by meaning",
                         required=False)
     else:
-        meaning = Check("Meaning search", False, f"{settings.embed_model} not pulled: the Seance uses keywords only",
+        meaning = Check("Meaning search", False, f"{settings.embed_model} not pulled: questions use keywords only",
                         f"ollama pull {settings.embed_model}", required=False)
     if has_model(installed, settings.llm_model):
         return [server, Check("Gemma model", True, settings.llm_model), meaning]

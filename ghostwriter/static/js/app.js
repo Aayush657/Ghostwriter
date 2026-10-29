@@ -1,4 +1,4 @@
-// Ghostwriter page logic: Seance, the archive, story pages, the Archivist's voice.
+// Ghostwriter page logic: the candle wall, story pages, the Seance, recording, the Archivist's voice.
 
 import { $, el, localTime, present } from "./dom.js";
 import { api, send, streamEvents } from "./api.js";
@@ -6,276 +6,420 @@ import { quill } from "./quill.js";
 import { micProblem, startRecording } from "./recorder.js";
 
 const IN_PROGRESS = ["queued", "transcribing", "thinking", "noting"];
-const AUDIO_TYPES = ".wav,.mp3,.m4a,.webm,.ogg";
+const AUDIO_EXTENSIONS = [".wav", ".mp3", ".m4a", ".webm", ".ogg"];
+const AUDIO_TYPES = AUDIO_EXTENSIONS.join(",");
 
-// Everything the page says, in the Archivist's voice and in plain mode.
-const VOICE = {
-  ghost: {
+// --------------------------------------------------------------------------- moods
+// One map for the legend, the filter and the candles. The server's list is models.Mood; style.css
+// draws each design (.mood-*). tests/test_frontend.py checks the two lists match.
+const MOODS = {
+  joyful: { shape: "jack-o'-lantern", flame: "gold" },
+  nostalgic: { shape: "dripping pillar candle", flame: "amber" },
+  loving: { shape: "clay diya", flame: "rose" },
+  poignant: { shape: "twisted taper", flame: "blue" },
+  mysterious: { shape: "iron lantern", flame: "violet" },
+  eerie: { shape: "skull candle", flame: "green" },
+};
+const FALLBACK_MOOD = "nostalgic";
+
+// --------------------------------------------------------------------------- copy
+// Every word the page says, in the Archivist's voice (spooky) and in plain mode. Nothing user-facing
+// is written anywhere else, so plain mode is complete. [data-voice="key"] elements in index.html get
+// their text from here; [data-voice-placeholder] and [data-voice-title] their placeholder and tooltip.
+const COPY = {
+  spooky: {
+    tagline: "The ghost that keeps your stories.",
+    why: "Record the stories your family tells (Nani's recipes, Dada's journeys) before they're forgotten. Everything stays on this computer.",
+    intro: "Ghostwriter is home to the Archivist, a kind ghost who writes your stories down and remembers every word.",
+    plainSwitch: "Plain mode: simple words, no effects",
+    howLink: "How it works",
+    aboutLink: "About",
+    howTitle: "How Ghostwriter works",
+    how1Title: "Tell a story.",
+    how1: "Speak into the microphone or upload a recording, in English, Hindi or both.",
+    how2Title: "The Archivist writes it down.",
+    how2: "It gives the story a title and notes who, where and when, then asks what it still wonders about.",
+    how3Title: "Ask the Séance.",
+    how3: "Ask anything about your stories; it answers only from them and shows which ones it used.",
+    howClose: "Got it, hide this",
     greeting: (n) => n === 0
       ? "The archive is empty, and so very quiet. Tell me something, my dear."
-      : `Ah... you have returned. I keep ${n} of your memories.`,
+      : `Ah... you have returned. I keep ${n} of your ${n === 1 ? "memory" : "memories"}.`,
+    waking: "Waking the Archivist...",
+    awake: "The Archivist is awake.",
+    unwell: "Something in the walls is not well. The archive may only half wake:",
+    archive: "The candle wall",
+    archiveHint: "Every story you give the Archivist becomes a candle. Open one to read it.",
+    searchLabel: "Search titles and summaries",
+    searchPlaceholder: "Search titles and summaries",
+    filterLabel: "Show only memories about",
+    allMemories: "every memory",
+    clearFilter: "Clear filter",
+    count: (shown, total) => shown === total ? `${total} ${total === 1 ? "memory" : "memories"}` : `Showing ${shown} of ${total}`,
+    lighting: "Lighting the candles...",
+    emptyWall: "No candles yet. The wall waits for its first memory.",
+    emptyAction: "Give the Archivist its first story",
+    filterEmpty: "No memory matches that.",
+    legendTitle: "Each mood has its own candle and flame. Choose one to light only its candles:",
+    legendItem: (mood, look) => `${mood}: ${look.shape}, ${look.flame} flame`,
+    legendDim: "A dim entry has no stories with that mood yet.",
+    legendDisabled: "No stories with this mood yet",
+    fadeNote: "Flames burn low when you haven't opened a memory for a while. Open it to relight it.",
+    lastOpened: (days) => days < 1 ? "Opened today." : `Not opened for ${days} day${days === 1 ? "" : "s"}: its flame burns low.`,
+    book: "Open the memory book",
+    bookHint: "Every finished story with its words, notes, answers and retellings on one page, to print or save as a PDF.",
+    samplesNote: "The stories marked \"fictional sample\" were written for the demo; none of them are real memories.",
+    samplesRemove: "Remove sample stories",
+    removeSamplesTitle: "Remove the sample stories?",
+    removeSamplesText: "The fictional demo stories leave the wall. Your own stories are not touched.",
+    removeSamplesOk: "Remove them",
+    samplesRemoved: (n) => `${n} sample ${n === 1 ? "story" : "stories"} removed.`,
+    sample: "fictional sample",
+    sampleNote: "A fictional sample story, written for the demo. It is not a real memory.",
     seance: "Séance",
-    seanceHint: "Ask a question about your stories",
-    askPlaceholder: "Ask the archive about a person, a place, a time...",
-    ask: "Summon",
-    askHint: "ask",
+    seanceHint: "Ask a question about your stories. The Archivist answers only from them, and numbers the stories it used, like this [1].",
+    askPlaceholder: "What did Nani cook?",
+    ask: "Ask",
+    askTitle: "Summon an answer from your stories",
     consulting: "The candles lean. The Archivist is searching the shelves...",
-    sources: "Consulted:",
+    sources: "Stories used:",
+    seanceStopped: "The candles are snuffed. The séance has ended.",
+    emptyQuestion: "Ask me something first, my dear: a name, a place, a time.",
+    askAbout: (name) => `Ask about ${name}`,
+    give: "Give the Archivist a story",
+    giveHint: "Record it here, or upload a recording you already have. Short stories take about a minute to write down.",
+    languageLabel: "Language spoken",
+    langAuto: "Detect it for me",
+    langEn: "English",
+    langHi: "Hindi",
+    langMixed: "Hinglish (Hindi and English mixed)",
+    micHint: "Your browser will ask to use the microphone. The recording stays on this computer.",
+    orUpload: "Or upload a recording:",
+    offer: "Upload recording",
+    offerTitle: "Offer it to the Archivist",
+    record: "Record a story",
+    recordTitle: "Speak, and the Archivist will listen",
+    waitingMic: "Waiting for microphone permission (your browser is asking)...",
+    recording: "Recording",
+    stopSave: "Stop and keep it",
+    cancelRec: "Cancel",
+    oneMinuteLeft: "One minute left.",
+    recDiscarded: "Discarded. Nothing was kept.",
+    oneAtATime: "One recording at a time, my dear.",
+    sending: "Sending it to the Archivist...",
+    offering: "Offering it to the Archivist...",
+    wrongType: (ext) => `The Archivist can't hear "${ext}" files. Choose a wav, mp3, m4a, webm or ogg recording.`,
+    accepted: "The Archivist has your story.",
+    refused: "The Archivist refused it: ",
     trouble: "The candle gutters. ",
     speak: "Let the Archivist speak",
     speakLoading: "The Archivist clears its throat...",
     speakStop: "Stop the voice",
-    unwell: "Something in the walls is not well. The archive may only half wake:",
-    give: "Give the ghost a story",
-    giveHint: "Record or upload a story",
-    record: "Speak, and the ghost will listen",
-    micHint: "Your browser will ask to use the microphone. The recording stays on this computer.",
-    stop: "Stop. Let the ghost keep it",
-    orUpload: "...or offer a recording you already have:",
-    offer: "Offer it",
-    offerHint: "upload recording",
-    archive: "The candle wall",
-    archiveHint: "Your stories",
-    filterLabel: "Show only memories about",
-    allMemories: "every memory",
-    emptyWall: "No candles yet. The wall waits for its first memory.",
-    emptyAction: "Give the ghost its first story",
-    filterEmpty: "No memory matches that.",
-    book: "Open the memory book (to print or keep)",
     reaction: "The Archivist writes",
+    writingNote: "The Archivist is writing its note...",
+    writeNote: "Write the note now",
     unfinished: "Unfinished business",
-    unfinishedHint: "Questions to fill the gaps",
-    unfinishedIntro: "You never told me...",
-    answer: "Speak your answer",
-    answerFile: "or offer a file",
-    answered: "answered",
+    unfinishedHint: "What the Archivist still wonders about. Answer one, and your answer is added to this story.",
+    answerLanguage: "Answers are heard in:",
+    answerRecord: "Record an answer",
+    answerFile: "or upload a file",
+    answerWorking: "Your answer is being written down...",
+    addedLater: (date) => `Added later, ${date}`,
+    addedTo: "Added later to",
+    answerAudio: "The recording of this answer",
+    removeAnswer: "Remove this answer",
+    removeAnswerTitle: "Remove this answer?",
+    removeAnswerText: "The answer's recording and words are removed from this story. The question stays.",
+    removeAnswerOk: "Remove it",
+    answerRemoved: "The answer has been removed.",
     transcript: "The words as they were spoken",
+    autoDetected: "auto-detected",
+    chosenLanguage: "you chose it",
+    unsure: "The Archivist wasn't sure of these words: ",
+    uncertain: "The Archivist isn't sure of some words, so it left them out.",
+    edited: "You corrected these words. Whisper's original words are kept too.",
+    editWords: "Correct the words",
+    editWordsHint: "Fix any misheard words. The Archivist can then re-read the story.",
+    rereadOffer: "The words are kept. Shall the Archivist read them again, for a new title, summary, tags and questions?",
+    reread: "Let the Archivist re-read it",
+    notNow: "Not now",
+    listenAgain: "Listen again",
+    listenAgainIn: "Listen to the recording again in",
+    listenAgainHint: "The Archivist hears the recording again and re-reads it. Corrections you made to the words are replaced.",
     missing: "That memory was never given to me.",
     back: "← back to the candle wall",
     retelling: "A haunted retelling",
     retellingNote: "Told by the Archivist beside a dying fire. A retelling, not the memory itself, which stays exactly as you gave it.",
     retell: "Retell it as a ghost story",
-    patience: "This takes about a minute for every minute you spoke. You can leave this page; the ghost keeps working.",
-    status: { queued: "waiting its turn...", transcribing: "the ghost is listening...",
-              thinking: "the ghost is reading...", noting: "the ghost is writing its note...", failed: "the ink ran dry" },
-    stages: { transcribing: "Listening (writing down your words)", thinking: "Reading (title, summary, tags)",
-              noting: "Writing the note" },
-    tryAgain: "Try again",
-    offering: "Offering it to the ghost...",
-    accepted: "The ghost has your story. Watch it being written down",
-    refused: "The ghost refused it: ",
-    cancel: "Cancel",
-    stopped: "Stopped. Nothing new was kept.",
-    seanceStopped: "The candles are snuffed. The séance has ended.",
-    emptyQuestion: "Ask me something first, my dear: a name, a place, a time.",
-    writingNote: "The Archivist is writing its note...",
     writingRetelling: "The Archivist is telling it anew...",
-    writeNote: "Write the note now",
     retellAgain: "Retell it again",
     retellAgainTitle: "Tell it anew?",
     retellAgainText: "The Archivist will tell this memory again, and this telling will be replaced. Your story itself is never changed.",
     retellAgainOk: "Tell it anew",
+    status: { queued: "Waiting its turn...", transcribing: "The Archivist is listening...", thinking: "The Archivist is reading...",
+              noting: "The Archivist is writing its note...", failed: "The ink ran dry", unclear: "Words lost in fog" },
+    stages: { transcribing: "Listening", thinking: "Reading", noting: "Writing the note" },
+    stagesHint: { transcribing: "writing down your words", thinking: "title, summary, tags and questions", noting: "the Archivist's note" },
+    estimate: (s) => s < 5 ? "Almost done..." : `About ${s < 90 ? `${Math.round(s / 5) * 5} seconds` : `${Math.round(s / 60)} minutes`} left.`,
+    patience: "Short stories usually take about a minute. You can leave this page; the Archivist keeps working.",
+    keepWorking: "You can leave this page; the Archivist keeps working.",
+    fog: "The words came to me as fog...",
+    fogText: "I could not make out a memory in this recording, so I wrote nothing down. You can:",
+    fogWhy: "Why: ",
+    fogEdit: "Correct the words by hand",
+    tryAgain: "Try again",
+    chooseAnother: "Choose another file",
+    stopped: "Stopped. Nothing new was kept.",
+    cancel: "Cancel",
     rename: "Rename",
     renameLabel: "New title",
     save: "Save",
     cancelEdit: "Cancel",
-    editWords: "Correct the words",
-    edited: "You corrected these words. Whisper's original transcript is kept too.",
-    rereadOffer: "The words are kept. Shall the ghost read them again, for a new title, summary, tags and questions?",
-    reread: "Let the ghost re-read it",
-    notNow: "Not now",
     editTags: "Edit tags",
-    tagsHint: "Rename a tag to fix it. Give it the same name as another tag to merge them. Clear it to remove it.",
+    tagsHint: "Rename a tag to fix it. Give it the same name as another tag to merge them. Clear it to remove it. Type in an empty box to add one.",
+    addTag: (label) => `Add ${label.toLowerCase()}`,
+    tagLabels: { person: "People", place: "Places", era: "When", keepsake: "Keepsakes" },
+    moodLabel: "Mood",
     deleteStory: "Delete this memory",
     deleteTitle: "Burn this memory?",
-    deleteText: "The recording, the transcript, the Archivist's note and the retelling will all be gone, for good.",
-    deleteOk: "Delete it forever",
+    deleteText: (answers) => `The recording, the words, the Archivist's note and the retelling${answers ? `, and the ${answers} ${answers === 1 ? "answer" : "answers"} added later,` : ""} will be gone. You can undo it for a few seconds.`,
+    deleteOk: "Delete it",
     keepIt: "Keep it",
     deleted: "The memory has been laid to rest.",
+    undo: "Undo",
+    undone: "Restored.",
+    tooLate: "Too late to undo.",
+    aboutTitle: "About Ghostwriter",
+    aboutIntro: "Ghostwriter keeps the stories your family tells. The Archivist is the ghost who lives in it: it listens, writes each story down, and answers questions about them.",
+    featuresTitle: "What everything does",
+    features: [
+      ["Record or upload", "Speak a memory into the microphone or upload a recording, in English, Hindi or both."],
+      ["The candle wall", "Each story is a candle; its shape and flame colour show its mood. Unopened stories burn low."],
+      ["Search and filter", "Find stories by words in their title or summary, or by a person, place, time or mood."],
+      ["The story page", "The Archivist's note, a summary, who, where and when, the recording, and the words as spoken."],
+      ["Unfinished business", "Questions the Archivist still has. Answer one and the answer joins the story."],
+      ["Correct and re-read", "Fix misheard words, rename the story, edit its tags; the Archivist can read it again."],
+      ["Listen again", "Have the recording heard again in English, Hindi or Hinglish if the language was wrong."],
+      ["Séance", "Ask a question; the Archivist answers only from your stories and numbers its sources."],
+      ["Haunted retelling", "The story retold as a campfire ghost story. The original is never changed."],
+      ["The Archivist's voice", "Have any note, answer or retelling read aloud."],
+      ["Memory book", "Every story on one page to print, save as a PDF, or keep as a file."],
+      ["Plain mode", "Simple words and no effects, for anyone who prefers them."],
+    ],
+    privacyTitle: "Private by design",
+    privacy: "Everything runs on this computer: the speech recognition, the AI and your recordings. Nothing is sent anywhere, and the app only answers this computer (127.0.0.1).",
+    toolsTitle: "The local tools it uses",
+    toolState: (c) => c.ok ? "working" : c.required ? "missing" : "optional, not set up",
+    close: "Close",
+    badge: "Private: runs entirely on this computer",
+    aboutFooter: "About and local tools",
   },
   plain: {
+    tagline: "A private archive for spoken family stories.",
+    why: "Record the stories your family tells (Nani's recipes, Dada's journeys) before they're forgotten. Everything stays on this computer.",
+    intro: "Ghostwriter transcribes each recording, summarises it and lets you ask questions about your stories.",
+    plainSwitch: "Plain mode: simple words, no effects",
+    howLink: "How it works",
+    aboutLink: "About",
+    howTitle: "How Ghostwriter works",
+    how1Title: "Add a story.",
+    how1: "Record it with the microphone or upload a recording, in English, Hindi or both.",
+    how2Title: "It is transcribed and summarised.",
+    how2: "Each story gets a title, a summary, tags and a few follow-up questions.",
+    how3Title: "Ask questions.",
+    how3: "Answers come only from your stories, with numbered sources.",
+    howClose: "Hide this",
     greeting: (n) => `${n} ${n === 1 ? "story" : "stories"} saved.`,
+    waking: "Loading the AI models...",
+    awake: "Ready.",
+    unwell: "Some local services are not available:",
+    archive: "Stories",
+    archiveHint: "Open a story to read it.",
+    searchLabel: "Search titles and summaries",
+    searchPlaceholder: "Search titles and summaries",
+    filterLabel: "Show only stories about",
+    allMemories: "All stories",
+    clearFilter: "Clear filter",
+    count: (shown, total) => shown === total ? `${total} ${total === 1 ? "story" : "stories"}` : `Showing ${shown} of ${total}`,
+    lighting: "Loading...",
+    emptyWall: "No stories yet.",
+    emptyAction: "Add your first story",
+    filterEmpty: "No story matches that filter.",
+    legendTitle: "Colours show each story's mood. Choose one to show only those stories:",
+    legendItem: (mood, look) => `${mood} (${look.flame})`,
+    legendDim: "A dim entry has no stories with that mood yet.",
+    legendDisabled: "No stories with this mood yet",
+    fadeNote: "Stories you haven't opened for a while are shown dimmer.",
+    lastOpened: (days) => days < 1 ? "Opened today." : `Last opened ${days} day${days === 1 ? "" : "s"} ago.`,
+    book: "Export all stories (printable)",
+    bookHint: "Every finished story with its transcript, notes, answers and retellings on one page, to print or save as a PDF.",
+    samplesNote: "Stories marked \"fictional sample\" were written for the demo and are not real.",
+    samplesRemove: "Remove sample stories",
+    removeSamplesTitle: "Remove the sample stories?",
+    removeSamplesText: "The demo stories are deleted. Your own stories are not touched.",
+    removeSamplesOk: "Remove them",
+    samplesRemoved: (n) => `${n} sample ${n === 1 ? "story" : "stories"} removed.`,
+    sample: "fictional sample",
+    sampleNote: "A fictional sample story, written for the demo. It is not real.",
     seance: "Ask your stories",
-    seanceHint: "",
-    askPlaceholder: "Ask about a person, a place or a time",
+    seanceHint: "Answers come only from your stories, with numbered sources like this [1].",
+    askPlaceholder: "What did Nani cook?",
     ask: "Ask",
-    askHint: "",
+    askTitle: "Ask a question about your stories",
     consulting: "Searching your stories...",
     sources: "Sources:",
+    seanceStopped: "Stopped.",
+    emptyQuestion: "Type a question first.",
+    askAbout: (name) => `Ask about ${name}`,
+    give: "Add a story",
+    giveHint: "Record it here, or upload a recording. Short stories take about a minute to process.",
+    languageLabel: "Language spoken",
+    langAuto: "Detect automatically",
+    langEn: "English",
+    langHi: "Hindi",
+    langMixed: "Hinglish (Hindi and English mixed)",
+    micHint: "Your browser will ask to use the microphone. The recording stays on this computer.",
+    orUpload: "Or upload a recording:",
+    offer: "Upload recording",
+    offerTitle: "Upload an audio file",
+    record: "Record a story",
+    recordTitle: "Record with the microphone",
+    waitingMic: "Waiting for microphone permission...",
+    recording: "Recording",
+    stopSave: "Stop and save",
+    cancelRec: "Cancel",
+    oneMinuteLeft: "One minute left.",
+    recDiscarded: "Recording discarded.",
+    oneAtATime: "One recording at a time.",
+    sending: "Uploading...",
+    offering: "Uploading...",
+    wrongType: (ext) => `"${ext}" files are not supported. Choose a wav, mp3, m4a, webm or ogg recording.`,
+    accepted: "Uploaded.",
+    refused: "Upload failed: ",
     trouble: "Error: ",
     speak: "Read aloud",
     speakLoading: "Loading audio...",
     speakStop: "Stop",
     reaction: "AI note",
-    unwell: "Some local services are not available:",
-    give: "Add a story",
-    giveHint: "",
-    record: "Record",
-    micHint: "Your browser will ask to use the microphone. The recording stays on this computer.",
-    stop: "Stop and save",
-    orUpload: "Or upload an audio file:",
-    offer: "Upload",
-    offerHint: "",
-    archive: "Stories",
-    archiveHint: "",
-    filterLabel: "Show only stories about",
-    allMemories: "All stories",
-    emptyWall: "No stories yet.",
-    emptyAction: "Add your first story",
-    filterEmpty: "No story matches that filter.",
-    book: "Export all stories (printable)",
+    writingNote: "Writing the AI note...",
+    writeNote: "Write the AI note",
     unfinished: "Follow-up questions",
-    unfinishedHint: "",
-    unfinishedIntro: "",
-    answer: "Record an answer",
+    unfinishedHint: "Answer one, and your answer is added to this story.",
+    answerLanguage: "Answers are transcribed in:",
+    answerRecord: "Record an answer",
     answerFile: "or upload a file",
-    answered: "answered",
+    answerWorking: "Your answer is being processed...",
+    addedLater: (date) => `Added later, ${date}`,
+    addedTo: "Added later to",
+    answerAudio: "The recording of this answer",
+    removeAnswer: "Remove this answer",
+    removeAnswerTitle: "Remove this answer?",
+    removeAnswerText: "The answer's recording and transcript are removed from this story. The question stays.",
+    removeAnswerOk: "Remove it",
+    answerRemoved: "Answer removed.",
     transcript: "Transcript",
+    autoDetected: "auto-detected",
+    chosenLanguage: "chosen",
+    unsure: "Low-confidence words: ",
+    uncertain: "Some words were unclear and were left out of the summary.",
+    edited: "Edited. The original transcript is kept too.",
+    editWords: "Edit transcript",
+    editWordsHint: "Fix any misheard words, then analyse the story again.",
+    rereadOffer: "Saved. Analyse the edited transcript again (title, summary, tags, questions)?",
+    reread: "Analyse again",
+    notNow: "Not now",
+    listenAgain: "Transcribe again",
+    listenAgainIn: "Transcribe the recording again in",
+    listenAgainHint: "The recording is transcribed and analysed again. Manual edits to the transcript are replaced.",
     missing: "Story not found.",
     back: "← all stories",
-    retelling: "Ghost-story retelling",
+    retelling: "Retelling",
     retellingNote: "A creative retelling written by Gemma. The original story is unchanged.",
-    retell: "Retell as a ghost story",
-    patience: "Roughly a minute per minute of audio. You can leave this page; processing continues.",
-    status: { queued: "queued", transcribing: "transcribing...", thinking: "analysing...", noting: "writing the AI note...", failed: "failed" },
-    stages: { transcribing: "Transcribing (Whisper)", thinking: "Analysing (Gemma)", noting: "Writing the AI note (Gemma)" },
-    tryAgain: "Retry",
-    offering: "Uploading...",
-    accepted: "Uploaded. Open the story",
-    refused: "Upload failed: ",
-    cancel: "Cancel",
-    stopped: "Stopped.",
-    seanceStopped: "Stopped.",
-    emptyQuestion: "Type a question first.",
-    writingNote: "Writing the AI note...",
+    retell: "Write a creative retelling",
     writingRetelling: "Writing the retelling...",
-    writeNote: "Write the AI note",
-    retellAgain: "Retell again",
+    retellAgain: "Write it again",
     retellAgainTitle: "Replace the retelling?",
     retellAgainText: "A new retelling will replace this one. The story itself is not changed.",
     retellAgainOk: "Replace it",
+    status: { queued: "Queued", transcribing: "Transcribing...", thinking: "Analysing...", noting: "Writing the AI note...",
+              failed: "Failed", unclear: "Unclear recording" },
+    stages: { transcribing: "Transcribing", thinking: "Analysing", noting: "Writing the AI note" },
+    stagesHint: { transcribing: "Whisper", thinking: "Gemma", noting: "Gemma" },
+    estimate: (s) => s < 5 ? "Almost done." : `About ${s < 90 ? `${Math.round(s / 5) * 5} seconds` : `${Math.round(s / 60)} minutes`} left.`,
+    patience: "Short stories usually take about a minute. You can leave this page; processing continues.",
+    keepWorking: "You can leave this page; processing continues.",
+    fog: "This recording was too unclear to transcribe",
+    fogText: "No title, summary or questions were written. You can:",
+    fogWhy: "Why: ",
+    fogEdit: "Type or fix the transcript",
+    tryAgain: "Retry",
+    chooseAnother: "Choose another file",
+    stopped: "Stopped.",
+    cancel: "Cancel",
     rename: "Rename",
     renameLabel: "New title",
     save: "Save",
     cancelEdit: "Cancel",
-    editWords: "Edit transcript",
-    edited: "Edited. The original transcript is kept too.",
-    rereadOffer: "Saved. Analyse the edited transcript again (title, summary, tags, questions)?",
-    reread: "Analyse again",
-    notNow: "Not now",
     editTags: "Edit tags",
-    tagsHint: "Rename a tag to fix it. Use the name of another tag to merge them. Clear it to remove it.",
+    tagsHint: "Rename a tag to fix it. Use the name of another tag to merge them. Clear it to remove it. Type in an empty box to add one.",
+    addTag: (label) => `Add ${label.toLowerCase()}`,
+    tagLabels: { person: "People", place: "Places", era: "When", keepsake: "Keepsakes" },
+    moodLabel: "Mood",
     deleteStory: "Delete story",
     deleteTitle: "Delete this story?",
-    deleteText: "The recording, transcript, AI note and retelling will be permanently deleted.",
+    deleteText: (answers) => `The recording, transcript, AI note and retelling${answers ? `, and ${answers} ${answers === 1 ? "answer" : "answers"},` : ""} will be deleted. You can undo it for a few seconds.`,
     deleteOk: "Delete",
     keepIt: "Cancel",
     deleted: "Story deleted.",
+    undo: "Undo",
+    undone: "Restored.",
+    tooLate: "Too late to undo.",
+    aboutTitle: "About Ghostwriter",
+    aboutIntro: "Ghostwriter transcribes and organises spoken family stories, and answers questions about them. It runs entirely on this computer.",
+    featuresTitle: "Features",
+    features: [
+      ["Record or upload", "Record with the microphone or upload a recording, in English, Hindi or both."],
+      ["Stories", "Each story is a card coloured by its mood. Stories you haven't opened for a while look dimmer."],
+      ["Search and filter", "Find stories by words in their title or summary, or by a person, place, time or mood."],
+      ["Story page", "An AI note, a summary, tags, the recording and the transcript."],
+      ["Follow-up questions", "Answer one and the answer is added to the story."],
+      ["Edit and analyse again", "Fix the transcript, rename the story or edit its tags, then analyse it again."],
+      ["Transcribe again", "Transcribe the recording again in English, Hindi or Hinglish if the language was wrong."],
+      ["Questions", "Ask about your stories; answers come only from them, with numbered sources."],
+      ["Retelling", "A creative retelling of a story. The original is never changed."],
+      ["Read aloud", "Any note, answer or retelling can be read aloud."],
+      ["Export", "Every story on one printable page, or saved as a PDF or file."],
+      ["Plain mode", "Simple words and no effects."],
+    ],
+    privacyTitle: "Privacy",
+    privacy: "Everything runs on this computer: speech recognition, the AI models and your recordings. Nothing is sent anywhere, and the app only accepts connections from this computer (127.0.0.1).",
+    toolsTitle: "Local tools",
+    toolState: (c) => c.ok ? "working" : c.required ? "missing" : "optional, not set up",
+    close: "Close",
+    badge: "Private: runs entirely on this computer",
+    aboutFooter: "About and local tools",
   },
 };
 
+const GHOST_LINES = ["Boo!", "Who disturbs my rest?", "Mind the candles, my dear.", "I remember every word you give me.",
+                     "Shh... the memories are sleeping.", "Tell me a story.", "Still here. Always here."];
+
 let plain = false;
-const voice = () => VOICE[plain ? "plain" : "ghost"];
+let config = { undo_seconds: 10, max_recording_minutes: 30 };
+const voice = () => COPY[plain ? "plain" : "spooky"];
 
-// --------------------------------------------------------------------------- plain mode
+// --------------------------------------------------------------------------- small helpers
 
-function loadPlainPreference(fallback) {
-  try {
-    const saved = localStorage.getItem("ghostwriter.plain");
-    return saved === null ? fallback : saved === "1";
-  } catch {
-    return fallback; // storage can be blocked; the default still works
-  }
-}
-
-function savePlainPreference() {
-  try { localStorage.setItem("ghostwriter.plain", plain ? "1" : "0"); } catch { /* not essential */ }
-}
-
-function applyVoice() {
-  document.body.classList.toggle("plain", plain);
-  document.querySelectorAll("[data-voice]").forEach((node) => {
-    node.textContent = voice()[node.dataset.voice];
-  });
-  $("#seance-form").question.placeholder = voice().askPlaceholder;
-}
-
-// --------------------------------------------------------------------------- health
-
-async function loadHealth() {
-  const checks = await api("/api/health");
-  const state = (c) => (c.ok ? "working" : c.required ? "missing" : "optional, not set up");
-  $("#health").replaceChildren(...checks.map((c) => el("li", {
-    className: c.ok ? "ok" : c.required ? "bad" : "off",
-    title: c.ok ? c.detail : `${c.detail}. ${c.fix}`,
-    ariaLabel: `${c.name}: ${state(c)}`,
-    textContent: c.name,
-  })));
-  voiceReady = checks.some((c) => c.name === "Piper TTS" && c.ok);
-  const broken = checks.filter((c) => c.required && !c.ok);
-  const banner = $("#health-banner");
-  banner.hidden = broken.length === 0;
-  banner.replaceChildren(
-    el("p", { textContent: voice().unwell }),
-    el("ul", {}, ...broken.map((c) => el("li", {},
-      el("strong", { textContent: `${c.name}: ` }), `${c.detail}. `,
-      c.fix && el("span", { className: "fix", textContent: `Fix: ${c.fix}` }),
-    ))),
-  );
-}
-
-// --------------------------------------------------------------------------- the Archivist's voice
-
-let voiceReady = true; // corrected by the health check; if wrong, the click explains the fix
-let speaking = null;   // { button, audio }: only one voice at a time
-
-// Back to "Let the Archivist speak", silencing whatever was playing.
-function stopSpeaking() {
-  if (!speaking) return;
-  speaking.audio?.pause();
-  Object.assign(speaking.button, { textContent: voice().speak, disabled: false });
-  speaking = null;
-}
-
-// idle -> loading ("clears its throat", disabled) -> playing ("Stop") -> idle when done or stopped.
-function speakButton(text) {
-  if (!voiceReady) return null;
-  const button = el("button", { type: "button", className: "quiet speak", textContent: voice().speak });
-  button.onclick = async () => {
-    if (speaking?.button === button) return stopSpeaking();
-    stopSpeaking();
-    button.parentElement.querySelector(".voice-error")?.remove();
-    const me = speaking = { button, audio: null };
-    Object.assign(button, { textContent: voice().speakLoading, disabled: true });
-    try {
-      const res = await fetch("/api/speak", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, plain }),
-      });
-      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || res.statusText);
-      const blob = await res.blob();
-      if (speaking !== me) return; // another voice started meanwhile
-      me.audio = new Audio(URL.createObjectURL(blob));
-      me.audio.onended = () => { if (speaking === me) stopSpeaking(); };
-      Object.assign(button, { textContent: voice().speakStop, disabled: false });
-      await me.audio.play();
-    } catch (err) {
-      if (speaking === me) stopSpeaking();
-      button.after(el("p", { className: "error voice-error", textContent: voice().trouble + err.message }));
-    }
-  };
-  return button;
-}
-
-// --------------------------------------------------------------------------- Seance
-
-// --------------------------------------------------------------------------- waiting on Gemma
+const store = {
+  get(key, fallback) { try { return localStorage.getItem(`ghostwriter.${key}`) ?? fallback; } catch { return fallback; } },
+  set(key, value) { try { localStorage.setItem(`ghostwriter.${key}`, value); } catch { /* not essential */ } },
+};
 
 const mmss = (ms) => {
   const s = Math.max(0, Math.floor(ms / 1000));
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 };
+const utc = (sqliteTime) => Date.parse(sqliteTime.replace(" ", "T") + "Z");
 
 // A ticking "0:42". One timer (in start()) updates every clock on the page.
 function clock(since = Date.now()) {
@@ -286,7 +430,112 @@ function clock(since = Date.now()) {
 
 // "Working on it" line: what is happening, how long it has taken, and a Cancel button if it can stop.
 const working = (text, onCancel) => el("p", { className: "status working", role: "status" },
-  `${text} `, clock(), onCancel && el("button", { type: "button", className: "quiet", textContent: voice().cancel, onclick: onCancel }));
+  `${text} `, clock(), onCancel && el("button", { type: "button", className: "link", textContent: voice().cancel, onclick: onCancel }));
+
+const languageNames = new Intl.DisplayNames(["en"], { type: "language" });
+const languageName = (code) => { try { return languageNames.of(code); } catch { return code; } };
+const LANGUAGE_CHOICES = ["auto", "en", "hi", "hinglish"];
+const choiceLabel = (choice) => ({ auto: voice().langAuto, en: voice().langEn, hi: voice().langHi, hinglish: voice().langMixed })[choice];
+const languageChoice = () => $("#language").value;
+
+// A language picker that shares the remembered choice with the one next to the record button.
+function languagePicker(label) {
+  const select = el("select", { ariaLabel: label },
+    ...LANGUAGE_CHOICES.map((choice) => el("option", { value: choice, textContent: choiceLabel(choice) })));
+  select.value = languageChoice();
+  select.onchange = () => { $("#language").value = select.value; store.set("language", select.value); };
+  return select;
+}
+
+// --------------------------------------------------------------------------- plain mode and copy
+
+function applyVoice() {
+  document.body.classList.toggle("plain", plain);
+  const v = voice();
+  document.querySelectorAll("[data-voice]").forEach((node) => { node.textContent = v[node.dataset.voice]; });
+  document.querySelectorAll("[data-voice-placeholder]").forEach((node) => { node.placeholder = v[node.dataset.voicePlaceholder]; });
+  document.querySelectorAll("[data-voice-title]").forEach((node) => { node.title = v[node.dataset.voiceTitle]; });
+  $("#features").replaceChildren(...v.features.flatMap(([term, text]) => [el("dt", { textContent: term }), el("dd", { textContent: text })]));
+  renderLegend();
+  renderRecorder();
+}
+
+// --------------------------------------------------------------------------- health (About panel)
+
+let voiceReady = true; // corrected by the health check; if wrong, the click explains the fix
+
+async function loadHealth() {
+  const checks = await api("/api/health");
+  const v = voice();
+  $("#health").replaceChildren(...checks.map((c) => el("li", { className: c.ok ? "ok" : c.required ? "bad" : "off" },
+    el("strong", { textContent: `${c.name}: ` }), `${v.toolState(c)}. `, el("span", { className: "meta", textContent: c.detail }),
+    !c.ok && c.fix && el("span", { className: "fix", textContent: ` Fix: ${c.fix}` }))));
+  voiceReady = checks.some((c) => c.name === "Piper TTS" && c.ok);
+  const broken = checks.filter((c) => c.required && !c.ok);
+  const banner = $("#health-banner");
+  banner.hidden = broken.length === 0;
+  banner.replaceChildren(
+    el("p", { textContent: v.unwell }),
+    el("ul", {}, ...broken.map((c) => el("li", {},
+      el("strong", { textContent: `${c.name}: ` }), `${c.detail}. `,
+      c.fix && el("span", { className: "fix", textContent: `Fix: ${c.fix}` }),
+    ))),
+  );
+}
+
+// --------------------------------------------------------------------------- the Archivist's voice
+
+let speaking = null; // { button, audio, done }: only one voice at a time
+
+// Back to "Let the Archivist speak", silencing whatever was playing.
+function stopSpeaking() {
+  if (!speaking) return;
+  speaking.audio?.pause();
+  speaking.done?.();
+  Object.assign(speaking.button, { textContent: voice().speak, disabled: false });
+  speaking = null;
+}
+
+async function fetchPart(text, part) {
+  const res = await fetch("/api/speak", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, plain, part }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || res.statusText);
+  return { blob: await res.blob(), parts: Number(res.headers.get("X-Parts")) || 1 };
+}
+
+// idle -> loading (disabled) -> playing ("Stop") -> idle when done or stopped. Text is spoken in parts:
+// the first sentence starts playing while the next part is being made.
+function speakButton(text) {
+  if (!voiceReady) return null;
+  const button = el("button", { type: "button", className: "link speak", textContent: voice().speak });
+  button.onclick = async () => {
+    if (speaking?.button === button) return stopSpeaking();
+    stopSpeaking();
+    button.parentElement.querySelector(".voice-error")?.remove();
+    const me = speaking = { button, audio: null, done: null };
+    Object.assign(button, { textContent: voice().speakLoading, disabled: true });
+    try {
+      let next = fetchPart(text, 0);
+      for (let part = 0, total = 1; part < total; part += 1) {
+        const { blob, parts } = await next;
+        total = parts;
+        if (speaking !== me) return; // stopped, or another voice started meanwhile
+        if (part + 1 < total) next = fetchPart(text, part + 1);
+        me.audio = new Audio(URL.createObjectURL(blob));
+        Object.assign(button, { textContent: voice().speakStop, disabled: false });
+        await new Promise((resolve) => { me.done = resolve; me.audio.onended = resolve; me.audio.play().catch(resolve); });
+      }
+      if (speaking === me) stopSpeaking();
+    } catch (err) {
+      if (speaking === me) stopSpeaking();
+      button.after(el("p", { className: "error voice-error", textContent: voice().trouble + err.message }));
+    }
+  };
+  return button;
+}
 
 // --------------------------------------------------------------------------- Seance
 
@@ -309,19 +558,19 @@ async function askSeance(question) {
   sourcesLine.replaceChildren(working(voice().consulting, () => run.abort()));
   button.disabled = true;
 
-  let sources = [];
+  let titles = new Map();
   let pen = null;
+  const write = () => (pen ??= quill(answer, (id) => (titles.has(id) ? { href: `#/story/${id}`, label: titles.get(id) } : null)));
   const showError = (message) =>
     answer.replaceChildren(el("p", { className: "error", textContent: voice().trouble + message }));
   try {
     await streamEvents("/api/seance", { question, plain }, {
-      sources: (data) => { sources = data.stories; },
-      token: (data) => { pen ??= quill(answer); pen.write(data.text); },
+      sources: (data) => { titles = new Map(data.stories.map((s) => [s.id, s.title])); },
+      token: (data) => write().write(data.text),
+      cite: (data) => write().cite(data.id),
       error: (data) => showError(data.message),
-      done: (data) => {
-        const titles = new Map(sources.map((s) => [s.id, s.title]));
-        const cited = new Set(data.cited);
-        const text = pen?.finish((id) => (cited.has(id) ? { href: `#/story/${id}`, label: titles.get(id) } : null));
+      done: () => {
+        const text = pen?.finish();
         const order = pen?.cited ?? [];
         sourcesLine.replaceChildren(...present([
           order.length > 0 && `${voice().sources} `,
@@ -343,40 +592,41 @@ async function askSeance(question) {
 
 // --------------------------------------------------------------------------- the candle wall
 
-const statusText = (s) => (s.status === "ready" ? s.title : voice().status[s.status] || s.status);
-
 const FADE_DAYS = 30; // an unvisited candle burns down to a faint glow over about a month
-const ENTITY_GROUPS = [["person", "People"], ["place", "Places"], ["era", "When"]];
+const FILTER_GROUPS = [["person", "People"], ["place", "Places"], ["era", "When"], ["keepsake", "Keepsakes"]];
 
-let allStories = [];
+let allStories = []; // everything the server listed, answers included
 let wallKey = ""; // skip re-rendering (and restarting the flame animations) when nothing changed
 
-const daysSinceVisit = (story) => (Date.now() - Date.parse(story.last_visited_at.replace(" ", "T") + "Z")) / 86_400_000;
-const life = (story) => Math.min(1, Math.max(0.12, 1 - daysSinceVisit(story) / FADE_DAYS));
+const topLevel = () => allStories.filter((s) => !s.parent_id); // answers live inside their story
+const statusText = (s) => (s.status === "ready" ? s.title : voice().status[s.status] || s.status);
+const daysSinceVisit = (story) => (Date.now() - utc(story.last_visited_at)) / 86_400_000;
+const life = (story) => Math.min(1, Math.max(0, 1 - daysSinceVisit(story) / FADE_DAYS));
+const moodOf = (s) => (s.mood in MOODS ? s.mood : FALLBACK_MOOD);
+const hasMood = (mood) => topLevel().some((s) => s.status === "ready" && moodOf(s) === mood);
 
-function lastOpened(story) {
-  const days = Math.floor(daysSinceVisit(story));
-  return days < 1 ? "Opened today." : `Not opened for ${days} day${days === 1 ? "" : "s"}: its candle burns lower.`;
+// A story's tags with the tags of the answers added to it, so filtering finds both.
+function tagsOf(story) {
+  const merged = {};
+  for (const s of [story, ...allStories.filter((a) => a.parent_id === story.id)]) {
+    for (const [kind, values] of Object.entries(s.entities || {})) (merged[kind] ??= []).push(...values);
+  }
+  return merged;
 }
 
-// Each mood has its own candle design and flame colour (style.css, .mood-*); see models.Mood.
-const MOODS = ["joyful", "nostalgic", "loving", "poignant", "mysterious", "eerie"];
-const moodOf = (s) => (MOODS.includes(s.mood?.toLowerCase()) ? s.mood.toLowerCase() : "nostalgic"); // older free-form moods
-const hasMood = (mood) => allStories.some((s) => s.status === "ready" && moodOf(s) === mood);
-
 function candle(s, i = 0) {
+  const v = voice();
   const lit = s.status === "ready";
-  const mood = moodOf(s);
-  const meta = [localTime(s.created_at), s.mood, s.is_sample && "fictional sample"].filter(Boolean).join(" · ");
-  const tooltip = [s.summary, lit && lastOpened(s)].filter(Boolean).join("\n");
-  const node = el("a", { href: `#/story/${s.id}`, className: `candle mood-${mood} ${lit ? "lit" : s.status}`, title: tooltip },
-    el("span", { className: "art" },
+  const meta = [localTime(s.created_at), lit && s.mood, s.is_sample && v.sample].filter(Boolean).join(" · ");
+  const tooltip = [s.summary, lit && v.lastOpened(Math.floor(daysSinceVisit(s)))].filter(Boolean).join("\n");
+  const node = el("a", { href: `#/story/${s.id}`, className: `candle mood-${moodOf(s)} ${lit ? "lit" : s.status}`, title: tooltip },
+    el("span", { className: "art", ariaHidden: "true" },
       el("span", { className: "holder" }),
       el("span", { className: "wax" }),
       el("span", { className: "wick" }),
       el("span", { className: "flame-wrap" }, el("span", { className: "flame" })),
     ),
-    el("span", { className: "label", textContent: statusText(s) }),
+    el("span", { className: "label content", textContent: statusText(s) }),
     el("span", { className: "meta", textContent: meta }),
   );
   node.style.setProperty("--life", lit ? life(s).toFixed(2) : "0");
@@ -384,48 +634,96 @@ function candle(s, i = 0) {
   return node;
 }
 
+function renderLegend() {
+  const v = voice();
+  $("#legend").replaceChildren(...Object.entries(MOODS).map(([mood, look]) => {
+    const button = el("button", { type: "button", className: `mood-${mood}` }, el("i", { ariaHidden: "true" }), v.legendItem(mood, look));
+    button.dataset.mood = mood;
+    return el("li", {}, button);
+  }));
+  syncLegend();
+}
+
+function syncLegend() {
+  const filter = currentFilter();
+  document.querySelectorAll("#legend button").forEach((b) => {
+    const dim = !hasMood(b.dataset.mood);
+    b.setAttribute("aria-pressed", String(filter === `mood:${b.dataset.mood}`));
+    b.disabled = dim;
+    b.title = dim ? voice().legendDisabled : "";
+  });
+}
+
 function renderFilterOptions() {
   const select = $("#filter");
-  const current = select.value;
-  const groups = ENTITY_GROUPS.map(([kind, label]) => {
-    const values = [...new Set(allStories.flatMap((s) => s.entities?.[kind] || []))].sort();
+  const current = currentFilter();
+  const groups = FILTER_GROUPS.map(([kind, label]) => {
+    const values = [...new Set(topLevel().flatMap((s) => tagsOf(s)[kind] || []))].sort();
     return values.length && el("optgroup", { label },
-      ...values.map((v) => el("option", { value: `${kind}:${v}`, textContent: v })));
+      ...values.map((value) => el("option", { value: `${kind}:${value}`, textContent: value })));
   });
-  const moods = MOODS.filter(hasMood);
-  groups.push(moods.length > 0 && el("optgroup", { label: "Mood" },
+  const moods = Object.keys(MOODS).filter(hasMood);
+  groups.push(moods.length > 0 && el("optgroup", { label: voice().moodLabel },
     ...moods.map((m) => el("option", { value: `mood:${m}`, textContent: m }))));
   select.replaceChildren(el("option", { value: "", textContent: voice().allMemories }), ...present(groups));
   select.value = [...select.options].some((o) => o.value === current) ? current : "";
 }
 
+// The wall's filter and search live in the address (#/?about=place:Jaipur&q=kadhi), so they survive
+// a reload and the back button.
+function route() {
+  const hash = location.hash || "#/";
+  const story = hash.match(/^#\/story\/(\d+)/);
+  if (story) return { story: Number(story[1]), about: "", q: "" };
+  const params = new URLSearchParams(hash.split("?")[1] || "");
+  return { story: null, about: params.get("about") || "", q: params.get("q") || "" };
+}
+
+function wallAddress(about, q) {
+  const params = new URLSearchParams();
+  if (about) params.set("about", about);
+  if (q) params.set("q", q);
+  return `#/${params.size ? `?${params}` : ""}`;
+}
+
+const currentFilter = () => $("#filter").value;
+
 function renderWall() {
-  const filter = $("#filter").value;
+  const v = voice();
+  const filter = currentFilter();
+  const query = $("#wall-search").value.trim().toLowerCase();
   const split = filter.indexOf(":");
   const [kind, value] = [filter.slice(0, split), filter.slice(split + 1)];
-  const matches = (s) => (kind === "mood" ? s.status === "ready" && moodOf(s) === value : s.entities?.[kind]?.includes(value));
-  const shown = filter ? allStories.filter(matches) : allStories;
-  const empty = allStories.length === 0
+  const matchesFilter = (s) => !filter || (kind === "mood" ? s.status === "ready" && moodOf(s) === value : tagsOf(s)[kind]?.includes(value));
+  const matchesQuery = (s) => !query || `${s.title || ""} ${s.summary || ""}`.toLowerCase().includes(query);
+  const stories = topLevel();
+  const shown = stories.filter((s) => matchesFilter(s) && matchesQuery(s));
+  const empty = stories.length === 0
     ? [el("div", { className: "empty" },
-        el("p", { className: "handwriting", textContent: voice().emptyWall }),
-        el("a", { className: "button", href: "#new-story", textContent: voice().emptyAction,
-                  onclick: (event) => { event.preventDefault(); $("#new-story").scrollIntoView({ behavior: "smooth" }); $("#record-button").focus(); } }))]
-    : [el("p", { className: "meta", textContent: voice().filterEmpty })];
+        el("p", { className: "handwriting", textContent: v.emptyWall }),
+        el("a", { className: "button", href: "#new-story", textContent: v.emptyAction,
+                  onclick: (event) => { event.preventDefault(); $("#new-story").scrollIntoView({ behavior: "smooth" }); $("#recorder button")?.focus(); } }))]
+    : [el("p", { className: "meta", textContent: v.filterEmpty })];
   $("#wall").replaceChildren(...(shown.length ? shown.map(candle) : empty));
-  $("#archive").classList.toggle("is-empty", allStories.length === 0); // no filter or key until there's a candle
-  // The colour key doubles as a mood filter: show which mood is lit, and which have no candles yet.
-  document.querySelectorAll(".legend button").forEach((b) => {
-    b.setAttribute("aria-pressed", String(filter === `mood:${b.dataset.mood}`));
-    b.disabled = !hasMood(b.dataset.mood);
-  });
+  $("#archive").classList.toggle("is-empty", stories.length === 0); // no tools or key until there's a candle
+  $("#wall-count").textContent = stories.length ? v.count(shown.length, stories.length) : "";
+  $("#filter-clear").hidden = !filter && !query;
+  $("#samples-row").hidden = !stories.some((s) => s.is_sample);
+  syncLegend();
+}
+
+function setWallFilter(about, q, push = true) {
+  const address = wallAddress(about, q);
+  if (push) location.hash = address; // the hashchange re-renders
+  else { history.replaceState(null, "", address); renderWall(); }
 }
 
 // Suggested questions: the people, places and keepsakes that come up most often across the stories.
 function renderChips() {
   const counts = new Map(); // lower-case name -> { name, n }
-  for (const s of allStories.filter((s) => s.status === "ready")) {
+  for (const s of topLevel().filter((s) => s.status === "ready")) {
     for (const kind of ["person", "place", "keepsake"]) {
-      for (const raw of s.entities?.[kind] || []) {
+      for (const raw of tagsOf(s)[kind] || []) {
         const name = raw.replace(/\s*\(.*\)$/, "").trim(); // "Nani (grandmother)" -> "Nani"
         const seen = counts.get(name.toLowerCase());
         if (name.length >= 3) counts.set(name.toLowerCase(), { name, n: (seen?.n || 0) + 1 });
@@ -443,7 +741,7 @@ function renderChips() {
     if (top.length === 5) break;
   }
   $("#seance-chips").replaceChildren(...top.map((name) => el("button", {
-    type: "button", className: "chip", textContent: `Ask about ${name}`,
+    type: "button", className: "chip", textContent: voice().askAbout(name),
     onclick: () => {
       const question = `Tell me about ${name}.`;
       $("#seance-form").question.value = question;
@@ -454,7 +752,7 @@ function renderChips() {
 
 async function loadStories() {
   const stories = await api("/api/stories");
-  const ready = stories.filter((s) => s.status === "ready").length;
+  const ready = stories.filter((s) => s.status === "ready" && !s.parent_id).length;
   $("#greeting").textContent = voice().greeting(ready);
   const key = JSON.stringify(stories) + plain;
   if (key !== wallKey) {
@@ -472,10 +770,120 @@ async function relight(id) {
   await api(`/api/stories/${id}/visit`, { method: "POST" }).catch(() => null);
   const story = allStories.find((s) => s.id === id);
   if (story) story.last_visited_at = new Date().toISOString().slice(0, 19).replace("T", " ");
-  const node = document.querySelector(`.candle[href="#/story/${id}"]`);
-  if (node && story?.status === "ready") {
-    node.style.setProperty("--life", "1");
-    node.classList.add("relit");
+}
+
+// --------------------------------------------------------------------------- recording
+
+let recording = null; // the one recording in progress: { cancelled, session, timer }
+
+// The record button and everything it turns into: waiting for permission, recording (clock, level,
+// Stop, Cancel), sending. `answersQuestionId` records an answer to that question instead of a story.
+function recorderPanel({ answersQuestionId = null, primary = false } = {}) {
+  const box = el("div", { className: "rec" });
+  const idle = (note = null) => {
+    const v = voice();
+    const label = answersQuestionId ? v.answerRecord : v.record;
+    box.replaceChildren(...present([
+      el("button", { type: "button", className: primary ? "record" : "secondary", textContent: label, title: v.recordTitle, onclick: start }),
+      note,
+    ]));
+  };
+
+  async function start() {
+    const v = voice();
+    if (recording) return idle(el("p", { className: "meta", textContent: v.oneAtATime }));
+    const me = recording = { cancelled: false, session: null, timer: null };
+    box.replaceChildren(el("p", { className: "status", role: "status", textContent: v.waitingMic }),
+      el("button", { type: "button", className: "link", textContent: v.cancelRec, onclick: () => {
+        me.cancelled = true;
+        recording = null;
+        idle();
+      } }));
+    try {
+      me.session = await startRecording();
+    } catch (err) {
+      if (recording === me) recording = null;
+      if (me.cancelled) return;
+      const problem = micProblem(err);
+      return idle(el("p", { className: "error", role: "alert", textContent: plain ? problem.fix : `${problem.ghost} ${problem.fix}` }));
+    }
+    if (me.cancelled) return me.session.cancel();
+
+    const started = Date.now();
+    const limit = config.max_recording_minutes * 60_000;
+    const time = el("span", { className: "elapsed", textContent: "0:00" });
+    const bar = el("i");
+    const warning = el("span", { className: "warn" });
+    box.replaceChildren(
+      el("p", { className: "recording", role: "status" }, el("span", { className: "dot", ariaHidden: "true" }),
+        `${v.recording} `, time, " ", el("span", { className: "meter", ariaHidden: "true" }, bar), " ", warning),
+      el("div", { className: "row" },
+        el("button", { type: "button", textContent: v.stopSave, onclick: () => finish(true) }),
+        el("button", { type: "button", className: "link", textContent: v.cancelRec, onclick: () => finish(false) })));
+    me.timer = setInterval(() => {
+      const ms = Date.now() - started;
+      time.textContent = mmss(ms);
+      bar.style.transform = `scaleX(${me.session.level().toFixed(2)})`;
+      if (ms >= limit - 60_000) warning.textContent = v.oneMinuteLeft;
+      if (ms >= limit) finish(true);
+    }, 150);
+
+    async function finish(keep) {
+      if (recording !== me) return;
+      clearInterval(me.timer);
+      recording = null;
+      if (!keep) {
+        me.session.cancel();
+        return idle(el("p", { className: "meta", textContent: voice().recDiscarded }));
+      }
+      box.replaceChildren(el("p", { className: "status", role: "status", textContent: voice().sending }));
+      const file = await me.session.stop();
+      await upload(file, { answersQuestionId, status: box, after: idle });
+    }
+  }
+
+  idle();
+  return box;
+}
+
+function renderRecorder() {
+  if (!recording) $("#recorder").replaceChildren(recorderPanel({ primary: true }));
+}
+
+// --------------------------------------------------------------------------- uploads
+
+// Send a recording. Problems are shown where the visitor is looking (`status`), and nothing is
+// saved for a file that isn't a usable recording.
+async function upload(file, { answersQuestionId = null, status, form = null, after = null, replacing = null }) {
+  const v = voice();
+  const ext = (file.name.match(/\.[^.]+$/)?.[0] || "").toLowerCase();
+  const showError = (message) => {
+    status.replaceChildren(el("p", { className: "error", role: "alert", textContent: message }));
+    after?.(status.firstChild);
+  };
+  if (!AUDIO_EXTENSIONS.includes(ext)) return showError(v.wrongType(ext || file.name));
+  const data = new FormData();
+  data.append("file", file);
+  data.append("language", languageChoice());
+  if (answersQuestionId) data.append("answers_question_id", answersQuestionId);
+  const button = form?.querySelector("button");
+  status.replaceChildren(el("p", { className: "status", role: "status", textContent: v.offering }));
+  if (button) button.disabled = true;
+  try {
+    const { id } = await api("/api/stories", { method: "POST", body: data });
+    form?.reset();
+    if (replacing) await send(`/api/stories/${replacing}`, "DELETE").catch(() => null);
+    if (after) after(); // a recorder: back to its button
+    else {
+      status.replaceChildren(el("p", { className: "meta", textContent: v.accepted }));
+      setTimeout(() => status.replaceChildren(), 8000);
+    }
+    if (answersQuestionId) refresh(true); // the answer is shown inside the story being read
+    else location.hash = `#/story/${id}`;
+  } catch (err) {
+    showError(v.refused + err.message);
+  } finally {
+    if (button) button.disabled = false;
   }
 }
 
@@ -488,16 +896,17 @@ const written = new Map(); // "reaction:3" -> finished text, so re-renders never
 function writtenBlock(story, kind, { heading, note, startNow }) {
   const key = `${kind}:${story.id}`;
   const v = voice();
-  const box = el("div", { className: kind });
+  const box = el("div", { className: `${kind} content` });
   const tools = el("div", { className: "tools" }); // speak, retell again, or the working line
-  const wrap = el("section", {}, el("h3", { textContent: heading }), note && el("p", { className: "meta", textContent: note }), box, tools);
+  const wrap = el("section", { className: `${kind}-section` }, el("h3", { textContent: heading }),
+    note && el("p", { className: "meta", textContent: note }), box, tools);
   const startLabel = kind === "retelling" ? v.retell : v.writeNote;
   const show = (text) => {
     written.set(key, text);
-    box.className = kind; // drop the quill's "still writing" look
+    box.className = `${kind} content`; // drop the quill's "still writing" look
     box.replaceChildren(el("p", { className: "ghost-text", textContent: text }));
     tools.replaceChildren(...present([speakButton(text), kind === "retelling" && el("button", {
-      type: "button", className: "quiet", textContent: v.retellAgain,
+      type: "button", className: "link", textContent: v.retellAgain,
       onclick: async () => {
         const yes = await confirmDialog({ title: v.retellAgainTitle, text: v.retellAgainText, ok: v.retellAgainOk, cancel: v.cancelEdit });
         if (yes) write(true);
@@ -508,7 +917,7 @@ function writtenBlock(story, kind, { heading, note, startNow }) {
   // Stopped or failed: keep the earlier text if there was one, otherwise offer to start again.
   const fallBack = (message, isError) => {
     const before = written.get(key) ?? story[kind];
-    if (before) show(before); else { box.className = kind; box.replaceChildren(); offer(); }
+    if (before) show(before); else { box.className = `${kind} content`; box.replaceChildren(); offer(); }
     tools.prepend(el("p", { className: isError ? "error" : "status", textContent: message }));
   };
   const write = (again = false) => {
@@ -528,88 +937,48 @@ function writtenBlock(story, kind, { heading, note, startNow }) {
   return wrap;
 }
 
-function entityRow(label, values) {
-  if (!values || values.length === 0) return [];
-  return [el("dt", { textContent: label }), el("dd", { textContent: values.join(", ") })];
-}
-
-function questionItem(q) {
-  if (q.answered_by) {
-    return el("li", {}, q.text, " ", el("a", { href: `#/story/${q.answered_by}`, textContent: `(${voice().answered})` }));
-  }
-  const picker = el("input", { type: "file", accept: AUDIO_TYPES, hidden: true });
-  picker.onchange = () => picker.files[0] && upload(picker.files[0], q.id);
-  const speak = el("button", { textContent: voice().answer });
-  speak.onclick = () => toggleRecording(speak, q.id);
-  return el("li", {}, q.text, " ", speak, " ",
-    el("button", { className: "quiet", textContent: voice().answerFile, onclick: () => picker.click() }), picker);
-}
-
-// --------------------------------------------------------------------------- recording
-
-let recording = null; // the one recording in progress: { stop, button, label, timer, answersQuestionId }
-
-async function toggleRecording(button, answersQuestionId = null) {
-  button.parentElement.querySelector(".mic-error")?.remove();
-  if (recording) {
-    const { stop, button: active, label, timer, answersQuestionId: answering } = recording;
-    recording = null;
-    clearInterval(timer);
-    active.textContent = label;
-    active.classList.remove("live");
-    upload(await stop(), answering);
-    return;
-  }
-  try {
-    const session = await startRecording();
-    const label = button.textContent;
-    const started = Date.now();
-    const tick = () => {
-      button.textContent = `${voice().stop} (${mmss(Date.now() - started)})`;
-    };
-    tick();
-    button.classList.add("live");
-    recording = { ...session, button, label, timer: setInterval(tick, 500), answersQuestionId };
-  } catch (err) {
-    const problem = micProblem(err);
-    button.after(el("p", { className: "error mic-error",
-      textContent: plain ? problem.fix : `${problem.ghost} ${problem.fix}` }));
-  }
-}
-
-const TAG_KINDS = [["person", "People"], ["place", "Places"], ["era", "When"], ["keepsake", "Keepsakes"]];
 const STAGES = ["transcribing", "thinking", "noting"];
-const progressSince = new Map(); // story id -> when this page first saw it being processed
-const editable = (s) => s.status === "ready" || s.status === "failed";
+const firstSeen = new Map(); // story id -> when this page first saw it waiting (before the server started it)
+const editable = (s) => ["ready", "failed", "unclear"].includes(s.status);
 
-// Which step the ghost is on, and for how long. (Whisper can't be stopped halfway, so no Cancel here.)
+// Which step the Archivist is on, for how long, and about how long is left. A step list, not buttons.
 function progress(s) {
   const v = voice();
-  if (!progressSince.has(s.id)) progressSince.set(s.id, Date.now());
-  const now = STAGES.indexOf(s.status);
+  const stages = s.answers_question_id ? STAGES.slice(0, 2) : STAGES;
+  const now = stages.indexOf(s.status);
   const done = (stage, i) => i < now || (stage === "transcribing" && Boolean(s.transcript));
+  if (!firstSeen.has(s.id)) firstSeen.set(s.id, Date.now());
+  const since = s.started_at && s.status !== "queued" ? utc(s.started_at) : firstSeen.get(s.id);
   return el("div", { className: "progress", role: "status" },
-    el("ol", { className: "stages" }, ...STAGES.map((stage, i) => el("li", {
-      className: done(stage, i) ? "done" : i === now ? "now" : "",
-      textContent: v.stages[stage],
-    }))),
-    el("p", { className: "status" }, s.status === "queued" ? `${v.status.queued} ` : "", clock(progressSince.get(s.id))),
-    el("p", { className: "meta", textContent: v.patience }),
+    el("ol", { className: "stages" }, ...stages.map((stage, i) => {
+      const item = el("li", { className: done(stage, i) ? "done" : i === now ? "now" : "" },
+        el("span", { className: "step-name", textContent: v.stages[stage] }),
+        el("span", { className: "step-hint", textContent: v.stagesHint[stage] }));
+      if (i === now) item.setAttribute("aria-current", "step");
+      return item;
+    })),
+    el("p", { className: "status" }, `${v.status[s.status]} `, clock(since)),
+    el("p", { className: "meta", textContent: s.estimate_s == null ? v.patience : `${v.estimate(s.estimate_s)} ${v.keepWorking}` }),
   );
 }
 
 // The title, with a Rename button that swaps it for a small form.
 function titleRow(s) {
   const v = voice();
-  const heading = el("h2", { tabIndex: -1, textContent: statusText(s) });
-  if (!editable(s) || !s.title) return heading;
+  const heading = el("h2", { tabIndex: -1, className: "content", textContent: statusText(s) });
+  if (s.status !== "ready" || !s.title) return heading;
   const row = el("div", { className: "title-row" }, heading);
-  row.append(el("button", { type: "button", className: "quiet", textContent: v.rename, onclick: () => {
+  row.append(el("button", { type: "button", className: "link", textContent: v.rename, onclick: () => {
     const input = el("input", { type: "text", value: s.title, maxLength: 120, required: true, ariaLabel: v.renameLabel });
-    const form = el("form", { className: "inline-edit" }, input,
+    const form = el("form", { className: "inline-edit editing" }, input,
       el("button", { type: "submit", textContent: v.save }),
-      el("button", { type: "button", className: "quiet", textContent: v.cancelEdit, onclick: () => form.replaceWith(row) }));
-    form.onsubmit = (event) => { event.preventDefault(); saveStory(s.id, { title: input.value.trim() }, form); };
+      el("button", { type: "button", className: "link", textContent: v.cancelEdit, onclick: () => form.replaceWith(row) }));
+    form.onsubmit = (event) => {
+      event.preventDefault();
+      input.value = input.value.trim(); // only spaces counts as empty: the browser says it's required
+      if (!input.reportValidity()) return;
+      saveStory(s.id, { title: input.value }, form);
+    };
     row.replaceWith(form);
     input.select();
   } }));
@@ -622,42 +991,56 @@ async function saveStory(id, changes, near) {
     await send(`/api/stories/${id}`, "PATCH", changes);
     await refresh(true);
   } catch (err) {
-    near.append(el("p", { className: "error", textContent: voice().trouble + err.message }));
+    near.append(el("p", { className: "error", role: "alert", textContent: voice().trouble + err.message }));
   }
 }
 
-// People, places, eras and keepsakes, with an editor to rename, merge or remove them.
+const TAG_KINDS = ["person", "place", "era", "keepsake"];
+
+// People, places, eras, keepsakes and mood, with an editor to add, rename, merge or remove them.
 function tagsBlock(s) {
   const v = voice();
   const e = s.entities || {};
-  const kinds = TAG_KINDS.filter(([kind]) => e[kind]?.length);
-  const list = el("dl", { className: "details" },
-    ...kinds.flatMap(([kind, label]) => entityRow(label, e[kind])), ...entityRow("Mood", s.mood && [s.mood]));
-  if (!editable(s) || kinds.length === 0) return list;
+  const rows = TAG_KINDS.filter((kind) => e[kind]?.length).flatMap((kind) =>
+    [el("dt", { textContent: v.tagLabels[kind] }), el("dd", { className: "content", textContent: e[kind].join(", ") })]);
+  if (s.mood) rows.push(el("dt", { textContent: v.moodLabel }), el("dd", { textContent: s.mood }));
+  const list = el("dl", { className: "details" }, ...rows);
+  if (s.status !== "ready") return list;
   const wrap = el("div", { className: "tags" }, list);
-  wrap.append(el("button", { type: "button", className: "quiet", textContent: v.editTags, onclick: () => {
+  wrap.append(el("button", { type: "button", className: "link", textContent: v.editTags, onclick: () => {
     const fields = [];
-    const form = el("form", { className: "tags-edit" },
+    const mood = el("select", { ariaLabel: v.moodLabel },
+      ...Object.keys(MOODS).map((m) => el("option", { value: m, textContent: m })));
+    mood.value = moodOf(s);
+    const form = el("form", { className: "tags-edit editing" },
       el("p", { className: "meta", textContent: v.tagsHint }),
-      ...kinds.map(([kind, label]) => el("fieldset", {}, el("legend", { textContent: label }),
-        ...e[kind].map((value) => {
+      ...TAG_KINDS.map((kind) => {
+        const label = v.tagLabels[kind];
+        const inputs = (e[kind] || []).map((value) => {
           const input = el("input", { type: "text", value, maxLength: 80, ariaLabel: `${label}: ${value}` });
           fields.push({ kind, old: value, input });
           return input;
-        }))),
+        });
+        const add = el("input", { type: "text", maxLength: 80, placeholder: v.addTag(label), ariaLabel: v.addTag(label) });
+        fields.push({ kind, old: "", input: add });
+        return el("fieldset", {}, el("legend", { textContent: label }), ...inputs, add);
+      }),
+      el("label", { className: "mood-pick" }, `${v.moodLabel} `, mood),
       el("div", { className: "row" },
         el("button", { type: "submit", textContent: v.save }),
-        el("button", { type: "button", className: "quiet", textContent: v.cancelEdit, onclick: () => form.replaceWith(wrap) })));
+        el("button", { type: "button", className: "link", textContent: v.cancelEdit, onclick: () => form.replaceWith(wrap) })));
     form.onsubmit = async (event) => {
       event.preventDefault();
       form.querySelector(".error")?.remove();
       try {
         for (const { kind, old, input } of fields) {
-          if (input.value.trim() !== old) await send(`/api/stories/${s.id}/tags`, "POST", { kind, old, new: input.value.trim() });
+          const value = input.value.trim();
+          if (value !== old && (old || value)) await send(`/api/stories/${s.id}/tags`, "POST", { kind, old, new: value });
         }
+        if (mood.value !== s.mood) await send(`/api/stories/${s.id}`, "PATCH", { mood: mood.value });
         await refresh(true);
       } catch (err) {
-        form.append(el("p", { className: "error", textContent: v.trouble + err.message }));
+        form.append(el("p", { className: "error", role: "alert", textContent: v.trouble + err.message }));
       }
     };
     wrap.replaceWith(form);
@@ -666,51 +1049,195 @@ function tagsBlock(s) {
   return wrap;
 }
 
+// "Listen again in [language]": transcribe the recording again, then read the new words.
+function listenAgain(s) {
+  const v = voice();
+  const picker = languagePicker(v.listenAgainIn);
+  picker.value = s.language_choice || "auto";
+  picker.onchange = null; // a one-off choice for this recording
+  return el("div", { className: "listen-again" },
+    el("label", {}, `${v.listenAgainIn} `, picker), " ",
+    el("button", { type: "button", className: "secondary", textContent: v.listenAgain, onclick: async () => {
+      try {
+        await send(`/api/stories/${s.id}/relisten`, "POST", { language: picker.value });
+        written.delete(`reaction:${s.id}`);
+        written.delete(`retelling:${s.id}`);
+        firstSeen.delete(s.id);
+        await refresh(true);
+        $("#story .progress")?.scrollIntoView({ block: "center" });
+      } catch (err) {
+        toast(v.trouble + err.message);
+      }
+    } }),
+    el("p", { className: "meta", textContent: v.listenAgainHint }));
+}
+
+// What language the words are in, and whether the visitor chose it or Whisper guessed.
+function languageNote(s) {
+  if (!s.language) return "";
+  const how = s.language_choice && s.language_choice !== "auto" ? voice().chosenLanguage : voice().autoDetected;
+  return `${s.language_choice === "hinglish" ? voice().langMixed : languageName(s.language)} (${how})`;
+}
+
 // "The words as they were spoken", with an editor; saving offers to let Gemma read them again.
 function transcriptBlock(s) {
   const v = voice();
-  const details = el("details", { className: "words" },
-    el("summary", { textContent: `${v.transcript} (${s.language || "?"})` }),
-    el("p", { className: "transcript", textContent: s.transcript }));
+  const quality = s.quality ? JSON.parse(s.quality) : null;
+  const details = el("details", { className: "words", id: `words-${s.id}` },
+    el("summary", {}, v.transcript, s.language && el("span", { className: "meta" }, ` · ${languageNote(s)}`)),
+    el("p", { className: "transcript content", textContent: s.transcript }));
+  if (quality?.low_words?.length && s.status === "ready") {
+    details.append(el("p", { className: "meta" }, v.unsure, el("span", { className: "content", textContent: quality.low_words.slice(0, 8).join(", ") })));
+  }
   if (s.transcript_original) details.append(el("p", { className: "meta", textContent: v.edited }));
   if (!editable(s)) return details;
-  details.append(el("button", { type: "button", className: "quiet", textContent: v.editWords, onclick: () => {
+  const tools = el("div", { className: "row" });
+  tools.append(el("button", { type: "button", className: "link edit-words", textContent: v.editWords, onclick: () => {
     const box = el("textarea", { value: s.transcript, rows: 8, required: true, ariaLabel: v.transcript });
-    const form = el("form", { className: "transcript-edit" }, box,
+    const form = el("form", { className: "transcript-edit editing" }, box,
       el("div", { className: "row" },
         el("button", { type: "submit", textContent: v.save }),
-        el("button", { type: "button", className: "quiet", textContent: v.cancelEdit, onclick: () => refresh(true) })));
+        el("button", { type: "button", className: "link", textContent: v.cancelEdit, onclick: () => refresh(true) })));
     form.onsubmit = async (event) => {
       event.preventDefault();
       form.querySelector(".error")?.remove();
+      box.value = box.value.trim();
+      if (!box.reportValidity()) return;
       try {
         await send(`/api/stories/${s.id}`, "PATCH", { transcript: box.value });
-        form.replaceWith(el("div", { className: "reread", role: "status" },
+        form.replaceWith(el("div", { className: "reread editing", role: "status" },
           el("p", { textContent: v.rereadOffer }),
           el("button", { type: "button", textContent: v.reread, onclick: () => reread(s.id) }), " ",
-          el("button", { type: "button", className: "quiet", textContent: v.notNow, onclick: () => refresh(true) })));
+          el("button", { type: "button", className: "link", textContent: v.notNow, onclick: () => refresh(true) })));
       } catch (err) {
-        form.append(el("p", { className: "error", textContent: v.trouble + err.message }));
+        form.append(el("p", { className: "error", role: "alert", textContent: v.trouble + err.message }));
       }
     };
-    details.replaceChildren(details.firstChild, form);
+    tools.replaceWith(form);
+    details.open = true;
     box.focus();
-  } }));
+  } }), el("span", { className: "meta", textContent: v.editWordsHint }));
+  details.append(tools);
+  if (s.audio_original && s.status !== "unclear") details.append(listenAgain(s));
   return details;
 }
 
-function deleteButton(s) {
+// An answer recorded later, shown inside the story under its question.
+function addedLater(answer) {
   const v = voice();
-  return editable(s) && el("button", { type: "button", className: "danger", textContent: v.deleteStory, onclick: async () => {
-    if (!await confirmDialog({ title: v.deleteTitle, text: v.deleteText, ok: v.deleteOk, cancel: v.keepIt })) return;
-    try {
-      await send(`/api/stories/${s.id}`, "DELETE");
-      toast(v.deleted);
-      location.hash = "#/";
-    } catch (err) {
-      toast(v.trouble + err.message);
-    }
+  if (IN_PROGRESS.includes(answer.status)) {
+    return el("div", { className: "added" }, el("p", { className: "status", role: "status" },
+      `${v.answerWorking} (${v.stages[answer.status] || v.status.queued}) `,
+      clock(answer.started_at && answer.status !== "queued" ? utc(answer.started_at) : Date.now())));
+  }
+  const remove = el("button", { type: "button", className: "link", textContent: v.removeAnswer, onclick: async () => {
+    if (!await confirmDialog({ title: v.removeAnswerTitle, text: v.removeAnswerText, ok: v.removeAnswerOk, cancel: v.keepIt })) return;
+    await deleteWithUndo(answer.id, v.answerRemoved, false);
   } });
+  if (answer.status !== "ready") {
+    return el("div", { className: "added" },
+      el("p", { className: "error", textContent: answer.status === "unclear" ? v.fog : answer.error }), remove);
+  }
+  return el("div", { className: "added" },
+    el("p", { className: "meta", textContent: v.addedLater(localTime(answer.created_at)) }),
+    el("p", { className: "content", textContent: answer.summary }),
+    answer.audio_original && el("audio", { controls: true, preload: "metadata", src: `/api/stories/${answer.id}/audio`, ariaLabel: v.answerAudio }),
+    el("details", {}, el("summary", {}, v.transcript, el("span", { className: "meta" }, ` · ${languageNote(answer)}`)),
+      el("p", { className: "transcript content", textContent: answer.transcript })),
+    remove);
+}
+
+function questionItem(q) {
+  const v = voice();
+  if (q.answer) return el("li", {}, el("span", { className: "content", textContent: q.text }), addedLater(q.answer));
+  const picker = el("input", { type: "file", accept: AUDIO_TYPES, hidden: true });
+  const status = el("div", { className: "answer-status" });
+  picker.onchange = () => picker.files[0] && upload(picker.files[0], { answersQuestionId: q.id, status });
+  return el("li", {}, el("span", { className: "content", textContent: q.text }),
+    el("div", { className: "answer-tools" }, recorderPanel({ answersQuestionId: q.id }),
+      el("button", { type: "button", className: "link", textContent: v.answerFile, onclick: () => picker.click() }), picker),
+    status);
+}
+
+function unfinishedBlock(s) {
+  const v = voice();
+  if (s.questions.length === 0 || s.status !== "ready") return null;
+  const open = s.questions.some((q) => !q.answer);
+  return el("section", { className: "unfinished" },
+    el("h3", { textContent: v.unfinished }),
+    el("p", { className: "hint", textContent: v.unfinishedHint }),
+    open && el("label", { className: "meta answer-language" }, `${v.answerLanguage} `, languagePicker(v.answerLanguage)),
+    el("ul", { className: "questions" }, ...s.questions.map(questionItem)));
+}
+
+// Whisper couldn't make out the words: nothing was invented. Say so, and offer the ways forward.
+function fogBlock(s) {
+  const v = voice();
+  const quality = s.quality ? JSON.parse(s.quality) : { reasons: [] };
+  return el("section", { className: "fog-box", role: "status" },
+    el("h3", { className: "handwriting", textContent: v.fog }),
+    el("p", { textContent: v.fogText }),
+    el("ul", { className: "fog-actions" },
+      s.audio_original && el("li", {}, listenAgain(s)),
+      el("li", {}, el("button", { type: "button", className: "secondary", textContent: v.fogEdit, onclick: () => {
+        const words = $(`#words-${s.id}`);
+        words.open = true;
+        words.querySelector(".edit-words")?.click();
+        words.scrollIntoView({ block: "center" });
+      } })),
+      el("li", {}, deleteButton(s, true))),
+    quality.reasons?.length > 0 && el("p", { className: "meta", textContent: v.fogWhy + quality.reasons.join("; ") + "." }));
+}
+
+// A failure: try again if it might pass, otherwise another file (or delete).
+function failedBlock(s) {
+  const v = voice();
+  const picker = el("input", { type: "file", accept: AUDIO_TYPES, hidden: true });
+  const status = el("div");
+  picker.onchange = () => picker.files[0] && upload(picker.files[0], { answersQuestionId: s.answers_question_id, status, replacing: s.id });
+  return el("section", { className: "failed-box", role: "alert" },
+    el("p", { className: "error", textContent: s.error }),
+    el("div", { className: "row" }, ...present([
+      s.error_kind !== "audio" && el("button", { type: "button", textContent: v.tryAgain, onclick: () => retry(s.id) }),
+      s.error_kind === "audio" && el("button", { type: "button", textContent: v.chooseAnother, onclick: () => picker.click() }),
+      picker,
+    ])),
+    status);
+}
+
+function deleteButton(s, inline = false) {
+  const v = voice();
+  return editable(s) && el("button", { type: "button", className: inline ? "danger inline" : "danger", textContent: v.deleteStory, onclick: async () => {
+    const answers = s.questions.filter((q) => q.answer).length;
+    if (!await confirmDialog({ title: v.deleteTitle, text: v.deleteText(answers), ok: v.deleteOk, cancel: v.keepIt })) return;
+    await deleteWithUndo(s.id, v.deleted, true);
+  } });
+}
+
+// Delete now, with an Undo in the notice for as long as the server keeps it.
+async function deleteWithUndo(id, message, leave) {
+  const v = voice();
+  try {
+    await send(`/api/stories/${id}`, "DELETE");
+  } catch (err) {
+    return toast(v.trouble + err.message);
+  }
+  toast(message, { label: v.undo, run: async () => {
+    try {
+      await api(`/api/stories/${id}/restore`, { method: "POST" });
+      toast(v.undone);
+      if (leave) location.hash = `#/story/${id}`;
+      else refresh(true);
+    } catch {
+      toast(v.tooLate);
+    }
+  } }, config.undo_seconds * 1000);
+  if (leave) {
+    leftByDeleting = true;
+    location.hash = "#/";
+  } else {
+    refresh(true);
+  }
 }
 
 function renderStory(s) {
@@ -719,28 +1246,28 @@ function renderStory(s) {
     el("a", { href: "#/", className: "meta back", textContent: v.back }),
     titleRow(s),
     IN_PROGRESS.includes(s.status) && progress(s),
-    Boolean(s.is_sample) && el("p", { className: "meta", textContent: "A fictional sample story, written for the demo." }),
-    s.answers && el("p", { className: "meta" }, "An answer to: ",
-      el("a", { href: `#/story/${s.answers.story_id}`, textContent: s.answers.text })),
-    s.status === "failed" && el("p", { className: "error", textContent: s.error }),
-    s.status === "failed" && el("button", { textContent: v.tryAgain, onclick: () => retry(s.id) }),
-    s.status === "ready" && writtenBlock(s, "reaction", { heading: v.reaction, startNow: true }),
-    s.summary && el("p", { className: "summary", textContent: s.summary }),
-    s.audio_original && el("audio", { controls: true, preload: "metadata", src: `/api/stories/${s.id}/audio`, ariaLabel: "The original recording" }),
+    s.status === "unclear" && fogBlock(s),
+    s.status === "failed" && failedBlock(s),
+    Boolean(s.is_sample) && el("p", { className: "meta", textContent: v.sampleNote }),
+    s.answers && el("p", { className: "meta" }, `${v.addedTo}: `,
+      el("a", { href: `#/story/${s.answers.story_id}`, textContent: s.answers.story_title || s.answers.text })),
+    s.status === "ready" && !s.answers_question_id && writtenBlock(s, "reaction", { heading: v.reaction, startNow: true }),
+    s.summary && el("p", { className: "summary content", textContent: s.summary }),
+    Boolean(s.uncertain) && el("p", { className: "meta uncertain", textContent: v.uncertain }),
+    s.audio_original && el("audio", { controls: true, preload: "metadata", src: `/api/stories/${s.id}/audio`, ariaLabel: v.transcript }),
     tagsBlock(s),
-    s.questions.length > 0 && el("section", { className: "unfinished" },
-      el("h3", { textContent: v.unfinished }),
-      v.unfinishedHint && el("p", { className: "hint", textContent: v.unfinishedHint }),
-      v.unfinishedIntro && el("p", { className: "handwriting", textContent: v.unfinishedIntro }),
-      el("ul", { className: "questions" }, ...s.questions.map(questionItem)),
-    ),
-    s.status === "ready" && writtenBlock(s, "retelling", { heading: v.retelling, note: v.retellingNote, startNow: false }),
+    unfinishedBlock(s),
+    s.status === "ready" && !s.answers_question_id && writtenBlock(s, "retelling", { heading: v.retelling, note: v.retellingNote, startNow: false }),
     s.transcript && transcriptBlock(s),
-    deleteButton(s),
+    s.status !== "unclear" && deleteButton(s),
   ]);
 }
 
-let shown = { id: null, status: null }; // the story on screen, so ready stories aren't re-rendered
+let shown = { id: null, busy: false }; // the story on screen, and whether it (or an answer) is being processed
+let leftByDeleting = false;
+
+// Don't redraw a story under the visitor's hands: while they record, edit or a dialog is open.
+const storyLocked = () => Boolean(recording) || Boolean(document.querySelector("#story .editing")) || $("#confirm").open;
 
 async function showStory(id) {
   const page = $("#story");
@@ -756,6 +1283,8 @@ async function showStory(id) {
     return null;
   }
 }
+
+const isBusy = (s) => Boolean(s) && (IN_PROGRESS.includes(s.status) || s.questions.some((q) => q.answer && IN_PROGRESS.includes(q.answer.status)));
 
 // --------------------------------------------------------------------------- dialogs and notices
 
@@ -773,41 +1302,21 @@ function confirmDialog({ title, text, ok, cancel }) {
 }
 
 let toastTimer = null;
-function toast(text) {
+function toast(text, action = null, ms = 5000) {
   const node = $("#toast");
-  node.textContent = text;
+  const hide = () => { node.hidden = true; };
+  node.replaceChildren(el("span", { textContent: text }),
+    ...present([action && el("button", { type: "button", className: "link", textContent: action.label,
+      onclick: () => { hide(); action.run(); } })]));
   node.hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { node.hidden = true; }, 5000);
+  toastTimer = setTimeout(hide, ms);
 }
 
 // --------------------------------------------------------------------------- actions
 
-let statusTimer = null;
-async function upload(file, answersQuestionId, form = null) {
-  const data = new FormData();
-  data.append("file", file);
-  if (answersQuestionId) data.append("answers_question_id", answersQuestionId);
-  const status = $("#upload-status");
-  const button = form?.querySelector("button");
-  clearTimeout(statusTimer);
-  status.replaceChildren(voice().offering);
-  if (button) button.disabled = true;
-  try {
-    const { id } = await api("/api/stories", { method: "POST", body: data });
-    form?.reset();
-    status.replaceChildren(el("a", { href: `#/story/${id}`, textContent: voice().accepted }));
-    statusTimer = setTimeout(() => status.replaceChildren(), 30000);
-    location.hash = `#/story/${id}`;
-  } catch (err) {
-    status.replaceChildren(el("span", { className: "error", textContent: voice().refused + err.message }));
-  } finally {
-    if (button) button.disabled = false;
-  }
-}
-
 async function retry(id) {
-  await api(`/api/stories/${id}/retry`, { method: "POST" });
+  await api(`/api/stories/${id}/retry`, { method: "POST" }).catch((err) => toast(voice().trouble + err.message));
   refresh(true);
 }
 
@@ -815,16 +1324,17 @@ async function reread(id) {
   try {
     await api(`/api/stories/${id}/reread`, { method: "POST" });
     written.delete(`reaction:${id}`); // the note is rewritten for the new words
-    progressSince.delete(id);
+    firstSeen.delete(id);
   } catch (err) {
     toast(voice().trouble + err.message);
   }
-  refresh(true);
+  await refresh(true);
+  $("#story .progress")?.scrollIntoView({ block: "center" }); // the visitor may be far down the page
 }
 
-// The home page (candle wall, Seance, new story) and a story are separate views. Going back
-// returns to where you were on the home page.
-let homeScroll = null;
+// The home page (candle wall, Seance, new story) and a story are separate views. Opening a story
+// starts at its top; going back returns to where you were on the wall.
+let homeScroll = 0;
 addEventListener("scroll", () => { if (!document.body.classList.contains("reading")) homeScroll = scrollY; }, { passive: true });
 
 // Re-render the list (and the open story if it may have changed); poll while anything is processing.
@@ -832,27 +1342,33 @@ let pollTimer = null;
 async function refresh(force = false) {
   clearTimeout(pollTimer);
   const stories = await loadStories();
-  const id = Number(location.hash.match(/^#\/story\/(\d+)$/)?.[1]) || null;
-  if (id === null) {
-    if (document.body.classList.contains("reading")) {
+  const r = route();
+  if (r.story === null) {
+    if (document.body.classList.contains("reading")) { // leaving a story
       const left = shown.id;
       stopSpeaking(); // leaving a story silences its voice
       document.body.classList.remove("reading");
       $("#story").hidden = true;
-      if (homeScroll === null) $("#archive").scrollIntoView();
-      else window.scrollTo(0, homeScroll);
-      document.querySelector(`.candle[href="#/story/${left}"]`)?.focus({ preventScroll: true });
+      $("#story").replaceChildren(); // nothing of it stays behind, for screen readers or scripts
+      window.scrollTo(0, leftByDeleting ? 0 : homeScroll);
+      if (!leftByDeleting) document.querySelector(`.candle[href="#/story/${left}"]`)?.focus({ preventScroll: true });
+      leftByDeleting = false;
     }
-    shown = { id: null, status: null };
-  } else if (force || id !== shown.id || IN_PROGRESS.includes(shown.status)) {
-    const isNew = id !== shown.id;
+    if (currentFilter() !== r.about || $("#wall-search").value !== r.q) {
+      $("#filter").value = r.about;
+      $("#wall-search").value = r.q;
+      renderWall();
+    }
+    shown = { id: null, busy: false };
+  } else if (force || r.story !== shown.id || (shown.busy && !storyLocked())) {
+    const isNew = r.story !== shown.id;
     document.body.classList.add("reading");
-    const story = await showStory(id);
-    shown = { id, status: story?.status ?? null };
+    const story = await showStory(r.story);
+    shown = { id: r.story, busy: isBusy(story) };
     if (isNew) {
       window.scrollTo(0, 0);
       $("#story h2")?.focus({ preventScroll: true }); // keyboard and screen-reader users land on the title
-      if (story) relight(id);
+      if (story) relight(r.story);
     }
   }
   if (stories.some((s) => IN_PROGRESS.includes(s.status))) pollTimer = setTimeout(refresh, 2000);
@@ -860,17 +1376,20 @@ async function refresh(force = false) {
 
 // --------------------------------------------------------------------------- whispers
 
-// Sometimes (not always) the ghost murmurs a line from a faded story when the page opens.
+// Sometimes (not always) the Archivist murmurs a line from a faded story when the page opens.
+// It floats over the corner of the page, so nothing moves, and says which story it came from.
 async function maybeWhisper() {
   if (plain || Math.random() > 0.7) return;
   const res = await fetch("/api/whisper");
   if (res.status !== 200) return;
   const w = await res.json();
   const node = $("#whisper");
-  node.replaceChildren(el("a", { href: `#/story/${w.story_id}`, title: w.title, textContent: `“${w.text}”` }));
+  node.replaceChildren(el("p", { className: "content", textContent: `“${w.text}”` }),
+    el("p", { className: "from" }, "— from ", el("a", { href: `#/story/${w.story_id}`, textContent: w.title })),
+    el("button", { type: "button", className: "link close", ariaLabel: "Close", textContent: "×", onclick: () => { node.hidden = true; } }));
   node.hidden = false;
-  setTimeout(() => node.classList.add("fading"), 15000);
-  setTimeout(() => { node.hidden = true; }, 19500); // after the fade, give the space back
+  setTimeout(() => node.classList.add("fading"), 14000);
+  setTimeout(() => { node.hidden = true; node.classList.remove("fading"); }, 18000);
 }
 
 // --------------------------------------------------------------------------- the haunting (decoration only)
@@ -896,28 +1415,46 @@ function haunt() {
     void ghost.offsetWidth; // restart the wobble on every poke
     ghost.classList.add("boo");
     clearTimeout(hide);
-    hide = setTimeout(() => { bubble.hidden = true; }, 2500);
+    hide = setTimeout(() => { bubble.hidden = true; }, 2800);
   });
 }
 
-const GHOST_LINES = ["Boo!", "Who disturbs my rest?", "Mind the candles, my dear.", "I remember every word you give me.",
-                     "Shh... the memories are sleeping.", "Tell me a story.", "Still here. Always here."];
-
 // --------------------------------------------------------------------------- start
+
+async function wake() {
+  const note = $("#wake");
+  const say = (key) => { // through data-voice, so switching plain mode mid-way changes the words too
+    if (key) { note.dataset.voice = key; note.textContent = voice()[key]; } else { delete note.dataset.voice; note.textContent = ""; }
+  };
+  say("waking");
+  try {
+    await fetch("/api/warm", { method: "POST" }); // returns once Gemma and Whisper are loaded
+    say("awake");
+    setTimeout(() => say(null), 4000);
+  } catch {
+    say(null);
+  }
+}
 
 async function start() {
   const defaults = await api("/api/settings").catch(() => ({}));
-  plain = loadPlainPreference(Boolean(defaults.plain_mode_default));
+  config = { ...config, ...defaults };
+  if (defaults.moods && defaults.moods.join() !== Object.keys(MOODS).join()) console.warn("mood lists differ", defaults.moods);
+  plain = store.get("plain", defaults.plain_mode_default ? "1" : "0") === "1";
   $("#plain-toggle").checked = plain;
+  $("#language").value = LANGUAGE_CHOICES.includes(store.get("language", "auto")) ? store.get("language", "auto") : "auto";
   applyVoice();
 
   $("#plain-toggle").addEventListener("change", (event) => {
     plain = event.target.checked;
-    savePlainPreference();
+    store.set("plain", plain ? "1" : "0");
+    $("#toast").hidden = true; // a notice in the other voice
+    wallKey = "";
     applyVoice();
     loadHealth().catch(() => {});
     refresh(true);
   });
+  $("#language").addEventListener("change", (event) => store.set("language", event.target.value));
   $("#seance-form").addEventListener("submit", (event) => {
     event.preventDefault();
     const question = event.target.question.value.trim();
@@ -929,36 +1466,53 @@ async function start() {
     }
   });
   $("#seance-form").question.addEventListener("input", (event) => { if (!event.target.value.trim()) clearSeance(); });
-  $("#record-button").addEventListener("click", (event) => toggleRecording(event.currentTarget));
-  $("#filter").addEventListener("change", renderWall);
-  $(".legend").addEventListener("click", (event) => {
+  $("#filter").addEventListener("change", () => setWallFilter(currentFilter(), $("#wall-search").value.trim()));
+  $("#wall-search").addEventListener("input", () => setWallFilter(currentFilter(), $("#wall-search").value.trim(), false));
+  $("#filter-clear").addEventListener("click", () => setWallFilter("", ""));
+  $("#legend").addEventListener("click", (event) => {
     const mood = event.target.closest("button")?.dataset.mood;
     if (!mood) return;
-    const select = $("#filter");
-    select.value = select.value === `mood:${mood}` ? "" : `mood:${mood}`; // a second click shows every candle again
-    renderWall();
+    setWallFilter(currentFilter() === `mood:${mood}` ? "" : `mood:${mood}`, $("#wall-search").value.trim()); // a second click shows every candle
   });
   $("#upload-form").addEventListener("submit", (event) => {
     event.preventDefault();
     const file = event.target.file.files[0];
-    if (file) upload(file, null, event.target);
+    if (file) upload(file, { status: $("#upload-status"), form: event.target });
+  });
+  $("#upload-form").file.addEventListener("change", () => $("#upload-status").replaceChildren());
+  $("#samples-remove").addEventListener("click", async () => {
+    const v = voice();
+    if (!await confirmDialog({ title: v.removeSamplesTitle, text: v.removeSamplesText, ok: v.removeSamplesOk, cancel: v.keepIt })) return;
+    const { removed } = await send("/api/samples", "DELETE").catch(() => ({ removed: 0 }));
+    toast(v.samplesRemoved(removed));
+    refresh(true);
   });
   window.addEventListener("hashchange", () => refresh());
   haunt();
-  setInterval(() => document.querySelectorAll(".elapsed").forEach((node) => {
+  setInterval(() => document.querySelectorAll(".elapsed[data-since]").forEach((node) => {
     node.textContent = mmss(Date.now() - Number(node.dataset.since));
   }), 1000);
 
-  // The "how it works" strip, until the visitor hides it (remembered if storage is allowed).
-  try { $("#how").hidden = localStorage.getItem("ghostwriter.howHidden") === "1"; } catch { /* show it */ }
-  $("#how-close").addEventListener("click", () => {
-    $("#how").hidden = true;
-    try { localStorage.setItem("ghostwriter.howHidden", "1"); } catch { /* hidden for this visit only */ }
+  // The "how it works" guide, until the visitor hides it (remembered); the header link brings it back.
+  $("#how").hidden = store.get("howHidden", "0") === "1";
+  $("#how-close").addEventListener("click", () => { $("#how").hidden = true; store.set("howHidden", "1"); });
+  $("#how-open").addEventListener("click", async () => {
+    $("#how").hidden = false;
+    store.set("howHidden", "0");
+    if (route().story !== null) {
+      location.hash = "#/";
+      await refresh();
+    }
+    $("#how").scrollIntoView({ block: "center" });
+    $("#how-close").focus({ preventScroll: true });
   });
+  const openAbout = () => { loadHealth().catch(() => {}); $("#about").showModal(); };
+  $("#about-open").addEventListener("click", openAbout);
+  $("#about-open-footer").addEventListener("click", openAbout);
 
-  fetch("/api/warm", { method: "POST" }).catch(() => {}); // load Gemma before the first question
+  wake();
   loadHealth().catch(() => {});
-  refresh();
+  await refresh();
   setTimeout(() => maybeWhisper().catch(() => {}), 2500);
 }
 

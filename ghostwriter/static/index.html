@@ -4,11 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Ghostwriter</title>
+  <meta name="description" content="Ghostwriter keeps your family's spoken stories, entirely on this computer.">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <!-- The night outside: decoration only, hidden in plain mode and still for reduced motion. -->
+  <!-- The night outside: decoration only, hidden in plain mode and still for reduced motion.
+       Every reading surface above it is opaque, so it never shows through text. -->
   <div class="scene" aria-hidden="true">
     <svg width="0" height="0" class="defs">
       <symbol id="bat" viewBox="0 0 100 50">
@@ -68,8 +70,12 @@
   <div class="lantern" aria-hidden="true"></div>
 
   <header>
+    <nav class="top-links" aria-label="Help">
+      <button type="button" id="how-open" class="link" data-voice="howLink">How it works</button>
+      <button type="button" id="about-open" class="link" data-voice="aboutLink">About</button>
+    </nav>
     <div class="brand">
-      <button type="button" id="mascot" class="mascot" aria-label="Poke the ghost">
+      <button type="button" id="mascot" class="mascot" aria-label="Poke the ghost" title="Poke the ghost">
         <svg viewBox="0 0 40 50" aria-hidden="true">
           <path class="sheet" d="M20 3 C9 3 4 12 4 24 V47 l5 -4 l5 4 l6 -4 l6 4 l5 -4 l5 4 V24 C36 12 31 3 20 3 z"/>
           <g class="eyes"><ellipse cx="14.5" cy="21" rx="2.6" ry="3.6"/><ellipse cx="25.5" cy="21" rx="2.6" ry="3.6"/></g>
@@ -79,29 +85,31 @@
       <p id="ghost-says" class="bubble" role="status" hidden></p>
       <div>
         <h1><a href="#/">Ghostwriter</a></h1>
-        <p class="tagline">The ghost that keeps your stories.</p>
+        <p class="tagline" data-voice="tagline">The ghost that keeps your stories.</p>
       </div>
     </div>
-    <p id="greeting" class="handwriting"></p>
-    <p id="whisper" class="whisper" hidden></p>
+    <p class="why" data-voice="why">Record the stories your family tells (Nani's recipes, Dada's journeys) before they're forgotten. Everything stays on this computer.</p>
+    <p class="intro" data-voice="intro">Ghostwriter is home to the Archivist, a kind ghost who writes your stories down and remembers every word.</p>
+    <p id="greeting" class="handwriting">&nbsp;</p>
     <div class="controls">
-      <label class="switch"><input type="checkbox" role="switch" id="plain-toggle"> <span>Plain mode: simple words, no effects</span></label>
+      <label class="switch"><input type="checkbox" role="switch" id="plain-toggle"> <span data-voice="plainSwitch">Plain mode: simple words, no effects</span></label>
+      <span id="wake" class="meta" role="status"></span>
     </div>
     <div id="health-banner" role="alert" hidden></div>
   </header>
 
   <main>
     <section id="how" class="how" aria-labelledby="how-title">
-      <h2 id="how-title" class="visually-hidden">How Ghostwriter works</h2>
+      <h2 id="how-title" class="visually-hidden" data-voice="howTitle">How Ghostwriter works</h2>
       <ol>
-        <li><b>1</b> <span><strong>Tell it a story.</strong> Speak into the microphone or upload a recording.</span></li>
-        <li><b>2</b> <span><strong>The ghost writes it down.</strong> It gives it a title and notes who, where and when.</span></li>
-        <li><b>3</b> <span><strong>Ask the Séance.</strong> Ask anything about your stories; it answers only from them.</span></li>
+        <li><b>1</b> <span><strong data-voice="how1Title">Tell a story.</strong> <span data-voice="how1">Speak into the microphone or upload a recording, in English, Hindi or both.</span></span></li>
+        <li><b>2</b> <span><strong data-voice="how2Title">The Archivist writes it down.</strong> <span data-voice="how2">It gives the story a title and notes who, where and when, then asks what it still wonders about.</span></span></li>
+        <li><b>3</b> <span><strong data-voice="how3Title">Ask the Séance.</strong> <span data-voice="how3">Ask anything about your stories; it answers only from them and shows which ones it used.</span></span></li>
       </ol>
-      <button type="button" id="how-close" class="quiet">Got it, hide this</button>
+      <button type="button" id="how-close" class="link" data-voice="howClose">Got it, hide this</button>
     </section>
 
-    <section id="archive" class="ofrenda">
+    <section id="archive" class="ofrenda" aria-labelledby="archive-title">
       <div class="web" aria-hidden="true">
         <svg viewBox="0 0 120 120">
           <path d="M120 0 L2 0 M120 0 L10.6 44.2 M120 0 L36.6 83.4 M120 0 L75.8 109.4 M120 0 L120 118"/>
@@ -116,49 +124,71 @@
           </svg>
         </span>
       </div>
-      <h2 data-voice="archive"></h2>
-      <p class="hint" data-voice="archiveHint"></p>
-      <label class="meta filter">
-        <span data-voice="filterLabel"></span>
-        <select id="filter"><option value="" data-voice="allMemories"></option></select>
-      </label>
-      <a class="meta book-link" href="/api/book" target="_blank" rel="noopener" data-voice="book"></a>
-      <div id="wall" class="wall"></div>
-      <ul class="legend" aria-label="Flame colours: choose a mood to light only its candles">
-        <li><button type="button" class="mood-joyful" data-mood="joyful"><i></i>joyful</button></li>
-        <li><button type="button" class="mood-nostalgic" data-mood="nostalgic"><i></i>nostalgic</button></li>
-        <li><button type="button" class="mood-loving" data-mood="loving"><i></i>loving</button></li>
-        <li><button type="button" class="mood-poignant" data-mood="poignant"><i></i>poignant</button></li>
-        <li><button type="button" class="mood-mysterious" data-mood="mysterious"><i></i>mysterious</button></li>
-        <li><button type="button" class="mood-eerie" data-mood="eerie"><i></i>eerie</button></li>
-      </ul>
-      <p class="meta fade-note">Candles burn lower when you haven't opened a memory for a while. Open it to relight it.</p>
+      <h2 id="archive-title" data-voice="archive">The candle wall</h2>
+      <p class="hint" data-voice="archiveHint">Every story you give the Archivist becomes a candle. Open one to read it.</p>
+      <div class="wall-tools">
+        <label class="search"><span class="visually-hidden" data-voice="searchLabel">Search titles and summaries</span>
+          <input type="search" id="wall-search" autocomplete="off" data-voice-placeholder="searchPlaceholder" placeholder="Search titles and summaries">
+        </label>
+        <label class="filter">
+          <span data-voice="filterLabel">Show only memories about</span>
+          <select id="filter"><option value="" data-voice="allMemories">every memory</option></select>
+        </label>
+        <span id="wall-count" class="meta" role="status"></span>
+        <button type="button" id="filter-clear" class="link" data-voice="clearFilter" hidden>Clear filter</button>
+      </div>
+      <div id="wall" class="wall">
+        <p class="loading handwriting" data-voice="lighting">Lighting the candles...</p>
+      </div>
+      <div class="legend-wrap">
+        <p class="meta legend-title" data-voice="legendTitle">Each mood has its own candle and flame. Choose one to light only its candles:</p>
+        <ul class="legend" id="legend"></ul>
+        <p class="meta" data-voice="legendDim">A dim entry has no stories with that mood yet.</p>
+        <p class="meta fade-note" data-voice="fadeNote">Flames burn low when you haven't opened a memory for a while. Open it to relight it.</p>
+      </div>
+      <p class="book-row">
+        <a class="book-link" href="/book" target="_blank" rel="noopener" data-voice="book">Open the memory book</a>
+        <span class="meta" data-voice="bookHint">Every finished story with its words, notes, answers and retellings on one page, to print or save as a PDF.</span>
+      </p>
+      <p class="samples-row" id="samples-row" hidden>
+        <span class="meta" data-voice="samplesNote">The stories marked "fictional sample" were written for the demo; none of them are real memories.</span>
+        <button type="button" id="samples-remove" class="link" data-voice="samplesRemove">Remove sample stories</button>
+      </p>
     </section>
 
     <article id="story" hidden></article>
 
-    <section id="seance">
+    <section id="seance" aria-labelledby="seance-title">
       <div class="orb" aria-hidden="true"><span></span></div>
-      <h2 data-voice="seance"></h2>
-      <p class="hint" data-voice="seanceHint"></p>
+      <h2 id="seance-title" data-voice="seance">Séance</h2>
+      <p class="hint" data-voice="seanceHint">Ask a question about your stories. The Archivist answers only from them, and numbers the stories it used, like this [1].</p>
       <form id="seance-form">
-        <input type="text" name="question" maxlength="500" autocomplete="off" aria-label="Your question about your stories">
-        <button type="submit"><span data-voice="ask"></span><small data-voice="askHint"></small></button>
+        <input type="text" name="question" maxlength="500" autocomplete="off" data-voice-placeholder="askPlaceholder" placeholder="What did Nani cook?" aria-label="Your question about your stories">
+        <button type="submit" data-voice="ask" data-voice-title="askTitle" title="Summon an answer from your stories">Ask</button>
       </form>
       <div id="seance-chips" class="chips" aria-label="Suggested questions"></div>
       <div id="seance-answer" aria-live="polite"></div>
       <p id="seance-sources" class="meta"></p>
     </section>
 
-    <section id="new-story">
-      <h2 data-voice="give"></h2>
-      <p class="hint" data-voice="giveHint"></p>
-      <button type="button" id="record-button" class="record" data-voice="record"></button>
-      <p class="meta" data-voice="micHint"></p>
-      <p class="meta" data-voice="orUpload"></p>
+    <section id="new-story" aria-labelledby="give-title">
+      <h2 id="give-title" data-voice="give">Give the Archivist a story</h2>
+      <p class="hint" data-voice="giveHint">Record it here, or upload a recording you already have. Short stories take about a minute to write down.</p>
+      <label class="language"><span data-voice="languageLabel">Language spoken</span>
+        <select id="language">
+          <option value="auto" data-voice="langAuto">Detect it for me</option>
+          <option value="en" data-voice="langEn">English</option>
+          <option value="hi" data-voice="langHi">Hindi</option>
+          <option value="hinglish" data-voice="langMixed">Hinglish (Hindi and English mixed)</option>
+        </select>
+      </label>
+      <div id="recorder" class="recorder"></div>
+      <p class="meta" data-voice="micHint">Your browser will ask to use the microphone. The recording stays on this computer.</p>
       <form id="upload-form">
-        <input type="file" name="file" accept=".wav,.mp3,.m4a,.webm,.ogg" required aria-label="Audio file (wav, mp3, m4a, webm or ogg)">
-        <button type="submit"><span data-voice="offer"></span><small data-voice="offerHint"></small></button>
+        <label class="upload-label"><span data-voice="orUpload">Or upload a recording:</span>
+          <input type="file" name="file" accept=".wav,.mp3,.m4a,.webm,.ogg" required aria-describedby="upload-status">
+        </label>
+        <button type="submit" class="secondary" data-voice="offer" data-voice-title="offerTitle" title="Offer it to the Archivist">Upload recording</button>
       </form>
       <p id="upload-status" role="status"></p>
     </section>
@@ -169,16 +199,32 @@
       <h2 id="confirm-title"></h2>
       <p id="confirm-text"></p>
       <div class="row">
-        <button value="cancel" id="confirm-cancel" class="quiet"></button>
+        <button value="cancel" id="confirm-cancel" class="link"></button>
         <button value="ok" id="confirm-ok" class="danger"></button>
       </div>
     </form>
   </dialog>
+
+  <dialog id="about" aria-labelledby="about-title">
+    <div class="about-body">
+      <h2 id="about-title" data-voice="aboutTitle">About Ghostwriter</h2>
+      <p data-voice="aboutIntro">Ghostwriter keeps the stories your family tells. The Archivist is the ghost who lives in it: it listens, writes each story down, and answers questions about them.</p>
+      <h3 data-voice="featuresTitle">What everything does</h3>
+      <dl class="features" id="features"></dl>
+      <h3 data-voice="privacyTitle">Private by design</h3>
+      <p data-voice="privacy">Everything runs on this computer: the speech recognition, the AI and your recordings. Nothing is sent anywhere, and the app only answers this computer (127.0.0.1).</p>
+      <h3 data-voice="toolsTitle">The local tools it uses</h3>
+      <ul id="health" class="health" aria-label="Local tools and whether they are working"></ul>
+      <form method="dialog" class="row"><button value="close" class="secondary" data-voice="close">Close</button></form>
+    </div>
+  </dialog>
+
   <p id="toast" role="status" hidden></p>
+  <aside id="whisper" class="whisper" aria-live="off" hidden></aside>
 
   <footer class="site-footer">
-    <span>Runs entirely on this computer with</span>
-    <ul id="health" aria-label="Local tools and whether they are working"></ul>
+    <span class="badge" data-voice="badge">Private: runs entirely on this computer</span>
+    <button type="button" class="link" id="about-open-footer" data-voice="aboutFooter">About and local tools</button>
   </footer>
 
   <script type="module" src="/js/app.js"></script>

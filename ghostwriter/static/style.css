@@ -17,7 +17,7 @@
   color-scheme: dark;
   --night: #0a1633;
   --black: #03050b;
-  --panel: rgba(8, 17, 42, 0.96);
+  --panel: #08112a; /* opaque: the moon and the graveyard never show through text */
   --line: rgba(130, 160, 230, 0.18);
   --text: #f4f6fb;
   --muted: #a9b6d6;
@@ -45,7 +45,7 @@ body {
 }
 
 header, main, .site-footer { position: relative; z-index: 1; max-width: 880px; margin: 0 auto; padding: 0 16px; }
-header { padding-top: 28px; animation: rise 0.9s ease-out both; }
+header { padding-top: 52px; } /* room above the title for the ghost's speech bubble */
 .site-footer { padding-bottom: 210px; } /* room to see the graveyard at the bottom */
 
 h1, h2, h3 { font-family: "IM Fell English", Georgia, serif; font-weight: normal; }
@@ -72,17 +72,11 @@ section, article {
   padding: 8px 24px 20px;
   margin: 28px 0;
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  animation: rise 0.8s ease-out both;
 }
-main > :nth-child(2) { animation-delay: 0.15s; }
-main > :nth-child(4) { animation-delay: 0.3s; }
-main > :nth-child(5) { animation-delay: 0.45s; }
 
 /* A plain-words subtitle under each themed heading, so the label's job is always obvious. */
 .hint { margin: -6px 0 12px; color: var(--muted); font-size: 0.95rem; }
 .hint:empty { display: none; }
-button small { display: block; font-size: 0.7rem; line-height: 1; opacity: 0.85; }
-button small:empty { display: none; }
 
 /* How it works: three steps, until the visitor hides them. */
 .how { padding: 14px 20px; }
@@ -95,24 +89,31 @@ button small:empty { display: none; }
 }
 .how strong { color: var(--ink); font-weight: normal; font-family: "IM Fell English", Georgia, serif; font-size: 1.1rem; }
 
-.empty { grid-column: 1 / -1; text-align: center; padding: 12px 0; }
-.is-empty :is(.filter, .book-link, .legend, .fade-note) { display: none; }
+.empty, .wall .loading { grid-column: 1 / -1; text-align: center; padding: 12px 0; }
+.is-empty :is(.wall-tools, .legend-wrap, .book-row) { display: none; }
 .button {
   display: inline-block; padding: 7px 20px; border-radius: 999px; text-decoration: none;
   background: var(--orange); color: var(--black);
 }
 .button:hover, .button:focus-visible { background: var(--orange-soft); color: var(--black); text-shadow: none; box-shadow: 0 0 22px var(--glow); }
-.fade-note { margin: 10px 0 0; }
+.fade-note { margin: 4px 0 0; }
 
-/* The local tools, as plain text with a status dot: not buttons. */
+/* The footer: one privacy badge on an opaque pill, so the graveyard below never runs under the text. */
 .site-footer { color: var(--muted); font-size: 0.85rem; text-align: center; }
-#health { display: inline; list-style: none; padding: 0; margin: 0; }
-#health li { display: inline-block; margin: 0 6px; cursor: default; }
-#health li::before { content: "\25CF"; margin-right: 4px; font-size: 0.7em; vertical-align: 0.15em; }
-#health .ok::before { color: var(--ok); }
-#health .bad { color: var(--bad); }
-#health .bad::before { color: var(--bad); }
-#health .off::before { color: #6c7894; }
+.site-footer > * { position: relative; }
+.badge, .site-footer .link {
+  display: inline-block; margin: 4px; padding: 4px 14px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line);
+}
+.badge::before { content: "\25CF"; color: var(--ok); margin-right: 6px; font-size: 0.7em; vertical-align: 0.15em; }
+
+/* The local tools in the About panel: plain text with a status dot, not buttons. */
+.health { list-style: none; padding: 0; margin: 0; }
+.health li { margin: 4px 0; }
+.health li::before { content: "\25CF"; margin-right: 6px; font-size: 0.7em; vertical-align: 0.15em; }
+.health .ok::before { color: var(--ok); }
+.health .bad, .health .bad::before { color: var(--bad); }
+.health .off::before { color: #6c7894; }
+.health .fix { color: var(--orange-soft); }
 
 /* Plain mode as a visible switch. */
 .switch { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; color: var(--text); font-size: 0.9rem; }
@@ -141,14 +142,17 @@ section section { background: none; border: 0; box-shadow: none; padding: 0; mar
   animation: bob 3.4s ease-in-out infinite;
 }
 .mascot:hover, .mascot:focus-visible { background: none; box-shadow: none; transform: none; }
+.mascot:hover svg, .mascot:focus-visible svg { animation: wiggle 0.6s ease-in-out; } /* "you can poke me" */
 .mascot svg { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.45)); }
 .mascot .sheet { fill: #f6f8ff; }
 .mascot .eyes, .mascot .mouth { fill: var(--night); }
 .mascot .eyes { transform-box: fill-box; transform-origin: center; animation: blink 5s infinite; }
 .mascot:hover .mouth { transform-box: fill-box; transform-origin: center; transform: scale(1.4, 1.6); }
 .brand { position: relative; }
+/* The speech bubble sits in the space above the title, never over it, and stays on one line. */
 .bubble {
-  position: absolute; left: 52px; top: -10px; z-index: 2; margin: 0; padding: 3px 12px; max-width: min(260px, 70vw);
+  position: absolute; left: 48px; bottom: calc(100% + 4px); z-index: 2; margin: 0; padding: 3px 14px;
+  min-width: 12ch; max-width: calc(100vw - 80px); width: max-content; white-space: nowrap;
   font: 700 1.3rem/1.2 "Caveat", cursive; color: var(--black); background: var(--ink);
   border-radius: 14px 14px 14px 2px; pointer-events: none; box-shadow: 0 0 20px rgba(255, 255, 255, 0.35);
   animation: say-boo 0.3s ease-out;
@@ -156,6 +160,10 @@ section section { background: none; border: 0; box-shadow: none; padding: 0; mar
 .mascot.boo svg { animation: boo 0.9s ease-out; }
 
 .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 10px; font-size: 0.85rem; color: var(--muted); }
+.top-links { position: absolute; top: 14px; right: 16px; display: flex; gap: 14px; }
+.why { margin: 14px 0 0; max-width: 52ch; font-size: 1.05rem; color: var(--text); }
+.intro { margin: 6px 0 0; max-width: 52ch; color: var(--muted); }
+#wake:empty { display: none; }
 
 #health-banner { margin-top: 12px; padding: 8px 16px; border: 1px solid var(--bad); border-radius: 10px; color: var(--text); background: rgba(60, 10, 10, 0.5); }
 #health-banner .fix { color: var(--orange-soft); font-family: Consolas, monospace; font-size: 0.85rem; }
@@ -186,14 +194,27 @@ button:disabled { opacity: 0.55; cursor: wait; transform: none; }
 input[type="file"] { color: var(--muted); max-width: 100%; }
 input[type="file"]::file-selector-button { margin-right: 12px; background: transparent; color: var(--text); border: 1px solid var(--line); }
 
-button.quiet { background: none; color: var(--muted); padding: 4px 6px; font-size: 0.9rem; text-decoration: underline; box-shadow: none; }
-button.quiet:hover, button.quiet:focus-visible { color: var(--orange-soft); transform: none; box-shadow: none; }
+/* Secondary actions: an outline, so each section has one filled (primary) button at most. */
+button.secondary { background: transparent; color: var(--orange-soft); box-shadow: inset 0 0 0 1px rgba(255, 162, 74, 0.6); }
+button.secondary:hover, button.secondary:focus-visible { background: rgba(255, 122, 24, 0.12); color: var(--ink); box-shadow: inset 0 0 0 1px var(--orange); transform: none; }
+/* Small actions that read like links. */
+button.link { background: none; color: var(--muted); padding: 4px 6px; font-size: 0.9rem; text-decoration: underline; box-shadow: none; border-radius: 4px; }
+button.link:hover, button.link:focus-visible { color: var(--orange-soft); transform: none; box-shadow: none; background: none; }
 button.record { font-size: 1.15rem; padding: 12px 28px; margin: 4px 0 8px; }
 button.record::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 10px; border-radius: 50%; background: var(--black); vertical-align: 1px; }
-button.live { background: var(--orange); animation: heartbeat 1.4s ease-out infinite; }
-button.live::before { background: #d4140b; animation: blink-dot 1s steps(2) infinite; }
+
+/* Recording: permission, then a live clock and level meter with Stop and Cancel. */
+.rec { margin: 4px 0; }
+.recording { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0 4px; font-size: 1.05rem; }
+.recording .dot { width: 12px; height: 12px; border-radius: 50%; background: #e0261b; box-shadow: 0 0 10px #e0261b; animation: blink-dot 1s steps(2) infinite; }
+.meter { display: inline-block; width: 120px; height: 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.12); overflow: hidden; vertical-align: middle; }
+.meter i { display: block; height: 100%; background: linear-gradient(90deg, var(--ok), var(--orange)); transform-origin: left; transform: scaleX(0); transition: transform 0.12s; }
+.warn { color: var(--orange-soft); }
+.language, .upload-label, .mood-pick { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 6px 0; }
+.language select { padding: 4px 12px; }
 
 .meta { color: var(--muted); font-size: 0.85rem; }
+.link-row { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
 .status { font-style: italic; color: var(--muted); }
 .error { color: var(--bad); }
 
@@ -219,7 +240,11 @@ audio::-webkit-media-controls-current-time-display, audio::-webkit-media-control
    the handwriting face is kept for short accents. */
 .ghost-text { font-family: Georgia, "Nirmala UI", serif; font-size: 1.15rem; line-height: 1.6; max-width: 70ch; color: var(--ink); }
 .ghost-text p { margin: 0; }
-.reaction .ghost-text::first-line { font-family: "Caveat", "Segoe Print", cursive; font-size: 1.4em; color: var(--orange-soft); }
+/* The note is set in one face; only its first letter is an illuminated capital. */
+.reaction .ghost-text::first-letter {
+  float: left; margin: 0.06em 0.12em 0 0; font-family: "IM Fell English", Georgia, serif;
+  font-size: 3.1em; line-height: 0.8; color: var(--orange); text-shadow: 0 0 14px var(--glow);
+}
 .summary { max-width: 70ch; }
 
 .handwriting {
@@ -231,13 +256,22 @@ audio::-webkit-media-controls-current-time-display, audio::-webkit-media-control
 }
 #greeting { margin: 14px 0 0; font-size: 1.5rem; color: #dfe6f8; }
 
+/* A whisper appears in the empty space beside the header, so nothing moves and no text is covered;
+   it says which story it came from. Narrow windows have no such space, so they get no whispers. */
 .whisper {
-  margin: 2px 0 0; font-family: "Caveat", cursive; font-size: 1.3rem; font-style: italic;
+  position: absolute; top: 92px; right: max(16px, calc((100vw - 880px) / 2 + 16px)); z-index: 2; width: 300px;
+  margin: 0; padding: 10px 16px; border-radius: 14px; background: rgba(8, 17, 42, 0.95);
+  border: 1px solid rgba(170, 200, 255, 0.25); box-shadow: 0 0 30px rgba(110, 145, 255, 0.2);
   animation: whisper-in 4s ease-out both;
   transition: opacity 4s ease-in;
 }
-.whisper a { color: #b9c8ee; text-decoration: none; text-shadow: 0 0 14px rgba(170, 200, 255, 0.5); }
-.whisper a:hover { color: var(--orange-soft); }
+.whisper p { margin: 0; font-family: "Caveat", cursive; font-size: 1.3rem; color: #c9d5f4; }
+.whisper .from { font: 0.85rem Georgia, serif; color: var(--muted); margin-top: 2px; }
+.whisper a { color: var(--orange-soft); }
+.whisper .close { position: absolute; top: 2px; right: 4px; padding: 2px 8px; font-size: 1.1rem; text-decoration: none; }
+.whisper { padding-right: 34px; }
+@media (max-width: 999px) { .whisper { display: none; } }
+body.reading .whisper { display: none; }
 .whisper.fading { opacity: 0; }
 @keyframes whisper-in {
   from { opacity: 0; letter-spacing: 0.12em; filter: blur(3px); }
@@ -283,9 +317,16 @@ sup.cite a:hover, sup.cite a:focus-visible { text-decoration: underline; }
               linear-gradient(rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.12)) 0 4px / 100% 1px no-repeat;
   animation-delay: -1.3s;
 }
-.filter { display: inline-flex; gap: 8px; align-items: center; }
-.filter select { padding: 3px 12px; }
-.book-link { margin-left: 16px; }
+.wall-tools { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+@media (min-width: 601px) { .wall-tools { padding-right: 110px; } } /* clear of the cobweb */
+.search input { width: 300px; max-width: calc(100vw - 80px); padding: 5px 14px; font: inherit; color: var(--text); background: rgba(3, 5, 11, 0.7);
+                border: 1px solid var(--line); border-radius: 999px; }
+.search input:focus { outline: none; border-color: var(--orange); box-shadow: 0 0 0 3px rgba(255, 122, 24, 0.25); }
+.filter { display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: center; color: var(--muted); font-size: 0.9rem; }
+.filter select { padding: 3px 12px; max-width: 100%; }
+.book-row, .samples-row { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; margin: 14px 0 0; }
+.legend-wrap { margin-top: 14px; }
+.legend-wrap .meta { margin: 4px 0; }
 
 /* A cobweb in the corner, and its spider going up and down on a thread. */
 .web { position: absolute; top: 0; right: 0; width: 150px; height: 190px; overflow: hidden; pointer-events: none; }
@@ -305,7 +346,8 @@ sup.cite a:hover, sup.cite a:focus-visible { text-decoration: underline; }
 }
 
 /* One candle. Every design is drawn on the same 90 x 128 px stage, so the wall lines up.
-   --life (1 = visited today, 0.12 = a month ago) only dims a flame slightly: it never drops below ~70%. */
+   --life is 1 for a story opened today and falls to 0 over a month unopened: the flame shrinks to
+   less than half its size and its glow fades, so a forgotten story visibly burns low. */
 .candle {
   --life: 1;
   --top: 80px; /* where the wick stands, from the bottom of the stage */
@@ -319,19 +361,19 @@ sup.cite a:hover, sup.cite a:focus-visible { text-decoration: underline; }
 .candle:hover, .candle:focus-visible { text-shadow: none; }
 .candle:hover .label, .candle:focus-visible .label { color: var(--orange-soft); }
 
-.art { position: relative; width: 90px; height: 128px; filter: brightness(calc(0.8 + 0.2 * var(--life))); }
+.art { position: relative; width: 90px; height: 128px; filter: brightness(calc(0.65 + 0.35 * var(--life))) saturate(calc(0.6 + 0.4 * var(--life))); }
 .art > span { position: absolute; left: 0; right: 0; margin-inline: auto; }
 .art::before { /* the light the flame throws around it */
   content: ""; position: absolute; left: -30px; right: -30px; bottom: calc(var(--top) - 40px); height: 110px;
   background: radial-gradient(closest-side, var(--halo), transparent);
-  opacity: calc(0.4 + 0.6 * var(--life)); pointer-events: none;
+  opacity: calc(0.1 + 0.9 * var(--life)); pointer-events: none;
 }
 .flame-wrap {
   width: 16px; height: 40px; bottom: calc(var(--top) + 3px);
   display: flex; align-items: flex-end;
-  transform: scale(calc(0.75 + 0.25 * var(--life)));
+  transform: scale(calc(0.4 + 0.6 * var(--life)));
   transform-origin: 50% 100%;
-  opacity: calc(0.7 + 0.3 * var(--life));
+  opacity: calc(0.55 + 0.45 * var(--life));
   transition: transform 0.3s;
 }
 .candle:hover .flame-wrap, .candle:focus-visible .flame-wrap { transform: scale(calc(1 + 0.25 * var(--life))); }
@@ -469,14 +511,14 @@ sup.cite a:hover, sup.cite a:focus-visible { text-decoration: underline; }
 .mood-loving .wick { left: auto; right: 9px; margin: 0; }
 
 /* The key under the wall: what each flame colour means. Each entry is also a mood filter. */
-.legend { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 8px; padding: 0; margin: 14px 0 0; }
+.legend { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 8px; padding: 0; margin: 6px 0; }
 .legend button {
   display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; font-size: 0.85rem;
   background: none; color: var(--muted); border: 1px solid transparent; box-shadow: none;
 }
 .legend button:hover, .legend button:focus-visible { background: none; color: var(--text); border-color: var(--line); box-shadow: none; transform: none; }
 .legend button[aria-pressed="true"] { color: var(--text); border-color: var(--edge); box-shadow: 0 0 14px var(--halo); }
-.legend button:disabled { opacity: 0.4; cursor: default; }
+.legend button:disabled { opacity: 0.45; cursor: default; }
 .legend i {
   width: 9px; height: 14px; border-radius: 50% 50% 45% 45% / 65% 65% 35% 35%;
   background: radial-gradient(ellipse at 50% 75%, var(--core) 0 15%, var(--mid) 40%, var(--edge) 75%);
@@ -491,12 +533,17 @@ sup.cite a:hover, sup.cite a:focus-visible { text-decoration: underline; }
   border-radius: 2px; animation: smoke 3s ease-in-out infinite;
 }
 .candle.failed .label { color: var(--bad); }
+/* Words lost in fog: no flame, a grey mist where it would be. */
+.candle.unclear .label { color: var(--muted); font-style: italic; }
+.candle.unclear .art { filter: grayscale(1) brightness(0.7); }
+.candle.unclear .flame::before { width: 26px; height: 18px; margin-left: -5px; border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(200, 210, 230, 0.5), transparent 70%); animation: smoke 4s ease-in-out infinite; }
 
 .candle.relit .flame { animation: relight 1.2s ease-out, dance 2.4s ease-in-out 1.2s infinite alternate; }
 
 /* ---------- the seance: a crystal ball that stirs while the ghost answers ---------- */
 
-#seance h2 { padding-right: 84px; }
+#seance h2, #seance .hint { padding-right: 84px; }
 .orb {
   position: absolute; top: 16px; right: 24px; width: 62px; height: 62px; border-radius: 50%;
   background: radial-gradient(circle at 34% 30%, rgba(255, 255, 255, 0.95) 0 5%, rgba(170, 195, 255, 0.4) 16%, rgba(30, 60, 150, 0.6) 55%, rgba(4, 8, 24, 0.95) 100%);
@@ -532,6 +579,20 @@ body.reading :is(#how, #archive, #seance, #new-story) { display: none; }
 h2[tabindex="-1"]:focus { outline: none; }
 
 .inline-edit, .transcript-edit, .tags-edit { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 12px 0; }
+.uncertain { font-style: italic; }
+.fog-box, .failed-box { margin: 16px 0; padding: 12px 18px 14px; border-radius: 12px; border: 1px solid rgba(200, 210, 230, 0.3);
+  background: linear-gradient(180deg, rgba(120, 135, 170, 0.14), rgba(8, 17, 42, 0)); }
+.failed-box { border-color: rgba(255, 107, 94, 0.45); background: none; }
+.fog-box h3 { margin-top: 4px; color: #dfe6f8; }
+.fog-actions { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 10px; }
+.listen-again { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0 4px; }
+.listen-again label { display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.listen-again .meta { flex-basis: 100%; margin: 0; }
+.answer-tools { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; margin-top: 4px; }
+.answer-language { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; margin: 0 0 10px; }
+.added { margin: 8px 0 4px; padding: 6px 0 6px 14px; border-left: 3px solid var(--orange); }
+.added p { margin: 4px 0; }
+.added audio { margin: 6px 0; }
 .transcript-edit, .tags-edit { display: block; }
 .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 10px; }
 textarea {
@@ -546,18 +607,22 @@ fieldset input[type="text"] { flex: 1 1 180px; }
 .reread { margin: 12px 0; padding: 12px 16px; border: 1px solid rgba(255, 122, 24, 0.4); border-radius: 12px; }
 .reread p { margin: 0 0 10px; }
 
-/* Processing: which step the ghost is on. */
+/* Processing: which step the Archivist is on. A list of steps on a line, not buttons. */
 .progress { margin: 12px 0; }
-.stages { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 10px; padding: 0; margin: 0 0 6px; counter-reset: stage; }
-.stages li { counter-increment: stage; padding: 3px 12px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); font-size: 0.9rem; }
-.stages li::before { content: counter(stage) ". "; }
-.stages li.done { color: var(--ok); border-color: rgba(143, 214, 148, 0.4); }
-.stages li.done::before { content: "\2713  "; }
-.stages li.now { color: var(--black); background: var(--orange); border-color: var(--orange); animation: flicker 2.2s infinite; }
+.stages { list-style: none; display: flex; flex-wrap: wrap; gap: 8px 0; padding: 0; margin: 0 0 6px; counter-reset: stage; }
+.stages li { counter-increment: stage; display: flex; flex-direction: column; padding-right: 26px; position: relative; color: var(--muted); cursor: default; }
+.stages li:not(:last-child)::after { content: ""; position: absolute; right: 8px; top: 0.75em; width: 10px; border-top: 1px dashed var(--muted); }
+.step-name::before { content: counter(stage) ". "; }
+.step-hint { font-size: 0.75rem; }
+.stages li.done { color: var(--ok); }
+.stages li.done .step-name::before { content: "\2713  "; }
+.stages li[aria-current="step"] { color: var(--ink); }
+.stages li[aria-current="step"] .step-name { color: var(--orange-soft); font-weight: bold; animation: flicker 2.2s infinite; }
 .elapsed { font-variant-numeric: tabular-nums; }
 .working button { margin-left: 8px; }
 
 button.danger, .danger { background: transparent; color: var(--bad); border: 1px solid var(--bad); margin-top: 24px; }
+button.danger.inline { margin-top: 0; }
 button.danger:hover, button.danger:focus-visible { background: var(--bad); color: var(--black); box-shadow: 0 0 22px rgba(255, 107, 94, 0.5); }
 
 /* The confirmation dialog and passing notices. */
@@ -571,9 +636,16 @@ dialog .row { justify-content: flex-end; }
 dialog button.danger { margin-top: 0; }
 #toast {
   position: fixed; left: 50%; bottom: 24px; z-index: 5; transform: translateX(-50%); margin: 0;
-  max-width: calc(100vw - 32px); padding: 10px 20px; border-radius: 999px;
+  display: flex; align-items: center; gap: 10px; max-width: calc(100vw - 32px); padding: 8px 12px 8px 20px; border-radius: 999px;
   background: #0b1736; color: var(--text); border: 1px solid var(--orange); box-shadow: 0 0 30px rgba(255, 122, 24, 0.3);
 }
+#toast button { color: var(--orange-soft); font-weight: bold; }
+/* About: what each feature does, and the local tools. */
+#about { max-width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 32px); }
+.about-body h3 { margin-top: 16px; }
+.features { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; }
+.features dt { color: var(--orange-soft); }
+.features dd { margin: 0; }
 
 /* Unfinished business is carved on a gravestone. */
 section.unfinished {
@@ -584,10 +656,9 @@ section.unfinished {
   box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.07), inset 0 -24px 40px rgba(0, 0, 0, 0.35), 0 14px 30px rgba(0, 0, 0, 0.45);
 }
 section.unfinished h3 {
-  margin-top: 0; text-align: center; text-transform: uppercase; letter-spacing: 0.22em; font-size: 1rem;
-  color: #d3d9ea; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.18), 0 -1px 0 rgba(0, 0, 0, 0.7);
+  margin-top: 0; text-align: center; color: #e3e8f5; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.18), 0 -1px 0 rgba(0, 0, 0, 0.7);
 }
-section.unfinished > .handwriting { text-align: center; margin: 0 0 8px; }
+section.unfinished > .hint { text-align: center; margin: 0 0 10px; }
 
 /* The haunted retelling is told beside a dying fire. */
 section:has(> .retelling) { isolation: isolate; padding: 4px 18px 20px; border-radius: 14px; overflow: hidden; }
@@ -679,6 +750,7 @@ section:has(> .retelling)::after {
 @keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
 @keyframes bob { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-9px) rotate(2deg); } }
 @keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
+@keyframes wiggle { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-7deg); } 75% { transform: rotate(7deg); } }
 @keyframes boo { 0% { transform: scale(1); } 30% { transform: scale(1.35) translateY(-6px); } 60% { transform: scale(0.95) rotate(-6deg); } 100% { transform: scale(1); } }
 @keyframes say-boo { from { opacity: 0; transform: scale(0.3); transform-origin: 0 100%; } to { opacity: 1; transform: none; } }
 @keyframes sign-flicker { 0%, 88%, 92%, 100% { opacity: 1; } 89% { opacity: 0.45; } 90% { opacity: 1; } 91% { opacity: 0.65; } }
@@ -720,18 +792,34 @@ section:has(> .retelling)::after {
 
 @media (max-width: 600px) {
   section, article { padding: 6px 16px 16px; }
-  .moon { top: 14px; right: 10px; width: 48px; height: 48px; }
+  .moon { top: 46px; right: 10px; width: 48px; height: 48px; }
   .mascot { width: 48px; height: 60px; }
-  .web { transform: scale(0.75); transform-origin: top right; }
-  .book-link { display: block; margin: 6px 0 0; }
+  .bubble { left: 38px; font-size: 1.15rem; }
+  .web { transform: scale(0.6); transform-origin: top right; }
+  .spider { display: none; } /* its thread would cross the tools */
+  #archive .hint { padding-right: 70px; }
+  header { display: flex; flex-direction: column; }
+  .top-links { position: static; order: 1; gap: 8px; margin-top: 6px; } /* below the controls: the bubble needs the top */
+  .features { grid-template-columns: 1fr; }
+  .features dd { margin-bottom: 6px; }
 }
 @media (max-width: 400px) {
-  .moon { top: 10px; width: 40px; height: 40px; } /* keeps clear of the title down to 360 px */
+  .moon { top: 48px; width: 40px; height: 40px; } /* in the corner beside the title, clear of the links */
 }
 
 /* ---------- plain mode: neutral text, no effects ---------- */
 
-body.plain .scene, body.plain .lantern, body.plain .mascot, body.plain .bubble, body.plain .web, body.plain .orb { display: none; }
+body.plain .scene, body.plain .lantern, body.plain .mascot, body.plain .bubble, body.plain .web, body.plain .orb,
+body.plain .whisper, body.plain .art { display: none; }
+body.plain .candle { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; padding: 8px 12px;
+  border: 1px solid var(--line); border-radius: 10px; opacity: calc(0.6 + 0.4 * var(--life)); }
+body.plain .candle::before { content: ""; flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--edge); }
+body.plain .candle:not(.lit)::before { background: var(--muted); }
+body.plain .candle .label { margin: 0; max-width: none; text-align: left; font-family: Georgia, serif; flex: 1 1 70%; }
+body.plain .candle .meta { flex-basis: 100%; text-align: left; padding-left: 18px; }
+body.plain .wall { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+body.plain .reaction .ghost-text::first-letter { float: none; font: inherit; color: inherit; text-shadow: none; margin: 0; }
+body.plain .fog-box h3 { font-family: Georgia, serif; }
 /* No movement, no string lights, no glow: everything still works, it just stops performing. */
 body.plain *, body.plain *::before, body.plain *::after { animation: none !important; transition: none !important; }
 body.plain .ofrenda { padding-top: 8px; }
@@ -746,7 +834,7 @@ body.plain .ink { animation: none; }
 body.plain section.unfinished { padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none; }
 body.plain section.unfinished h3 { text-align: left; text-transform: none; letter-spacing: normal; font-size: 1.25rem; color: var(--orange-soft); text-shadow: none; }
 body.plain section:has(> .retelling)::after { display: none; }
-body.plain #seance h2 { padding-right: 0; }
+body.plain #seance :is(h2, .hint) { padding-right: 0; }
 
 /* Reduced motion: everything settles into its final, still state. */
 @media (prefers-reduced-motion: reduce) {
