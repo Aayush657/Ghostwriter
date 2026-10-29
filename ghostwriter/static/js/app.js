@@ -228,10 +228,12 @@ function life(story) {
 
 // Each mood has its own candle design and flame colour (style.css, .mood-*); see models.Mood.
 const MOODS = ["joyful", "nostalgic", "loving", "poignant", "mysterious", "eerie"];
+const moodOf = (s) => (MOODS.includes(s.mood?.toLowerCase()) ? s.mood.toLowerCase() : "nostalgic"); // older free-form moods
+const hasMood = (mood) => allStories.some((s) => s.status === "ready" && moodOf(s) === mood);
 
 function candle(s, i = 0) {
   const lit = s.status === "ready";
-  const mood = MOODS.includes(s.mood?.toLowerCase()) ? s.mood.toLowerCase() : "nostalgic"; // older free-form moods
+  const mood = moodOf(s);
   const meta = [localTime(s.created_at), s.mood, s.is_sample && "fictional sample"].filter(Boolean).join(" · ");
   const node = el("a", { href: `#/story/${s.id}`, className: `candle mood-${mood} ${lit ? "lit" : s.status}`, title: s.summary || "" },
     el("span", { className: "art" },
@@ -256,6 +258,9 @@ function renderFilterOptions() {
     return values.length && el("optgroup", { label },
       ...values.map((v) => el("option", { value: `${kind}:${v}`, textContent: v })));
   });
+  const moods = MOODS.filter(hasMood);
+  groups.push(moods.length > 0 && el("optgroup", { label: "Mood" },
+    ...moods.map((m) => el("option", { value: `mood:${m}`, textContent: m }))));
   select.replaceChildren(el("option", { value: "", textContent: voice().allMemories }), ...present(groups));
   select.value = [...select.options].some((o) => o.value === current) ? current : "";
 }
@@ -264,10 +269,48 @@ function renderWall() {
   const filter = $("#filter").value;
   const split = filter.indexOf(":");
   const [kind, value] = [filter.slice(0, split), filter.slice(split + 1)];
-  const shown = filter ? allStories.filter((s) => s.entities?.[kind]?.includes(value)) : allStories;
+  const matches = (s) => (kind === "mood" ? s.status === "ready" && moodOf(s) === value : s.entities?.[kind]?.includes(value));
+  const shown = filter ? allStories.filter(matches) : allStories;
   $("#wall").replaceChildren(...(shown.length
     ? shown.map(candle)
     : [el("p", { className: "handwriting", textContent: voice().emptyWall })]));
+  // The colour key doubles as a mood filter: show which mood is lit, and which have no candles yet.
+  document.querySelectorAll(".legend button").forEach((b) => {
+    b.setAttribute("aria-pressed", String(filter === `mood:${b.dataset.mood}`));
+    b.disabled = !hasMood(b.dataset.mood);
+  });
+}
+
+// Suggested questions: the people, places and keepsakes that come up most often across the stories.
+function renderChips() {
+  const counts = new Map(); // lower-case name -> { name, n }
+  for (const s of allStories.filter((s) => s.status === "ready")) {
+    for (const kind of ["person", "place", "keepsake"]) {
+      for (const raw of s.entities?.[kind] || []) {
+        const name = raw.replace(/\s*\(.*\)$/, "").trim(); // "Nani (grandmother)" -> "Nani"
+        const seen = counts.get(name.toLowerCase());
+        if (name.length >= 3) counts.set(name.toLowerCase(), { name, n: (seen?.n || 0) + 1 });
+      }
+    }
+  }
+  // Most frequent first; on a tie, real names ("Jaipur", "Rohan") before relations ("father").
+  const isName = (name) => name[0] !== name[0].toLowerCase();
+  const ranked = [...counts.values()].sort((a, b) => b.n - a.n || isName(b.name) - isName(a.name));
+  const top = [];
+  for (const { name } of ranked) {
+    const low = name.toLowerCase();
+    if (top.some((t) => low.includes(t.toLowerCase()) || t.toLowerCase().includes(low))) continue; // "grandfather" vs "grandfather's father"
+    top.push(name);
+    if (top.length === 5) break;
+  }
+  $("#seance-chips").replaceChildren(...top.map((name) => el("button", {
+    type: "button", className: "chip", textContent: `Ask about ${name}`,
+    onclick: () => {
+      const question = `Tell me about ${name}.`;
+      $("#seance-form").question.value = question;
+      askSeance(question);
+    },
+  })));
 }
 
 async function loadStories() {
@@ -280,6 +323,7 @@ async function loadStories() {
     allStories = stories;
     renderFilterOptions();
     renderWall();
+    renderChips();
   }
   return stories;
 }
@@ -531,6 +575,13 @@ async function start() {
   });
   $("#record-button").addEventListener("click", (event) => toggleRecording(event.currentTarget));
   $("#filter").addEventListener("change", renderWall);
+  $(".legend").addEventListener("click", (event) => {
+    const mood = event.target.closest("button")?.dataset.mood;
+    if (!mood) return;
+    const select = $("#filter");
+    select.value = select.value === `mood:${mood}` ? "" : `mood:${mood}`; // a second click shows every candle again
+    renderWall();
+  });
   $("#upload-form").addEventListener("submit", (event) => {
     event.preventDefault();
     const file = event.target.file.files[0];

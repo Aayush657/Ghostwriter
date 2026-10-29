@@ -26,7 +26,8 @@ _Screenshots and a demo video: [PLACEHOLDER]_
   the answer is kept as a linked follow-up story.
 - **Seance.** Ask the archive a question. It searches your stories (SQLite FTS5), and Gemma answers
   only from what it found, citing and linking each story. If nothing matches, Gemma isn't asked:
-  *"That memory was never given to me."*
+  *"That memory was never given to me."* Buttons under the question box suggest what to ask, made
+  from the names, places and keepsakes that come up most in your stories.
 - **Ghost handwriting.** Gemma's words stream to the page as they are generated and fade in like ink,
   in a handwriting font.
 - **Candle wall.** Every story is a candle on a wall strung with orange and white lights, under a

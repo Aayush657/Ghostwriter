@@ -39,6 +39,11 @@ _Last updated: Thu Oct 29, 2026_
     (uniform height; the old random wax heights are gone), flame colours, a colour key. Checked in the
     browser pane at desktop and 375 px (joyful/loving previewed by injecting two candles, since no demo
     story has those moods yet).
+  - Oct 29: **suggested questions** under the Seance box (5 most common people/places/keepsakes, real
+    names first, near-duplicates skipped) and **the colour key filters the wall by mood** (same state
+    as the filter menu, which gained a Mood group; empty moods greyed out). Checked in the browser pane:
+    clicking "eerie" shows only the skull and sets the menu; a second click shows all; "Ask about Nani"
+    asked real Gemma and got a cited answer; no overflow at 375 px.
     **User TODOs in `docs/index.html`**: `YOUR_GITHUB_REPO_URL` (x2) and the demo-video box.
 - **Stage 6: DONE (drafts).** README complete (quick start **verified on a fresh clone**: setup.ps1 OK in
   43 s, 47 tests pass + 1 skipped without Piper). DEMO_SCRIPT.md (2:00 + 1:30 cut). POST_DRAFT.md in the

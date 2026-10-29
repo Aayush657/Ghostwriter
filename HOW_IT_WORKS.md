@@ -122,7 +122,14 @@ design and flame colour, all drawn in CSS on the same 90 x 128 px stage so the w
 nostalgic = dripping pillar, amber; poignant = twisted taper in a brass candlestick, blue;
 mysterious = candle in an iron lantern, violet; eerie = skull candle, green; joyful = jack-o'-lantern,
 gold; loving = clay diya, rose. Shape and colour together mean colour is never the only cue. A key
-under the wall names the colours. Stories analysed before the moods were fixed get the pillar.
+under the wall names the colours, and each entry is a button: it lights only that mood's candles
+(it sets the same filter as the menu, so the two always agree; moods with no stories are greyed out).
+Stories analysed before the moods were fixed get the pillar.
+
+The Seance's **suggested questions** need no model either: the page counts the people, places and
+keepsakes across all finished stories and offers the five most common ("Ask about Jaipur"). On a tie,
+real names beat relations like "father", and near-duplicates ("grandfather", "grandfather's father")
+are skipped. A click asks "Tell me about Jaipur.", whose only search word is the name.
 Whispers need no model: they are one sentence of the storyteller's own words, picked from the three
 least recently visited stories, which nudges you back toward what you've forgotten.
 

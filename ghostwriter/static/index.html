@@ -113,13 +113,13 @@
       </label>
       <a class="meta book-link" href="/api/book" target="_blank" rel="noopener" data-voice="book"></a>
       <div id="wall" class="wall"></div>
-      <ul class="legend" aria-label="What the flame colours mean">
-        <li class="mood-joyful"><i></i>joyful</li>
-        <li class="mood-nostalgic"><i></i>nostalgic</li>
-        <li class="mood-loving"><i></i>loving</li>
-        <li class="mood-poignant"><i></i>poignant</li>
-        <li class="mood-mysterious"><i></i>mysterious</li>
-        <li class="mood-eerie"><i></i>eerie</li>
+      <ul class="legend" aria-label="Flame colours: choose a mood to light only its candles">
+        <li><button type="button" class="mood-joyful" data-mood="joyful"><i></i>joyful</button></li>
+        <li><button type="button" class="mood-nostalgic" data-mood="nostalgic"><i></i>nostalgic</button></li>
+        <li><button type="button" class="mood-loving" data-mood="loving"><i></i>loving</button></li>
+        <li><button type="button" class="mood-poignant" data-mood="poignant"><i></i>poignant</button></li>
+        <li><button type="button" class="mood-mysterious" data-mood="mysterious"><i></i>mysterious</button></li>
+        <li><button type="button" class="mood-eerie" data-mood="eerie"><i></i>eerie</button></li>
       </ul>
     </section>
 
@@ -132,6 +132,7 @@
         <input type="text" name="question" maxlength="500" autocomplete="off" aria-label="Your question">
         <button type="submit" data-voice="ask"></button>
       </form>
+      <div id="seance-chips" class="chips" aria-label="Suggested questions"></div>
       <div id="seance-answer" aria-live="polite"></div>
       <p id="seance-sources" class="meta"></p>
     </section>
