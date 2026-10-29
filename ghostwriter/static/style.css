@@ -146,13 +146,14 @@ section section { background: none; border: 0; box-shadow: none; padding: 0; mar
 .mascot .eyes, .mascot .mouth { fill: var(--night); }
 .mascot .eyes { transform-box: fill-box; transform-origin: center; animation: blink 5s infinite; }
 .mascot:hover .mouth { transform-box: fill-box; transform-origin: center; transform: scale(1.4, 1.6); }
-.mascot::after {
-  content: "Boo!"; position: absolute; left: 54px; top: -6px; padding: 2px 10px;
-  font: 700 1.4rem/1.2 "Caveat", cursive; color: var(--black); background: var(--ink);
-  border-radius: 14px 14px 14px 2px; opacity: 0; transform: scale(0.3); transform-origin: 0 100%; pointer-events: none;
+.brand { position: relative; }
+.bubble {
+  position: absolute; left: 52px; top: -10px; z-index: 2; margin: 0; padding: 3px 12px; max-width: min(260px, 70vw);
+  font: 700 1.3rem/1.2 "Caveat", cursive; color: var(--black); background: var(--ink);
+  border-radius: 14px 14px 14px 2px; pointer-events: none; box-shadow: 0 0 20px rgba(255, 255, 255, 0.35);
+  animation: say-boo 0.3s ease-out;
 }
 .mascot.boo svg { animation: boo 0.9s ease-out; }
-.mascot.boo::after { animation: say-boo 1.6s ease-out; }
 
 .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 10px; font-size: 0.85rem; color: var(--muted); }
 
@@ -202,13 +203,24 @@ dl.details dd { margin: 0; }
 
 details summary { cursor: pointer; color: var(--muted); }
 details summary:hover { color: var(--orange-soft); }
-.transcript { white-space: pre-wrap; color: #d4dbec; }
+.transcript { white-space: pre-wrap; color: #d4dbec; max-width: 70ch; }
 .retelling, .retelling p { white-space: pre-wrap; } /* keep the retelling's paragraphs */
 .questions li { margin-bottom: 10px; }
 .questions li::marker { color: var(--orange); }
-audio { width: 100%; margin: 8px 0; }
 
-/* ---------- ghost handwriting ---------- */
+/* The recording's player, dressed for the night (Chromium lets us colour its panel). */
+audio { display: block; width: 100%; max-width: 520px; margin: 12px 0; border-radius: 999px; box-shadow: 0 0 0 1px var(--line), 0 0 20px rgba(255, 122, 24, 0.12); }
+audio::-webkit-media-controls-panel { background: linear-gradient(90deg, #13264d, #1b2f5e); }
+audio::-webkit-media-controls-current-time-display, audio::-webkit-media-controls-time-remaining-display { color: var(--text); text-shadow: none; }
+
+/* ---------- what the ghost writes ---------- */
+
+/* Long text (Seance answers, notes, retellings) is set in the serif body face for reading;
+   the handwriting face is kept for short accents. */
+.ghost-text { font-family: Georgia, "Nirmala UI", serif; font-size: 1.15rem; line-height: 1.6; max-width: 70ch; color: var(--ink); }
+.ghost-text p { margin: 0; }
+.reaction .ghost-text::first-line { font-family: "Caveat", "Segoe Print", cursive; font-size: 1.4em; color: var(--orange-soft); }
+.summary { max-width: 70ch; }
 
 .handwriting {
   font-family: "Caveat", "Segoe Print", cursive;
@@ -249,15 +261,10 @@ audio { width: 100%; margin: 8px 0; }
   50% { opacity: 0.96; }
 }
 
-a.cite {
-  font-family: "IM Fell English", Georgia, serif;
-  font-size: 0.8em;
-  vertical-align: 0.15em;
-  margin: 0 2px;
-  white-space: nowrap;
-}
-a.cite::before { content: "\2767 "; }
-a.cite.short::before { content: "\2767"; }
+/* Citations: small numbered marks; the sources are listed once under the answer. */
+sup.cite { font-size: 0.7em; line-height: 0; margin-left: 1px; }
+sup.cite a { text-decoration: none; font-family: Georgia, serif; }
+sup.cite a:hover, sup.cite a:focus-visible { text-decoration: underline; }
 
 /* ---------- the candle wall (ofrenda) ---------- */
 
@@ -673,7 +680,7 @@ section:has(> .retelling)::after {
 @keyframes bob { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-9px) rotate(2deg); } }
 @keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
 @keyframes boo { 0% { transform: scale(1); } 30% { transform: scale(1.35) translateY(-6px); } 60% { transform: scale(0.95) rotate(-6deg); } 100% { transform: scale(1); } }
-@keyframes say-boo { 0% { opacity: 0; transform: scale(0.3); } 15%, 75% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1) translateY(-8px); } }
+@keyframes say-boo { from { opacity: 0; transform: scale(0.3); transform-origin: 0 100%; } to { opacity: 1; transform: none; } }
 @keyframes sign-flicker { 0%, 88%, 92%, 100% { opacity: 1; } 89% { opacity: 0.45; } 90% { opacity: 1; } 91% { opacity: 0.65; } }
 @keyframes heartbeat { 0% { box-shadow: 0 0 0 0 rgba(255, 122, 24, 0.7); } 100% { box-shadow: 0 0 0 20px rgba(255, 122, 24, 0); } }
 @keyframes blink-dot { 50% { opacity: 0.2; } }
@@ -718,11 +725,21 @@ section:has(> .retelling)::after {
   .web { transform: scale(0.75); transform-origin: top right; }
   .book-link { display: block; margin: 6px 0 0; }
 }
+@media (max-width: 400px) {
+  .moon { top: 10px; width: 40px; height: 40px; } /* keeps clear of the title down to 360 px */
+}
 
 /* ---------- plain mode: neutral text, no effects ---------- */
 
-body.plain .scene, body.plain .lantern, body.plain .mascot, body.plain .web, body.plain .orb { display: none; }
-body.plain h1 a { animation: none; }
+body.plain .scene, body.plain .lantern, body.plain .mascot, body.plain .bubble, body.plain .web, body.plain .orb { display: none; }
+/* No movement, no string lights, no glow: everything still works, it just stops performing. */
+body.plain *, body.plain *::before, body.plain *::after { animation: none !important; transition: none !important; }
+body.plain .ofrenda { padding-top: 8px; }
+body.plain .ofrenda::before, body.plain .ofrenda::after, body.plain .art::before { display: none; }
+body.plain .flame, body.plain .legend i { filter: none; }
+body.plain .wax { box-shadow: none; }
+body.plain :is(h1 a, h2, .whisper a, .handwriting) { text-shadow: none; }
+body.plain :is(section, article, .how b, button:hover, .button:hover) { box-shadow: none; }
 body.plain .handwriting { font-family: Georgia, "Nirmala UI", serif; font-size: 1rem; text-shadow: none; color: var(--text); }
 body.plain .writing { animation: none; }
 body.plain .ink { animation: none; }

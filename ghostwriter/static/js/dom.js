@@ -13,5 +13,7 @@ export function el(tag, props = {}, ...children) {
 
 export const $ = (selector) => document.querySelector(selector);
 
-// SQLite stores UTC ("2026-10-28 10:47:38"); show it in the viewer's own time zone.
-export const localTime = (utc) => new Date(utc.replace(" ", "T") + "Z").toLocaleString();
+// SQLite stores UTC ("2026-10-28 10:47:38"); show it in the viewer's time zone as "28 Oct 2026, 4:59 pm".
+export const localTime = (utc) => new Date(utc.replace(" ", "T") + "Z").toLocaleString("en-IN", {
+  day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit",
+});

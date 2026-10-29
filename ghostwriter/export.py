@@ -34,11 +34,24 @@ dt { color: #7b6d5a; }
 dd { margin: 0; }
 .story { border-top: 1px solid #d6c7a6; margin-top: 40px; padding-top: 8px; }
 .cover { text-align: center; padding: 80px 0 40px; }
-.print { font: inherit; margin-top: 16px; padding: 6px 16px; cursor: pointer; }
+a { color: #7a3d0c; text-decoration-color: #d9a066; text-underline-offset: 3px; }
+a:hover, a:focus-visible { color: #b4520a; }
+ol li { margin: 4px 0; }
+.print {
+  font: inherit; margin-top: 18px; padding: 8px 22px; cursor: pointer; border: 0; border-radius: 999px;
+  background: #7a3d0c; color: #fff8ec; box-shadow: 0 2px 10px rgba(122, 61, 12, 0.3);
+}
+.print:hover, .print:focus-visible { background: #b4520a; outline: 2px solid #b4520a; outline-offset: 2px; }
+@page { margin: 18mm 16mm; }
 @media print {
   .print { display: none; }
-  body { background: none; }
+  body { background: none; font-size: 12pt; }
+  main { padding: 0; max-width: none; }
+  a { color: inherit; text-decoration: none; }
+  .cover { padding-top: 30vh; }
   .story { break-before: page; border: 0; margin: 0; }
+  h2, h3 { break-after: avoid; }
+  p, li { orphans: 3; widows: 3; }
 }
 """
 
@@ -96,7 +109,7 @@ def memory_book_html() -> str:
 <main>
 <div class="cover">
 <h1>The Memory Book</h1>
-<p class="hand">{len(stories)} {"memory" if len(stories) == 1 else "memories"}, kept by the ghost in this laptop.</p>
+<p class="hand">{len(stories)} {"memory" if len(stories) == 1 else "memories"}, kept by the ghost on this computer.</p>
 <p class="meta">Written down by Ghostwriter on {today}.</p>
 <button class="print" onclick="print()">Print, or save as PDF</button>
 </div>

@@ -23,6 +23,8 @@ const VOICE = {
     sources: "Consulted:",
     trouble: "The candle gutters. ",
     speak: "Let the Archivist speak",
+    speakLoading: "The Archivist clears its throat...",
+    speakStop: "Stop the voice",
     unwell: "Something in the walls is not well. The archive may only half wake:",
     give: "Give the ghost a story",
     giveHint: "Record or upload a story",
@@ -102,6 +104,8 @@ const VOICE = {
     sources: "Sources:",
     trouble: "Error: ",
     speak: "Read aloud",
+    speakLoading: "Loading audio...",
+    speakStop: "Stop",
     reaction: "AI note",
     unwell: "Some local services are not available:",
     give: "Add a story",
@@ -223,15 +227,26 @@ async function loadHealth() {
 // --------------------------------------------------------------------------- the Archivist's voice
 
 let voiceReady = true; // corrected by the health check; if wrong, the click explains the fix
-let playing = null;    // only one voice at a time
+let speaking = null;   // { button, audio }: only one voice at a time
 
+// Back to "Let the Archivist speak", silencing whatever was playing.
+function stopSpeaking() {
+  if (!speaking) return;
+  speaking.audio?.pause();
+  Object.assign(speaking.button, { textContent: voice().speak, disabled: false });
+  speaking = null;
+}
+
+// idle -> loading ("clears its throat", disabled) -> playing ("Stop") -> idle when done or stopped.
 function speakButton(text) {
   if (!voiceReady) return null;
-  const button = el("button", { className: "quiet speak", textContent: voice().speak });
+  const button = el("button", { type: "button", className: "quiet speak", textContent: voice().speak });
   button.onclick = async () => {
-    playing?.pause();
+    if (speaking?.button === button) return stopSpeaking();
+    stopSpeaking();
     button.parentElement.querySelector(".voice-error")?.remove();
-    button.disabled = true;
+    const me = speaking = { button, audio: null };
+    Object.assign(button, { textContent: voice().speakLoading, disabled: true });
     try {
       const res = await fetch("/api/speak", {
         method: "POST",
@@ -239,12 +254,15 @@ function speakButton(text) {
         body: JSON.stringify({ text, plain }),
       });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || res.statusText);
-      playing = new Audio(URL.createObjectURL(await res.blob()));
-      await playing.play();
+      const blob = await res.blob();
+      if (speaking !== me) return; // another voice started meanwhile
+      me.audio = new Audio(URL.createObjectURL(blob));
+      me.audio.onended = () => { if (speaking === me) stopSpeaking(); };
+      Object.assign(button, { textContent: voice().speakStop, disabled: false });
+      await me.audio.play();
     } catch (err) {
+      if (speaking === me) stopSpeaking();
       button.after(el("p", { className: "error voice-error", textContent: voice().trouble + err.message }));
-    } finally {
-      button.disabled = false;
     }
   };
   return button;
@@ -277,6 +295,7 @@ let seanceRun = null; // the question being answered, so a new one (or Cancel) c
 function clearSeance() {
   seanceRun?.abort();
   seanceRun = null;
+  $("#seance-answer").className = ""; // drop the quill's "still writing" look
   $("#seance-answer").replaceChildren();
   $("#seance-sources").replaceChildren();
 }
@@ -303,10 +322,11 @@ async function askSeance(question) {
         const titles = new Map(sources.map((s) => [s.id, s.title]));
         const cited = new Set(data.cited);
         const text = pen?.finish((id) => (cited.has(id) ? { href: `#/story/${id}`, label: titles.get(id) } : null));
+        const order = pen?.cited ?? [];
         sourcesLine.replaceChildren(...present([
-          cited.size > 0 && `${voice().sources} `,
-          ...[...cited].flatMap((id, i) => [
-            i > 0 ? ", " : "", el("a", { href: `#/story/${id}`, textContent: titles.get(id) }),
+          order.length > 0 && `${voice().sources} `,
+          ...order.flatMap((id, i) => [
+            i > 0 ? ", " : "", el("a", { href: `#/story/${id}`, textContent: `[${i + 1}] ${titles.get(id)}` }),
           ]),
           text && " ",
           text && speakButton(text),
@@ -474,6 +494,7 @@ function writtenBlock(story, kind, { heading, note, startNow }) {
   const startLabel = kind === "retelling" ? v.retell : v.writeNote;
   const show = (text) => {
     written.set(key, text);
+    box.className = kind; // drop the quill's "still writing" look
     box.replaceChildren(el("p", { className: "ghost-text", textContent: text }));
     tools.replaceChildren(...present([speakButton(text), kind === "retelling" && el("button", {
       type: "button", className: "quiet", textContent: v.retellAgain,
@@ -487,7 +508,7 @@ function writtenBlock(story, kind, { heading, note, startNow }) {
   // Stopped or failed: keep the earlier text if there was one, otherwise offer to start again.
   const fallBack = (message, isError) => {
     const before = written.get(key) ?? story[kind];
-    if (before) show(before); else { box.replaceChildren(); offer(); }
+    if (before) show(before); else { box.className = kind; box.replaceChildren(); offer(); }
     tools.prepend(el("p", { className: isError ? "error" : "status", textContent: message }));
   };
   const write = (again = false) => {
@@ -815,6 +836,7 @@ async function refresh(force = false) {
   if (id === null) {
     if (document.body.classList.contains("reading")) {
       const left = shown.id;
+      stopSpeaking(); // leaving a story silences its voice
       document.body.classList.remove("reading");
       $("#story").hidden = true;
       if (homeScroll === null) $("#archive").scrollIntoView();
@@ -848,6 +870,7 @@ async function maybeWhisper() {
   node.replaceChildren(el("a", { href: `#/story/${w.story_id}`, title: w.title, textContent: `“${w.text}”` }));
   node.hidden = false;
   setTimeout(() => node.classList.add("fading"), 15000);
+  setTimeout(() => { node.hidden = true; }, 19500); // after the fade, give the space back
 }
 
 // --------------------------------------------------------------------------- the haunting (decoration only)
@@ -860,13 +883,25 @@ function haunt() {
       lantern.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
     }, { passive: true });
   }
+  // Poke the ghost: it wobbles (unless motion is reduced) and says something. The bubble is shown
+  // and hidden by a timer, not an animation, so it appears with reduced motion too.
   const ghost = $("#mascot");
+  const bubble = $("#ghost-says");
+  let hide = null;
   ghost.addEventListener("click", () => {
+    const lines = GHOST_LINES.filter((line) => line !== bubble.textContent);
+    bubble.textContent = lines[Math.floor(Math.random() * lines.length)];
+    bubble.hidden = false;
     ghost.classList.remove("boo");
-    void ghost.offsetWidth; // restart the animation on every poke
+    void ghost.offsetWidth; // restart the wobble on every poke
     ghost.classList.add("boo");
+    clearTimeout(hide);
+    hide = setTimeout(() => { bubble.hidden = true; }, 2500);
   });
 }
+
+const GHOST_LINES = ["Boo!", "Who disturbs my rest?", "Mind the candles, my dear.", "I remember every word you give me.",
+                     "Shh... the memories are sleeping.", "Tell me a story.", "Still here. Always here."];
 
 // --------------------------------------------------------------------------- start
 
