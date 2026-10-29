@@ -15,25 +15,34 @@ const VOICE = {
       ? "The archive is empty, and so very quiet. Tell me something, my dear."
       : `Ah... you have returned. I keep ${n} of your memories.`,
     seance: "Séance",
+    seanceHint: "Ask a question about your stories",
     askPlaceholder: "Ask the archive about a person, a place, a time...",
     ask: "Summon",
+    askHint: "ask",
     consulting: "The candles lean. The Archivist is searching the shelves...",
     sources: "Consulted:",
     trouble: "The candle gutters. ",
     speak: "Let the Archivist speak",
     unwell: "Something in the walls is not well. The archive may only half wake:",
     give: "Give the ghost a story",
+    giveHint: "Record or upload a story",
     record: "Speak, and the ghost will listen",
+    micHint: "Your browser will ask to use the microphone. The recording stays on this computer.",
     stop: "Stop. Let the ghost keep it",
     orUpload: "...or offer a recording you already have:",
     offer: "Offer it",
+    offerHint: "upload recording",
     archive: "The candle wall",
-    filterLabel: "Light only the candles of",
+    archiveHint: "Your stories",
+    filterLabel: "Show only memories about",
     allMemories: "every memory",
     emptyWall: "No candles yet. The wall waits for its first memory.",
+    emptyAction: "Give the ghost its first story",
+    filterEmpty: "No memory matches that.",
     book: "Open the memory book (to print or keep)",
     reaction: "The Archivist writes",
     unfinished: "Unfinished business",
+    unfinishedHint: "Questions to fill the gaps",
     unfinishedIntro: "You never told me...",
     answer: "Speak your answer",
     answerFile: "or offer a file",
@@ -55,25 +64,34 @@ const VOICE = {
   plain: {
     greeting: (n) => `${n} ${n === 1 ? "story" : "stories"} saved.`,
     seance: "Ask your stories",
+    seanceHint: "",
     askPlaceholder: "Ask about a person, a place or a time",
     ask: "Ask",
+    askHint: "",
     consulting: "Searching your stories...",
     sources: "Sources:",
     trouble: "Error: ",
     speak: "Read aloud",
     unwell: "Some local services are not available:",
     give: "Add a story",
+    giveHint: "",
     record: "Record",
+    micHint: "Your browser will ask to use the microphone. The recording stays on this computer.",
     stop: "Stop and save",
     orUpload: "Or upload an audio file:",
     offer: "Upload",
+    offerHint: "",
     archive: "Stories",
-    filterLabel: "Filter:",
+    archiveHint: "",
+    filterLabel: "Show only stories about",
     allMemories: "All stories",
     emptyWall: "No stories yet.",
+    emptyAction: "Add your first story",
+    filterEmpty: "No story matches that filter.",
     book: "Export all stories (printable)",
     reaction: "",
     unfinished: "Follow-up questions",
+    unfinishedHint: "",
     unfinishedIntro: "",
     answer: "Record an answer",
     answerFile: "or upload a file",
@@ -123,9 +141,11 @@ function applyVoice() {
 
 async function loadHealth() {
   const checks = await api("/api/health");
+  const state = (c) => (c.ok ? "working" : c.required ? "missing" : "optional, not set up");
   $("#health").replaceChildren(...checks.map((c) => el("li", {
     className: c.ok ? "ok" : c.required ? "bad" : "off",
     title: c.ok ? c.detail : `${c.detail}. ${c.fix}`,
+    ariaLabel: `${c.name}: ${state(c)}`,
     textContent: c.name,
   })));
   voiceReady = checks.some((c) => c.name === "Piper TTS" && c.ok);
@@ -221,9 +241,12 @@ const ENTITY_GROUPS = [["person", "People"], ["place", "Places"], ["era", "When"
 let allStories = [];
 let wallKey = ""; // skip re-rendering (and restarting the flame animations) when nothing changed
 
-function life(story) {
-  const days = (Date.now() - Date.parse(story.last_visited_at.replace(" ", "T") + "Z")) / 86_400_000;
-  return Math.min(1, Math.max(0.12, 1 - days / FADE_DAYS));
+const daysSinceVisit = (story) => (Date.now() - Date.parse(story.last_visited_at.replace(" ", "T") + "Z")) / 86_400_000;
+const life = (story) => Math.min(1, Math.max(0.12, 1 - daysSinceVisit(story) / FADE_DAYS));
+
+function lastOpened(story) {
+  const days = Math.floor(daysSinceVisit(story));
+  return days < 1 ? "Opened today." : `Not opened for ${days} day${days === 1 ? "" : "s"}: its candle burns lower.`;
 }
 
 // Each mood has its own candle design and flame colour (style.css, .mood-*); see models.Mood.
@@ -235,7 +258,8 @@ function candle(s, i = 0) {
   const lit = s.status === "ready";
   const mood = moodOf(s);
   const meta = [localTime(s.created_at), s.mood, s.is_sample && "fictional sample"].filter(Boolean).join(" · ");
-  const node = el("a", { href: `#/story/${s.id}`, className: `candle mood-${mood} ${lit ? "lit" : s.status}`, title: s.summary || "" },
+  const tooltip = [s.summary, lit && lastOpened(s)].filter(Boolean).join("\n");
+  const node = el("a", { href: `#/story/${s.id}`, className: `candle mood-${mood} ${lit ? "lit" : s.status}`, title: tooltip },
     el("span", { className: "art" },
       el("span", { className: "holder" }),
       el("span", { className: "wax" }),
@@ -271,9 +295,14 @@ function renderWall() {
   const [kind, value] = [filter.slice(0, split), filter.slice(split + 1)];
   const matches = (s) => (kind === "mood" ? s.status === "ready" && moodOf(s) === value : s.entities?.[kind]?.includes(value));
   const shown = filter ? allStories.filter(matches) : allStories;
-  $("#wall").replaceChildren(...(shown.length
-    ? shown.map(candle)
-    : [el("p", { className: "handwriting", textContent: voice().emptyWall })]));
+  const empty = allStories.length === 0
+    ? [el("div", { className: "empty" },
+        el("p", { className: "handwriting", textContent: voice().emptyWall }),
+        el("a", { className: "button", href: "#new-story", textContent: voice().emptyAction,
+                  onclick: (event) => { event.preventDefault(); $("#new-story").scrollIntoView({ behavior: "smooth" }); $("#record-button").focus(); } }))]
+    : [el("p", { className: "meta", textContent: voice().filterEmpty })];
+  $("#wall").replaceChildren(...(shown.length ? shown.map(candle) : empty));
+  $("#archive").classList.toggle("is-empty", allStories.length === 0); // no filter or key until there's a candle
   // The colour key doubles as a mood filter: show which mood is lit, and which have no candles yet.
   document.querySelectorAll(".legend button").forEach((b) => {
     b.setAttribute("aria-pressed", String(filter === `mood:${b.dataset.mood}`));
@@ -451,6 +480,7 @@ function renderStory(s) {
     ),
     s.questions.length > 0 && el("section", { className: "unfinished" },
       el("h3", { textContent: v.unfinished }),
+      v.unfinishedHint && el("p", { className: "hint", textContent: v.unfinishedHint }),
       v.unfinishedIntro && el("p", { className: "handwriting", textContent: v.unfinishedIntro }),
       el("ul", { className: "questions" }, ...s.questions.map(questionItem)),
     ),
@@ -589,6 +619,13 @@ async function start() {
   });
   window.addEventListener("hashchange", () => refresh());
   haunt();
+
+  // The "how it works" strip, until the visitor hides it (remembered if storage is allowed).
+  try { $("#how").hidden = localStorage.getItem("ghostwriter.howHidden") === "1"; } catch { /* show it */ }
+  $("#how-close").addEventListener("click", () => {
+    $("#how").hidden = true;
+    try { localStorage.setItem("ghostwriter.howHidden", "1"); } catch { /* hidden for this visit only */ }
+  });
 
   fetch("/api/warm", { method: "POST" }).catch(() => {}); // load Gemma before the first question
   loadHealth().catch(() => {});

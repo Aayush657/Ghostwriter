@@ -84,13 +84,22 @@
     <p id="greeting" class="handwriting"></p>
     <p id="whisper" class="whisper" hidden></p>
     <div class="controls">
-      <label><input type="checkbox" id="plain-toggle"> Plain mode</label>
-      <ul id="health" aria-label="Local services"></ul>
+      <label class="switch"><input type="checkbox" role="switch" id="plain-toggle"> <span>Plain mode: simple words, no effects</span></label>
     </div>
     <div id="health-banner" role="alert" hidden></div>
   </header>
 
   <main>
+    <section id="how" class="how" aria-labelledby="how-title">
+      <h2 id="how-title" class="visually-hidden">How Ghostwriter works</h2>
+      <ol>
+        <li><b>1</b> <span><strong>Tell it a story.</strong> Speak into the microphone or upload a recording.</span></li>
+        <li><b>2</b> <span><strong>The ghost writes it down.</strong> It gives it a title and notes who, where and when.</span></li>
+        <li><b>3</b> <span><strong>Ask the Séance.</strong> Ask anything about your stories; it answers only from them.</span></li>
+      </ol>
+      <button type="button" id="how-close" class="quiet">Got it, hide this</button>
+    </section>
+
     <section id="archive" class="ofrenda">
       <div class="web" aria-hidden="true">
         <svg viewBox="0 0 120 120">
@@ -107,6 +116,7 @@
         </span>
       </div>
       <h2 data-voice="archive"></h2>
+      <p class="hint" data-voice="archiveHint"></p>
       <label class="meta filter">
         <span data-voice="filterLabel"></span>
         <select id="filter"><option value="" data-voice="allMemories"></option></select>
@@ -121,6 +131,7 @@
         <li><button type="button" class="mood-mysterious" data-mood="mysterious"><i></i>mysterious</button></li>
         <li><button type="button" class="mood-eerie" data-mood="eerie"><i></i>eerie</button></li>
       </ul>
+      <p class="meta fade-note">Candles burn lower when you haven't opened a memory for a while. Open it to relight it.</p>
     </section>
 
     <article id="story" hidden></article>
@@ -128,9 +139,10 @@
     <section id="seance">
       <div class="orb" aria-hidden="true"><span></span></div>
       <h2 data-voice="seance"></h2>
+      <p class="hint" data-voice="seanceHint"></p>
       <form id="seance-form">
-        <input type="text" name="question" maxlength="500" autocomplete="off" aria-label="Your question">
-        <button type="submit" data-voice="ask"></button>
+        <input type="text" name="question" maxlength="500" autocomplete="off" aria-label="Your question about your stories">
+        <button type="submit"><span data-voice="ask"></span><small data-voice="askHint"></small></button>
       </form>
       <div id="seance-chips" class="chips" aria-label="Suggested questions"></div>
       <div id="seance-answer" aria-live="polite"></div>
@@ -139,15 +151,22 @@
 
     <section id="new-story">
       <h2 data-voice="give"></h2>
+      <p class="hint" data-voice="giveHint"></p>
       <button type="button" id="record-button" class="record" data-voice="record"></button>
+      <p class="meta" data-voice="micHint"></p>
       <p class="meta" data-voice="orUpload"></p>
       <form id="upload-form">
-        <input type="file" name="file" accept=".wav,.mp3,.m4a,.webm,.ogg" required aria-label="Audio file">
-        <button type="submit" data-voice="offer"></button>
+        <input type="file" name="file" accept=".wav,.mp3,.m4a,.webm,.ogg" required aria-label="Audio file (wav, mp3, m4a, webm or ogg)">
+        <button type="submit"><span data-voice="offer"></span><small data-voice="offerHint"></small></button>
       </form>
       <p id="upload-status" role="status"></p>
     </section>
   </main>
+
+  <footer class="site-footer">
+    <span>Runs entirely on this computer with</span>
+    <ul id="health" aria-label="Local tools and whether they are working"></ul>
+  </footer>
 
   <script type="module" src="/js/app.js"></script>
 </body>
