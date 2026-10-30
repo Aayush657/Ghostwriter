@@ -6,11 +6,73 @@ _Last updated: Fri Oct 30, 2026_
 
 ## Current stage
 
-- **Feature-complete and submission-ready on the code side** (Oct 30). Every item of the final judge
-  review is done (changelog below). 134 tests pass, including a Playwright test of the real page in
-  Chrome. Landing page, README, HOW_IT_WORKS, DEMO_SCRIPT and POST_DRAFT are updated.
-- **Remaining work is the user's**: record the demo, fill the placeholders, push, enable Pages, claim
-  the .tech domain, publish (see "Next actions").
+- **Submission-ready on the code side** (Oct 30, evening). After the user's own test: English only
+  (measured to be more accurate and faster), stories and answers can be written down with
+  autocorrect, retellings use a few emojis, two campfire samples. 137 tests pass. The repo is on
+  GitHub (Aayush657/Ghostwriter) and the landing page is live at https://theghostwriter.tech.
+- **Remaining work is the user's**: record the demo, fill the personal placeholders, publish (see
+  "Next actions").
+
+## Oct 30 (evening): English only, written stories, emoji retellings, campfire samples
+
+The user tested recording: English came out right word for word (summary and questions good); Hindi
+didn't. They asked for five changes; all are done, measured where it matters, and verified live.
+
+1. **English only.** No language picker, no "Listen again in..." (`/relisten` removed), no Hinglish
+   prompt; Whisper always gets `language="en"`. `GW_WHISPER_LANGUAGE` is gone; `GW_WHISPER_MODEL`
+   defaults to `small.en`. Deleted `models/whisper/large-v3-turbo` (1.6 GB) and the multilingual
+   `small` (464 MB). The DB columns `language_choice`/`language_probability` stay for old data. The
+   quality gate lost its language-probability sign; "other alphabets" now trips at 2 scripts.
+2. **Sturdier listening, measured.** Three passages (lantern, scarecrow, a road-trip legend; ~40 s,
+   Piper) x six conditions = 18 clips, scored by word error rate (%). Eight setups:
+
+| Setup | Clean | Noise 5 dB | Two voices 3 dB | Campfire 0 dB | Far + hum | Rushed, muffled | All | s/clip |
+|---|---|---|---|---|---|---|---|---|
+| multilingual small, language detected, Indian-words prompt (before) | 5.6 | 7.1 | 34.6 | 6.0 | 4.8 | 11.1 | **11.5** | 17.5 |
+| multilingual small, told it's English | 5.1 | 6.8 | 42.7 | 5.8 | 6.0 | 9.8 | **12.7** | 11.6 |
+| small.en | 4.4 | 4.9 | 32.0 | 4.8 | 4.0 | 8.7 | **9.8** | 9.7 |
+| small.en + levelling | 4.6 | 5.3 | 37.0 | 4.2 | 4.4 | 7.6 | **10.5** | 10.5 |
+| small.en + noise reduction + levelling (used) | 3.5 | 5.9 | 31.7 | 4.0 | 3.7 | 7.1 | **9.3** | 9.9 |
+| small.en + decoder tweaks | 4.2 | 6.5 | 30.8 | 4.2 | 3.7 | 9.6 | **9.8** | 8.7 |
+| small.en + levelling + tweaks | 4.0 | 5.8 | 42.2 | 3.7 | 4.0 | 8.3 | **11.3** | 9.1 |
+| small.en + noise reduction + tweaks | 3.3 | 5.7 | 35.9 | 4.0 | 3.7 | 7.1 | **10.0** | 8.4 |
+
+   Used: `small.en` + `audio.CLEAN_UP` (`highpass=f=80,lowpass=f=7600,afftdn=nr=10:nf=-40,
+   dynaudnorm=f=200:g=15:p=0.9`) on Whisper's copy only. The decoder tweaks
+   (`condition_on_previous_text=False`, VAD threshold 0.35, `hallucination_silence_threshold=2`) made
+   the two-voices case swing between 31% and 42%, so they're out. Gate re-checked on the new model:
+   all six conditions clear (logprob -0.15 to -0.40), a garbled clip ("We will continue this
+   conversation in the next few days") unclear at -1.63, the real noisy story 6 still unclear (-0.80,
+   50% unsure), the real Jaipur clip clear (14 s in 2.7 s; "Jaipur" heard as "Jelliport", a name it
+   didn't know). The glossary fixes names: "Camp Joaquin" -> "Camp Wahkeena" with the names given,
+   clean and slurred. Two-voices clips pass the gate at ~30% wrong: borderline, left as is (tighter
+   thresholds would reject real noisy recordings).
+3. **Write a story down.** New section with a ruled-paper textarea, the browser's spell check, and
+   `static/js/autocorrect.js` (~150 unambiguous typos/apostrophes/capitals, fixed on a word boundary
+   through `execCommand("insertText")` so Ctrl+Z works; Backspace straight after restores the word and
+   remembers it; switchable, remembered). Word count, a draft kept in localStorage, "Clear the page"
+   with a confirm. `POST /api/stories/written` (20-20,000 chars, optional `answers_question_id`),
+   new column `written`; the pipeline skips the audio steps and the gate; progress shows Reading and
+   the note only; the story page says "The words as you wrote them". Answers can be written ("or
+   write it"); an unclear recording offers "Write down what was said" (empty editor with autocorrect,
+   saved and re-read at once). Live: a fog story written down was ready in 44 s with a correct summary.
+4. **Retellings with emojis.** The prompt asks for three to five, each at the end of a sentence; the
+   first wording ("one every two or three sentences") gave 9 in 140 words, the final one 5 and 6 in
+   ~150. `tts.clean()` strips emojis so the voice never reads them. "Indian bhoot-kahani" dropped.
+5. **Two campfire samples.** `samples/stories.json` now has two original fictional stories ("lantern":
+   Camp Wahkeena, Pine Lake; "scarecrow": Grandpa Joe's farm, Old Hollis). Gemma's readings:
+   "Lantern Light Across the Stormy Lake" (mysterious) and "The Scarecrow's Visit on Halloween Night"
+   (nostalgic). Meaning search: "Which relative loved telling tall tales?" (no shared word) finds the
+   scarecrow story at 0.36 (lantern 0.22); France 0.01; 60-80 ms a question.
+
+Also: copy re-themed (campfire legends instead of Nani's recipes; "clay oil lamp"; Séance hint "What
+happened at Pine Lake?"); a deleted story's cached note/retelling is forgotten on the page, since a new
+story can reuse its id (seen in the user's log: the Hindi story got id 8 right after 8 was purged); the
+writing forms no longer inherit the global flex layout. Timings (showcase): a 38 s recording took ~73 s
+upload to ready (listening 10.7 s, reading + question check 48 s, note 13 s); written stories 45-60 s.
+Screenshots retaken (plus `writing.png`) and `docs/book.html` rebuilt from a fictional showcase archive.
+pytest: 137 pass (smoke test now writes a story with typos, undoes a fix, reloads to see the draft
+kept, and answers a question in writing).
 
 ## Oct 30: fixes from the final judge review (items 1-35)
 
@@ -133,12 +195,12 @@ pytest, the Playwright smoke test, an overlap checker at six widths, and live ru
 
 ## Next actions (the user's)
 
-1. Record the demo (DEMO_SCRIPT.md). Use `scripts\demo.ps1` from the project folder, open
-   http://127.0.0.1:8000 in Chrome a minute before recording.
-2. Fill every `PLACEHOLDER` in POST_DRAFT.md (including `PLACEHOLDER_SITE` in the image links) and the
-   two `TODO(you)` spots in `docs/index.html`.
-3. Push to GitHub, enable Pages from `/docs`, claim the .tech domain and point it at Pages.
-4. Publish the post before Nov 1, 12:29 PM IST (Oct 31, 11:59 PM PDT).
+1. Record the demo (DEMO_SCRIPT.md). Start Ollama, run `scripts\demo.ps1` from the project folder,
+   open http://127.0.0.1:8000 in Chrome a minute before recording.
+2. Fill the personal `PLACEHOLDER`s in POST_DRAFT.md (why, the video, the real moment, the AI split,
+   DevRelay) and the demo-video box in `docs/index.html` and the README.
+3. Push (the site updates by itself), then publish the post before Nov 1, 12:29 PM IST (Oct 31,
+   11:59 PM PDT).
 
 ## Earlier: what worked by Oct 29 (verified for real)
 

@@ -28,7 +28,8 @@ out loud (or write it down, if there's no good microphone nearby), and it:
 - **notices what you left out**, and asks: *who else was there? what did the kitchen smell like?*
   Answer out loud, and your answer joins the story it completes;
 - **holds a séance**: ask your archive anything, and the ghost finds the stories that mean the same
-  thing (ask about "a good cook" and it finds the kadhi story), answers only from them, and numbers
+  thing (ask which relative loved telling tall tales and it finds the scarecrow story, without a
+  single shared word), answers only from them, and numbers
   its sources;
 - **lights a candle for every story** under a moonlit sky. The story's mood picks the candle: a skull
   with a green flame for the eerie ones, a jack-o'-lantern for the joyful, a clay oil lamp for the
@@ -84,7 +85,7 @@ fictional sample stories, so you can try the ghost without recording anything.
    v                                      |
  FastAPI ----------------------------------+
    |-- ffprobe / ffmpeg  check it's really audio; any recording -> 16 kHz mono WAV (original kept)
-   |-- faster-whisper    Whisper small, int8, on the CPU; your language choice + a name glossary
+   |-- faster-whisper    Whisper small.en, int8, on the CPU, after a light ffmpeg clean-up; a name glossary
    |-- quality check     Whisper's own confidence: fog never becomes a memory
    |-- Ollama            Gemma 4 e4b: structured JSON, then streamed answers
    |                     EmbeddingGemma: a meaning vector per story, for the séance
@@ -103,16 +104,23 @@ its result before the next starts, so if Gemma isn't running, the transcript is 
 
 ### Hearing the words right
 
-Memory accuracy is the whole product, so most of the work went into the transcript:
+Memory accuracy is the whole product, so most of the work went into the transcript. Stories get
+told around fires and at parties, not in studios, so I tested Whisper the way it will be used: three
+passages read by Piper, mixed six ways (steady noise, two other people talking, a campfire's rumble,
+a voice far from the mic, rushed and muffled speech, and clean), and eight setups each transcribing
+all 18 clips. The winner:
 
-- **You choose the language** next to the record button (detect, English, Hindi, or Hinglish), and
-  can change your mind later with *Listen again in...*. Hinglish is Whisper's Hindi mode plus an
-  example sentence that keeps English words in Latin script, which is what made it write "school"
-  instead of "सकूल".
-- **A glossary guides Whisper**: the names already in your archive, then common family words and
-  cities (Nani, Dadi, almirah, kadhi, Pune...). On a test clip, with Meera already in the archive,
-  it turned "Mira", "Puna" and "armourer" back into "Meera", "Pune" and "almirah".
+- **The English-only model**, `small.en`, plus **a light clean-up** of Whisper's copy of the audio in
+  ffmpeg (cut rumble and hiss, gently reduce steady noise, level the volume). It got **9.3%** of words
+  wrong against **11.5%** for my earlier setup, in about half the time. Two people talking over the
+  storyteller is still the hardest case (about a third of the words wrong).
+- **A glossary guides Whisper**: the names already in your archive. A name it has never heard is the
+  usual mistake ("Camp Wahkeena" came out "Camp Joaquin"); with the name in the archive, the same
+  clip came out right, even rushed and muffled.
 - **Every word gets a probability**, so the story page can list the words Whisper wasn't sure of.
+- **Or skip the microphone.** A story (or an answer) can be written on a ruled page instead, with the
+  browser's spell check and a small offline autocorrect: "teh" becomes "the" as you type, Backspace
+  puts your word back, and the draft survives closing the tab.
 
 ### Fog is not a memory
 
@@ -157,9 +165,10 @@ The séance is retrieval-augmented generation with a costume on:
 
 1. **Search by words and by meaning.** SQLite's FTS5 index (with the `trigram` tokenizer, so
    "haunt" also finds "haunted") finds the words. **EmbeddingGemma**, through the same Ollama, turns each story into a
-   768-number vector stored in SQLite. "Which of my relatives was a good cook?" shares no word with
-   "Grandmother's Famous Kadhi in Lucknow" but scores 0.36 against it, while "What is the capital of
-   France?" scores 0.17 at most. The two rankings are merged with reciprocal-rank fusion.
+   768-number vector stored in SQLite. "Which relative loved telling tall tales?" shares no word
+   with the scarecrow story, so keyword search finds nothing, but it scores 0.36 against it (Grandpa
+   Joe told it every Halloween), while "What is the capital of France?" scores 0.01. The two
+   rankings are merged with reciprocal-rank fusion.
 2. **No match, no Gemma.** If nothing matches, the model is never called. The ghost simply says the
    memory was never given to it. There is nothing it could honestly say, so it doesn't get the chance.
 3. **Answer only from the stories.** Gemma gets the retrieved stories, each tagged like `[S12]`, and
@@ -205,21 +214,23 @@ the CPU.
 
 | What | Result |
 |---|---|
-| Whisper small (int8), English test clip | about 35 s per minute of audio |
-| An 11-second story, upload to finished page | 46 s |
-| Whisper on my own Hindi/Hinglish recording | [PLACEHOLDER: measure on your recording] |
+| Whisper small.en (int8) with the clean-up | about 15 s per minute of audio |
+| Words wrong on 18 noisy test clips | 9.3% (11.5% with my earlier setup) |
+| A 38-second recording, upload to finished story | about 73 s |
+| A written story, to finished story | 45-60 s |
 | Gemma 4 e4b generation | 10-19 tokens per second |
 | Gemma cold start | 15.8 s |
 | Séance answer | first words in 7-24 s, complete in 11-29 s |
 | "Never given to me" | 0.1 s (Gemma isn't asked) |
-| Finding stories by meaning (EmbeddingGemma) | 46-80 ms per question |
+| Finding stories by meaning (EmbeddingGemma) | 60-80 ms per question |
 | Ghost voice | a prepared note starts in 0.1 s; something new in 2.3 s |
 
 ### What isn't great yet
 
 - It's slow on a CPU. Streaming makes a 20-second wait feel atmospheric, but it's still a wait.
-- Whisper `small` mishears names it has never heard. Correct a name once and later recordings get it
-  right; a bigger Whisper size helps more, and costs time.
+- Whisper mishears names it has never heard. Correct a name once and later recordings get it right;
+  a bigger Whisper size helps more, and costs time. Other people talking over the storyteller still
+  cost about a third of the words: write those stories down instead.
 - A truly noisy recording stays unclear. The ghost won't invent a memory, but it can't recover words
   that aren't there.
 - It's English only. An earlier build listened in Hindi and Hinglish too, but the speech model that

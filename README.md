@@ -215,10 +215,11 @@ Intel i7-13620H, 16 GB RAM, integrated graphics only (everything on the CPU):
 | What | Result |
 |---|---|
 | Whisper `small.en` int8 (with the clean-up) | about 15 s per minute of audio (40 s test clips in 9-12 s) |
-| A clear 11 s clip, upload to finished story | 46 s (transcribing, reading, checking questions, writing the note) |
+| A 38 s recording, upload to finished story | about 73 s (listening 11 s, reading and checking its questions 48 s, the note 13 s) |
+| A written story, to finished story | 45-60 s (reading and the note; no listening step) |
 | Gemma 4 e4b generation | 10-19 tokens/s on replies over 50 tokens; 15.8 s to load the model cold |
 | Seance answer | first words after 7-24 s, complete in 11-29 s; "never given to me" in 0.1 s |
-| Meaning search (EmbeddingGemma) | 46-80 ms per question; 6 stories embedded in 3.3 s |
+| Meaning search (EmbeddingGemma) | 60-80 ms per question |
 | Ghost voice | first sentence of a new text in 2.3 s; a note voiced in advance starts in 0.1 s |
 | Haunted retelling | about 30 s to write ~140 words |
 

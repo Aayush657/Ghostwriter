@@ -21,27 +21,59 @@ written out live, word by word.
 Everything runs on the laptop. The web page talks only to `127.0.0.1`; the server talks only to
 Ollama on `127.0.0.1:11434`; Whisper and Piper load their weights from folders on disk.
 
-## 2. Hearing the words right
+## 2. Hearing the words right, and writing them down
 
-Memory accuracy is the whole product, so most of the work goes into the transcript.
+Memory accuracy is the whole product, so most of the work goes into the words.
 
-- **The storyteller chooses the language** next to the record button: detect it, English, Hindi, or
-  Hinglish. The choice is remembered, shown on the story ("Hindi (you chose it)" or "English
-  (auto-detected)"), and can be changed later with **Listen again in...**, which transcribes the same
-  recording again and re-reads it. Hinglish is Whisper's Hindi mode plus an example sentence that
-  keeps English words in Latin script ("मैं school से आता था"); measured, that is what makes Whisper
-  write "school" instead of "सकूल".
-- **A glossary guides Whisper.** Before listening, Whisper reads a short prompt: the people, places
-  and keepsakes already in the archive (most mentioned first), then common Indian family words and
-  cities (Nani, Dadi, almirah, kadhi, Pune, Lucknow...). On a clear test clip this turned "Mira",
-  "Puna" and "armourer" into "Meera", "Pune" and "almirah". A name the archive has never heard can
-  still be misheard; correct it once in the tag editor and later recordings get it right.
+- **English, with the English model.** Whisper always listens in English, with the English-only
+  `small.en` (int8). An earlier build offered Hindi and Hinglish; the speech model that runs at a
+  usable speed on a CPU got too many Hindi words wrong, so it was taken out, along with the
+  multilingual models (2 GB less on disk).
+- **A light clean-up first.** ffmpeg makes Whisper's copy of the recording 16 kHz mono and cleans it
+  gently: a high-pass at 80 Hz and a low-pass at 7.6 kHz (rumble and hiss outside the voice), mild
+  FFT noise reduction (`afftdn`), and volume levelling (`dynaudnorm`). The original stays untouched for
+  playback.
+- **Chosen by measurement.** Three passages (about 40 s each, read by Piper) were mixed six ways:
+  clean; steady pink noise at 5 dB; two other voices talking at 3 dB; a campfire's low rumble and
+  crackle at 0 dB; far from the microphone with mains hum; and rushed speech, muffled (a 1.8 kHz
+  low-pass, like a phone in a pocket) with room echo. Every setup transcribed all 18 clips; the score
+  is the share of words wrong (word error rate), lower is better:
+
+| Setup | Clean | Steady noise | Other voices | Campfire rumble | Far & quiet | Rushed, muffled | All | Seconds per clip |
+|---|---|---|---|---|---|---|---|---|
+| Before: multilingual `small`, language detected, Indian-words prompt | 5.6% | 7.1% | 34.6% | 6.0% | 4.8% | 11.1% | **11.5%** | 17.5 |
+| Multilingual `small`, told it's English | 5.1% | 6.8% | 42.7% | 5.8% | 6.0% | 9.8% | **12.7%** | 11.6 |
+| English-only `small.en` | 4.4% | 4.9% | 32.0% | 4.8% | 4.0% | 8.7% | **9.8%** | 9.7 |
+| `small.en` + volume levelling | 4.6% | 5.3% | 37.0% | 4.2% | 4.4% | 7.6% | **10.5%** | 10.5 |
+| **`small.en` + gentle noise reduction and levelling** (chosen) | 3.5% | 5.9% | 31.7% | 4.0% | 3.7% | 7.1% | **9.3%** | 9.9 |
+| `small.en` + decoder tweaks | 4.2% | 6.5% | 30.8% | 4.2% | 3.7% | 9.6% | **9.8%** | 8.7 |
+| `small.en` + levelling + decoder tweaks | 4.0% | 5.8% | 42.2% | 3.7% | 4.0% | 8.3% | **11.3%** | 9.1 |
+| `small.en` + noise reduction + decoder tweaks | 3.3% | 5.7% | 35.9% | 4.0% | 3.7% | 7.1% | **10.0%** | 8.4 |
+
+  The clean-up helped most on clean, quiet and rushed speech, and cost a little on steady noise. The
+  decoder tweaks (no conditioning on earlier text, a looser voice detector, skipping hallucinated
+  silences) made the "other voices" case erratic, so they are not used. Other voices talking over the
+  storyteller is still the hardest case (about a third of the words wrong); the page suggests
+  writing the story down instead.
+- **A glossary guides Whisper.** Before listening, Whisper reads a short prompt of the people, places
+  and keepsakes already in the archive (most mentioned first). A name it has never heard is the most
+  common mistake ("Camp Wahkeena" came out "Camp Joaquin"); with the archive's names in the prompt,
+  the same clip came out "Camp Wahkeena", even rushed and muffled. Correct a name once in the tag
+  editor and later recordings get it right.
 - **Beam search, voice detection and word probabilities.** `beam_size=5`, Silero VAD to skip silence
   (fewer invented words), and `word_timestamps=True`, which gives every word its own probability.
-  Words Whisper gave less than even odds are listed under the transcript ("The Archivist wasn't sure
-  of these words: ..."), so you know what to check.
-- **The model size is a setting** (`GW_WHISPER_MODEL`: `small`, `medium`, `large-v3-turbo`...); the
-  health check shows which sizes are downloaded. README > Whisper size has the trade-off.
+  Words Whisper gave less than even odds are listed under the transcript, so you know what to check.
+- **Or write it down.** "Write a story down" is a page of ruled paper (a CSS background that scrolls
+  with the text) with the browser's own spell check (red underlines, right-click suggestions) and an
+  offline autocorrect (`autocorrect.js`): when you finish a word, a short list of unambiguous typos
+  and missing apostrophes is fixed ("teh" -> "the", "dont" -> "don't", "halloween" -> "Halloween";
+  real words like "wont" or "its" are never touched). The fix goes through the browser's own editing
+  command, so Ctrl+Z undoes it, and Backspace straight after puts your word back and leaves it alone
+  from then on. It can be switched off, and the draft is kept in the browser if you leave the page. A
+  written story (`POST /api/stories/written`, 20 to 20,000 characters) starts with its words, so the
+  pipeline skips both audio steps and the quality gate (a person wrote them) and goes straight to
+  Gemma; its progress shows only Reading and the note. Answers to the Archivist's questions can be
+  written the same way, and a recording lost in fog can be written down instead.
 
 ## 3. The quality gate: fog is not a memory
 
@@ -51,16 +83,20 @@ between Whisper and Gemma, `transcribe.judge()` looks at Whisper's own confidenc
 
 - average log-probability below -0.8: Whisper was guessing;
 - compression ratio above 2.4: a repetition loop (Whisper's own threshold);
-- three or more alphabets in the text;
-- or two weak signs together: log-probability below -0.55, more than 20% unsure words, a detected
-  language with under 60% certainty, or a high no-speech probability.
+- the text came out in another alphabet (English speech never does);
+- or two weak signs together: log-probability below -0.55, more than 20% unsure words, or a high
+  no-speech probability.
 
 The thresholds come from real recordings: clear speech scores about -0.3 with almost no unsure words;
-the noisy room recording scored -0.67 with 29% unsure words and failed all four weak signs; English
-speech forced into Hindi scored -1.70. A story that fails gets the status **unclear**: no title,
+the noisy room recording scored -0.67 with 29% unsure words. Re-checked with `small.en` and the
+clean-up: every test clip above passed (clear speech about -0.15 to -0.26), the real noisy recording
+is still unclear (-0.80, half its words unsure), and a garbled clip that Whisper heard as "We will
+continue this conversation in the next few days" (a classic Whisper invention) scored -1.63 and was
+stopped. A story that fails gets the status **unclear**: no title,
 summary or questions are invented, it stays out of the Seance, the memory book and the whispers, and
-its page says *"The words came to me as fog..."* with three ways forward: listen again in another
-language, correct the words by hand (a person's words skip the check), or delete it.
+its page says *"The words came to me as fog..."* with two ways forward: write down what was said
+(an empty page with spell check and autocorrect; a person's words skip the check and Gemma reads
+them at once), or delete it.
 
 ## 4. Never losing a story
 
@@ -133,15 +169,16 @@ Seance reads it together with its story, and the memory book prints it under the
 
 The Seance finds stories two ways and merges them:
 
-- **Keywords**: SQLite FTS5 with the `trigram` tokenizer, which works the same for Devanagari and
-  Latin script and matches substrings ("haunt" finds "haunted"). Titles, summaries, tags and
-  transcripts are indexed (tags let "Nani" find a story whose transcript says नानी); BM25 ranks title
-  and tag hits highest.
+- **Keywords**: SQLite FTS5 with the `trigram` tokenizer, which matches parts of words ("haunt"
+  finds "haunted"). Titles, summaries, tags and transcripts are indexed; BM25 ranks title and tag hits
+  highest. Matching parts of words has a cost: "thing" also matches "nothing".
 - **Meaning**: **EmbeddingGemma** (`embeddinggemma:300m-qat-q8_0`, through the same Ollama) turns each
   story into a 768-number vector, stored in SQLite as a blob; a question is compared with every
-  story by cosine similarity in plain Python (a family archive is small). "Which of my relatives was
-  a good cook?" shares no word with "Grandmother's Famous Kadhi in Lucknow", but scores 0.36 against
-  it; unrelated questions ("the capital of France", "hello") score 0.17 at most, so the cut-off is 0.30.
+  story by cosine similarity in plain Python (a family archive is small). "Which relative loved
+  telling tall tales?" shares no word with either sample story, so keywords find nothing, but it
+  scores 0.36 against the scarecrow story (Grandpa Joe told it every Halloween) and 0.22 against the
+  lantern story; "What is the capital of France?" scores 0.01, and "hello" 0.22 at most, so the cut-off
+  is 0.30. A question takes 60-80 ms.
 - The two rankings are merged with **reciprocal-rank fusion** (each list adds `1 / (60 + rank)`), so
   a story found both ways rises, and one found either way still counts. An answer leads to its story.
 

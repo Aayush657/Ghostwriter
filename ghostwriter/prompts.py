@@ -185,9 +185,9 @@ clearly a retelling, so you may add atmosphere: wind, shadows, \
 creaking doors, the hush before something happens. Keep the real people, places and objects from the \
 memory, keep what actually happened at the heart of it, and do not invent deaths, injuries or new \
 tragedies. Warm and eerie, never gory or cruel. Write 150 to 250 words, in short paragraphs, as if \
-speaking to listeners in the dark. Add a few emojis that fit the moment (such as 🔥 🌲 🌙 🕯️ 👻 🦉 🍂 \
-🎃), about one every two or three sentences: one at a time, at the end of a sentence, never in place of \
-a word. Give it no title. End on a quiet, chilling line."""
+speaking to listeners in the dark. Add three to five emojis in the whole retelling, where they fit the moment (such as \
+🔥 🌲 🌙 🕯️ 👻 🦉 🍂 🎃): each at the end of a sentence, never two together, never in place of a \
+word. Give it no title. End on a quiet, chilling line."""
 
 
 def retelling_messages(story: dict) -> list[dict]:

@@ -597,7 +597,7 @@ h2[tabindex="-1"]:focus { outline: none; }
 .fog-box h3 { margin-top: 4px; color: #dfe6f8; }
 .fog-actions { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 10px; }
 .answer-tools { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; margin-top: 4px; }
-.answer-write { margin: 8px 0 4px; }
+.answer-write { display: block; margin: 8px 0 4px; }
 .added { margin: 8px 0 4px; padding: 6px 0 6px 14px; border-left: 3px solid var(--orange); }
 .added p { margin: 4px 0; }
 .added audio { margin: 6px 0; }
@@ -611,7 +611,7 @@ textarea:focus { outline: none; border-color: var(--orange); box-shadow: 0 0 0 3
 textarea::placeholder { color: #7f8bab; font-style: italic; }
 
 /* Writing a story: a page of ruled paper with a margin line, the ruling scrolling with the words. */
-.paper { margin: 14px 0 0; }
+.paper { display: block; margin: 14px 0 0; }
 #write-text {
   --rule: 1.8rem; --top: 16px;
   display: block; min-height: calc(var(--rule) * 9 + var(--top) * 2);
