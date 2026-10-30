@@ -6,8 +6,9 @@ result before the next one starts: a failure never loses earlier work, and a ret
 picks up from the first missing step.
 
 A transcript Whisper was unsure of stops at the quality check with status "unclear": Gemma is not
-asked to make a memory out of fog. The storyteller can listen again in another language, correct
-the words by hand (which skips the check: a person wrote them), or delete it.
+asked to make a memory out of fog. The storyteller can write down what was said (which skips the
+check: a person wrote the words), or delete it. Written stories start with their words, so they skip
+both audio steps, like the samples.
 """
 
 from __future__ import annotations
@@ -56,19 +57,18 @@ def _run(story_id: int) -> None:
     data_dir = settings.data_dir
     db.update_story(story_id, started_at=_now())
 
-    if not story["transcript"]:  # text-only stories (the samples) skip both audio steps
+    if not story["transcript"]:  # written stories and the samples arrive as words: no audio steps
         db.update_story(story_id, status="transcribing", stage_at=_now(), error=None, error_kind=None)
         if not story["audio_wav"]:
             wav = f"audio/{story_id}.wav"
             duration = normalise(data_dir / story["audio_original"], data_dir / wav)
             db.update_story(story_id, audio_wav=wav, duration_s=duration)
             story = db.get_story(story_id)
-        result = transcribe.transcribe(data_dir / story["audio_wav"], story["language_choice"], db.known_names())
-        log.info("story %s: %.1fs of audio transcribed in %.1fs (%s, %s)", story_id, story["duration_s"],
-                 result.seconds_taken, result.language, result.quality.reasons or "clear")
+        result = transcribe.transcribe(data_dir / story["audio_wav"], db.known_names())
+        log.info("story %s: %.1fs of audio transcribed in %.1fs (%s)", story_id, story["duration_s"],
+                 result.seconds_taken, result.quality.reasons or "clear")
         db.record_timing("transcribing", result.seconds_taken, story["duration_s"])
-        db.update_story(story_id, transcript=result.text, language=result.language,
-                        language_probability=result.language_probability,
+        db.update_story(story_id, transcript=result.text, language="en",
                         quality=json.dumps(result.quality_dict(), ensure_ascii=False))
         if result.quality.unclear:
             db.clear_reading(story_id)

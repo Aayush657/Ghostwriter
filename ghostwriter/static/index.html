@@ -88,7 +88,7 @@
         <p class="tagline" data-voice="tagline">The ghost that keeps your stories.</p>
       </div>
     </div>
-    <p class="why" data-voice="why">Record the stories your family tells (Nani's recipes, Dada's journeys) before they're forgotten. Everything stays on this computer.</p>
+    <p class="why" data-voice="why">Keep the stories your family tells (the campfire legend, the night the lights went out, the scarecrow that walked) before they're forgotten. Everything stays on this computer.</p>
     <p class="intro" data-voice="intro">Ghostwriter is home to the Archivist, a kind ghost who writes your stories down and remembers every word.</p>
     <p id="greeting" class="handwriting">&nbsp;</p>
     <div class="controls">
@@ -102,7 +102,7 @@
     <section id="how" class="how" aria-labelledby="how-title">
       <h2 id="how-title" class="visually-hidden" data-voice="howTitle">How Ghostwriter works</h2>
       <ol>
-        <li><b>1</b> <span><strong data-voice="how1Title">Tell a story.</strong> <span data-voice="how1">Speak into the microphone or upload a recording, in English, Hindi or both.</span></span></li>
+        <li><b>1</b> <span><strong data-voice="how1Title">Tell a story.</strong> <span data-voice="how1">Speak into the microphone, upload a recording, or write it down.</span></span></li>
         <li><b>2</b> <span><strong data-voice="how2Title">The Archivist writes it down.</strong> <span data-voice="how2">It gives the story a title and notes who, where and when, then asks what it still wonders about.</span></span></li>
         <li><b>3</b> <span><strong data-voice="how3Title">Ask the Séance.</strong> <span data-voice="how3">Ask anything about your stories; it answers only from them and shows which ones it used.</span></span></li>
       </ol>
@@ -166,7 +166,7 @@
       <h2 id="seance-title" data-voice="seance">Séance</h2>
       <p class="hint" data-voice="seanceHint">Ask a question about your stories. The Archivist answers only from them, and numbers the stories it used, like this [1].</p>
       <form id="seance-form">
-        <input type="text" name="question" maxlength="500" autocomplete="off" data-voice-placeholder="askPlaceholder" placeholder="What did Nani cook?" aria-label="Your question about your stories">
+        <input type="text" name="question" maxlength="500" autocomplete="off" data-voice-placeholder="askPlaceholder" placeholder="What happened at Pine Lake?" aria-label="Your question about your stories">
         <button type="submit" data-voice="ask" data-voice-title="askTitle" title="Summon an answer from your stories">Ask</button>
       </form>
       <div id="seance-chips" class="chips" aria-label="Suggested questions"></div>
@@ -176,15 +176,7 @@
 
     <section id="new-story" aria-labelledby="give-title">
       <h2 id="give-title" data-voice="give">Give the Archivist a story</h2>
-      <p class="hint" data-voice="giveHint">Record it here, or upload a recording you already have. Short stories take about a minute to write down.</p>
-      <label class="language"><span data-voice="languageLabel">Language spoken</span>
-        <select id="language">
-          <option value="auto" data-voice="langAuto">Detect it for me</option>
-          <option value="en" data-voice="langEn">English</option>
-          <option value="hi" data-voice="langHi">Hindi</option>
-          <option value="hinglish" data-voice="langMixed">Hinglish (Hindi and English mixed)</option>
-        </select>
-      </label>
+      <p class="hint" data-voice="giveHint">Tell it out loud, in English, or upload a recording you already have. Short stories take about a minute to write down.</p>
       <div id="recorder" class="recorder"></div>
       <p class="meta" data-voice="micHint">Your browser will ask to use the microphone. The recording stays on this computer.</p>
       <form id="upload-form">
@@ -194,6 +186,27 @@
         <button type="submit" class="secondary" data-voice="offer" data-voice-title="offerTitle" title="Offer it to the Archivist">Upload recording</button>
       </form>
       <p id="upload-status" role="status"></p>
+    </section>
+
+    <section id="write-story" aria-labelledby="write-title">
+      <h2 id="write-title" data-voice="writeTitle">Write a story down</h2>
+      <p class="hint" data-voice="writeHint">No microphone, a noisy room, or a story that needs a second try? Write it here, the way you would tell it. The Archivist reads it just like a recording.</p>
+      <form id="write-form" class="paper" novalidate>
+        <label for="write-text" class="visually-hidden" data-voice="writeLabel">Your story</label>
+        <textarea id="write-text" name="text" rows="12" maxlength="20000" spellcheck="true" lang="en" autocapitalize="sentences" autocorrect="on"
+          data-voice-placeholder="writePlaceholder" placeholder="It was the last night at camp, and the fire had burned down to embers..."></textarea>
+        <div class="paper-foot">
+          <span id="write-count" class="meta" aria-live="polite"></span>
+          <label class="autocorrect"><input type="checkbox" id="autocorrect-toggle" checked> <span data-voice="autocorrectLabel">Autocorrect</span></label>
+        </div>
+        <p id="write-fixed" class="meta fixed" aria-live="polite"></p>
+        <p class="meta" data-voice="writeHelp">Misspelled words are underlined: right-click one for suggestions. Common typos are fixed as you type; press Backspace straight after a fix to undo it. Your draft is kept on this computer if you leave the page.</p>
+        <div class="row">
+          <button type="submit" data-voice="writeSubmit">Give it to the Archivist</button>
+          <button type="button" id="write-clear" class="link" data-voice="writeClear">Clear the page</button>
+        </div>
+        <p id="write-status" role="status"></p>
+      </form>
     </section>
   </main>
 

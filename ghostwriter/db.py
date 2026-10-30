@@ -97,19 +97,20 @@ SEARCH_COLUMNS = ["title", "summary", "tags", "transcript"]
 ADDED_COLUMNS = {"reaction": "TEXT", "is_sample": "INTEGER NOT NULL DEFAULT 0", "tags": "TEXT",
                  "retelling": "TEXT",
                  "transcript_original": "TEXT",  # Whisper's words, kept the first time someone edits them
-                 "language_choice": "TEXT",       # what the storyteller chose: auto|en|hi|hinglish
-                 "language_probability": "REAL",  # how sure Whisper was, when it detected the language itself
+                 "language_choice": "TEXT",       # unused since Ghostwriter became English-only; kept for old data
+                 "language_probability": "REAL",  # unused likewise
                  "quality": "TEXT",               # JSON: Whisper's confidence figures (transcribe.Quality)
                  "uncertain": "INTEGER NOT NULL DEFAULT 0",  # Gemma left out words it couldn't make sense of
                  "error_kind": "TEXT",            # transient (try again) | audio (choose another file)
                  "started_at": "TEXT",            # processing began (UTC), for the page's clock
                  "stage_at": "TEXT",              # the current step began (UTC), for the time-left estimate
-                 "deleted_at": "TEXT"}            # deleted, but can still be undone for a few seconds
+                 "deleted_at": "TEXT",            # deleted, but can still be undone for a few seconds
+                 "written": "INTEGER NOT NULL DEFAULT 0"}  # typed by the storyteller instead of recorded
 
 # Columns update_story() may touch. Column names can't be SQL parameters, so we whitelist them.
 UPDATABLE = {"status", "error", "error_kind", "audio_original", "audio_wav", "duration_s", "language", "title",
              "transcript", "transcript_original", "last_visited_at", "reaction", "retelling", "mood",
-             "language_choice", "language_probability", "quality", "started_at", "stage_at"}
+             "quality", "started_at", "stage_at"}
 
 ENTITY_KINDS = {"people": "person", "places": "place", "eras": "era", "keepsakes": "keepsake"}
 
@@ -173,11 +174,10 @@ def _upgrade_search_index(con: sqlite3.Connection) -> None:
     con.execute("INSERT INTO stories_fts(stories_fts) VALUES ('rebuild')")
 
 
-def create_story(answers_question_id: int | None = None, is_sample: bool = False,
-                 language_choice: str | None = None) -> int:
+def create_story(answers_question_id: int | None = None, is_sample: bool = False, written: bool = False) -> int:
     with connect() as con:
-        cur = con.execute("INSERT INTO stories (answers_question_id, is_sample, language_choice) VALUES (?, ?, ?)",
-                          (answers_question_id, int(is_sample), language_choice))
+        cur = con.execute("INSERT INTO stories (answers_question_id, is_sample, written) VALUES (?, ?, ?)",
+                          (answers_question_id, int(is_sample), int(written)))
         return cur.lastrowid
 
 
@@ -267,7 +267,7 @@ def clear_reading(story_id: int) -> None:
 
 # What the story page shows of an answer, inside the story it belongs to.
 ANSWER_FIELDS = ("id, created_at, status, error, error_kind, title, summary, transcript, audio_original, "
-                 "language, language_choice, language_probability, quality, duration_s, started_at")
+                 "written, quality, duration_s, started_at")
 
 
 def get_story(story_id: int, include_deleted: bool = False) -> dict | None:

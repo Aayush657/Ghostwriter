@@ -54,9 +54,9 @@ def _free_port() -> int:
 @pytest.fixture
 def site(data_dir, monkeypatch, tmp_path):
     """The app on a free port, with Whisper and Gemma replaced by quick stand-ins."""
-    def fake_transcribe(wav, choice="auto", names=()):
-        return Transcript("My grandmother cooked kadhi in a brass pot in Lucknow.", "en", 0.99, 0.5,
-                          Quality(-0.3, 0.01, 1.4, 0.99, 0.0, scripts=["LATIN"]))
+    def fake_transcribe(wav, names=()):
+        return Transcript("My grandmother cooked kadhi in a brass pot in Lucknow.", 0.5,
+                          Quality(-0.3, 0.01, 1.4, 0.0, scripts=["LATIN"]))
 
     def fake_analyse(transcript, answering=None):
         return StoryAnalysis(title="Grandmother's Kadhi", summary="Your grandmother cooked kadhi in Lucknow.",
@@ -188,6 +188,36 @@ def test_every_main_flow_in_the_browser(site, browser, tmp_path):
     assert "isn't a recording" in page.inner_text("#upload-status")
     assert story_count(page) == 1
 
+    # Write a story: autocorrect fixes typos as you type and Backspace undoes a fix, the draft survives
+    # a reload, and the story is read without a listening step. Then a question is answered in writing.
+    page.click("#write-text")
+    page.keyboard.type("teh lantern dissapeared ")
+    assert page.input_value("#write-text") == "the lantern disappeared "
+    assert "dissapeared" in page.inner_text("#write-fixed")
+    page.keyboard.type("i ")
+    page.keyboard.press("Backspace")  # put the writer's own "i" back
+    assert page.input_value("#write-text") == "the lantern disappeared i"
+    page.keyboard.type(" swear it was real, and nobody believed me at camp that summer.")
+    written = "the lantern disappeared i swear it was real, and nobody believed me at camp that summer."
+    assert page.input_value("#write-text") == written
+    assert page.inner_text("#write-count").startswith("16 words")
+    page.reload()
+    page.wait_for_selector("#wall .candle")
+    assert page.input_value("#write-text") == written  # the draft was kept
+    page.click("#write-form button[type=submit]")
+    page.wait_for_url(re.compile(r"#/story/\d+$"))
+    page.wait_for_selector("#story h2:has-text(\"Grandmother's Kadhi\")", timeout=20_000)
+    assert page.inner_text("#story details.words summary") == "The words as you wrote them"
+    assert page.locator("#story audio").count() == 0
+    page.click("#story .questions li >> nth=0 >> button:has-text('or write it')")
+    page.fill("#story .answer-write textarea", "It smelled like wood smoke and rain.")
+    page.click("#story .answer-write button[type=submit]")
+    page.wait_for_selector("#story .questions .added:has-text('Added later')", timeout=20_000)
+    assert story_count(page) == 2
+    page.click("#story a.back")
+    page.wait_for_selector("#write-text")
+    assert page.input_value("#write-text") == ""  # sent, so the draft is gone
+
     # The microphone: waiting, recording with a clock, Stop, and the story is sent.
     page.click("#recorder button")
     page.wait_for_selector("#recorder .recording")
@@ -196,7 +226,7 @@ def test_every_main_flow_in_the_browser(site, browser, tmp_path):
     page.click("#recorder button:has-text('Stop')")
     page.wait_for_url(re.compile(r"#/story/\d+$"))
     page.wait_for_selector("#story h2:has-text(\"Grandmother's Kadhi\")", timeout=20_000)
-    assert story_count(page) == 2
+    assert story_count(page) == 3
 
     # 9. Delete from the bottom of the story: Undo brings it back; deleting again leaves nothing behind.
     recorded = page.url.rsplit("/", 1)[1]
@@ -211,7 +241,7 @@ def test_every_main_flow_in_the_browser(site, browser, tmp_path):
     page.click("#story button.danger")
     page.click("#confirm-ok")
     page.wait_for_url(re.compile(r"#/$"))
-    page.wait_for_function("document.querySelectorAll('#wall .candle').length === 1")
+    page.wait_for_function("document.querySelectorAll('#wall .candle').length === 2")
     assert page.evaluate("scrollY") == 0
     assert page.evaluate("document.querySelector('#story').hidden && document.querySelector('#story').children.length === 0")
     assert page.locator("#story input[type=file], #story h2").count() == 0

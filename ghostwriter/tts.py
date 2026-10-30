@@ -38,9 +38,13 @@ class TTSError(Exception):
     """The voice couldn't be made. The message is safe to show the user."""
 
 
+EMOJI = re.compile("[\U0001F000-\U0001FAFF\u2600-\u27BF\uFE0F\u200D]")
+
+
 def clean(text: str) -> str:
-    """Drop [S12] citation marks (they aren't for reading aloud) and squeeze whitespace onto one line."""
-    return re.sub(r"\s+", " ", re.sub(r"\s*\[S\d+(?:\s*,\s*S?\d+)*\]", "", text)).strip()
+    """Drop [S12] citation marks and emojis (neither is for reading aloud); squeeze whitespace onto one line."""
+    text = EMOJI.sub("", re.sub(r"\s*\[S\d+(?:\s*,\s*S?\d+)*\]", "", text))
+    return re.sub(r"\s+", " ", text).strip()
 
 
 def parts(text: str) -> list[str]:

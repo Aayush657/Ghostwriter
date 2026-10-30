@@ -210,8 +210,7 @@ button.record::before { content: ""; display: inline-block; width: 10px; height:
 .meter { display: inline-block; width: 120px; height: 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.12); overflow: hidden; vertical-align: middle; }
 .meter i { display: block; height: 100%; background: linear-gradient(90deg, var(--ok), var(--orange)); transform-origin: left; transform: scaleX(0); transition: transform 0.12s; }
 .warn { color: var(--orange-soft); }
-.language, .upload-label, .mood-pick { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 6px 0; }
-.language select { padding: 4px 12px; }
+.upload-label, .mood-pick { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 6px 0; }
 
 .meta { color: var(--muted); font-size: 0.85rem; }
 .link-row { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
@@ -597,11 +596,8 @@ h2[tabindex="-1"]:focus { outline: none; }
 .failed-box { border-color: rgba(255, 107, 94, 0.45); background: none; }
 .fog-box h3 { margin-top: 4px; color: #dfe6f8; }
 .fog-actions { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 10px; }
-.listen-again { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0 4px; }
-.listen-again label { display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.listen-again .meta { flex-basis: 100%; margin: 0; }
 .answer-tools { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; margin-top: 4px; }
-.answer-language { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; margin: 0 0 10px; }
+.answer-write { margin: 8px 0 4px; }
 .added { margin: 8px 0 4px; padding: 6px 0 6px 14px; border-left: 3px solid var(--orange); }
 .added p { margin: 4px 0; }
 .added audio { margin: 6px 0; }
@@ -612,6 +608,27 @@ textarea {
   border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; resize: vertical;
 }
 textarea:focus { outline: none; border-color: var(--orange); box-shadow: 0 0 0 3px rgba(255, 122, 24, 0.25); }
+textarea::placeholder { color: #7f8bab; font-style: italic; }
+
+/* Writing a story: a page of ruled paper with a margin line, the ruling scrolling with the words. */
+.paper { margin: 14px 0 0; }
+#write-text {
+  --rule: 1.8rem; --top: 16px;
+  display: block; min-height: calc(var(--rule) * 9 + var(--top) * 2);
+  font: 1.1rem/var(--rule) Georgia, "Nirmala UI", serif; color: #f7f0e3; caret-color: var(--orange);
+  padding: var(--top) 18px var(--top) 58px; border: 1px solid rgba(169, 182, 214, 0.25); border-radius: 6px 14px 14px 6px;
+  background:
+    linear-gradient(90deg, transparent 40px, rgba(255, 122, 24, 0.5) 40px 42px, transparent 42px) local,
+    repeating-linear-gradient(transparent 0 calc(var(--rule) - 1px), rgba(169, 182, 214, 0.17) calc(var(--rule) - 1px) var(--rule)) 0 var(--top) local,
+    linear-gradient(180deg, #121b33, #0b1224);
+  box-shadow: inset 8px 0 0 #1a2340, 0 12px 30px rgba(0, 0, 0, 0.45);
+}
+#write-text:focus { border-color: var(--orange); box-shadow: inset 8px 0 0 #1a2340, 0 0 0 3px rgba(255, 122, 24, 0.25), 0 0 30px rgba(255, 122, 24, 0.15); }
+.paper-foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 16px; margin: 8px 2px 0; }
+.autocorrect { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 0.9rem; cursor: pointer; }
+.autocorrect input { accent-color: var(--orange); width: 1.05rem; height: 1.05rem; margin: 0; }
+.paper .fixed { min-height: 1.4em; margin: 2px 2px 0; color: var(--ok); }
+.paper > .meta { margin: 4px 2px; }
 fieldset { border: 1px solid var(--line); border-radius: 12px; margin: 10px 0; padding: 8px 12px 12px; display: flex; flex-wrap: wrap; gap: 8px; }
 legend { color: var(--muted); padding: 0 6px; }
 fieldset input[type="text"] { flex: 1 1 180px; }
@@ -805,6 +822,7 @@ section:has(> .retelling)::after {
 }
 
 @media (max-width: 600px) {
+  #write-text { padding-left: 46px; background-position: -8px 0, 0 var(--top), 0 0; }
   section, article { padding: 6px 16px 16px; }
   .moon { top: 46px; right: 10px; width: 48px; height: 48px; }
   .mascot { width: 48px; height: 60px; }
@@ -847,6 +865,7 @@ body.plain .handwriting { font-family: Georgia, "Nirmala UI", serif; font-size: 
 body.plain .writing { animation: none; }
 body.plain .ink { animation: none; }
 body.plain section.unfinished { padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none; }
+body.plain #write-text { background: rgba(3, 5, 11, 0.7); padding-left: 14px; border-radius: 12px; box-shadow: none; line-height: 1.6; }
 body.plain section.unfinished h3 { text-align: left; text-transform: none; letter-spacing: normal; font-size: 1.25rem; color: var(--orange-soft); text-shadow: none; }
 body.plain section:has(> .retelling)::after { display: none; }
 body.plain #seance :is(h2, .hint) { padding-right: 0; }

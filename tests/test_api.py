@@ -18,7 +18,8 @@ WAV = wav_bytes()
 @pytest.fixture
 def client(data_dir, analysis, monkeypatch):
     def fake_process(story_id):
-        db.update_story(story_id, transcript="a fake transcript", language="en")
+        if not db.get_story(story_id)["transcript"]:  # a written story keeps its words
+            db.update_story(story_id, transcript="a fake transcript", language="en")
         db.save_analysis(story_id, analysis)
 
     monkeypatch.setattr(pipeline, "process_story", fake_process)
@@ -33,14 +34,14 @@ def upload(client, name="memory.wav", data=WAV, **form):
 
 
 def test_upload_creates_a_tagged_story(client, data_dir):
-    resp = upload(client, language="hi")
+    resp = upload(client)
     assert resp.status_code == 201
     story_id = resp.json()["id"]
 
     story = client.get(f"/api/stories/{story_id}").json()
     assert story["status"] == "ready"
     assert story["title"] == "The Lamp on Dadi's Terrace"
-    assert story["language_choice"] == "hi"
+    assert not story["written"]
     assert (data_dir / story["audio_original"]).read_bytes() == WAV
     assert [s["id"] for s in client.get("/api/stories").json()] == [story_id]
 
@@ -55,7 +56,6 @@ def test_original_audio_is_served_back(client):
 def test_unsupported_and_empty_files_are_rejected(client, data_dir):
     assert upload(client, name="virus.exe").status_code == 415
     assert upload(client, data=b"").status_code == 400
-    assert upload(client, language="klingon").status_code == 422
     assert client.get("/api/stories").json() == []  # nothing half-saved
     assert list((data_dir / "audio").iterdir()) == []
 
@@ -172,18 +172,43 @@ def test_reread_queues_a_fresh_analysis(client, monkeypatch):
     assert story["audio_original"]
 
 
-def test_listening_again_in_another_language(client, monkeypatch):
-    story_id = upload(client).json()["id"]
-    db.update_story(story_id, retelling="an old retelling")
+STORY = "Every Halloween we drove out to Grandpa Joe's farm, and he told us about the scarecrow."
+
+
+def test_a_written_story_is_read_like_a_recording(client, monkeypatch):
     queued = []
     monkeypatch.setattr(pipeline, "process_story", lambda i: queued.append(db.get_story(i)))
-
-    assert client.post(f"/api/stories/{story_id}/relisten", json={"language": "hinglish"}).status_code == 202
+    resp = client.post("/api/stories/written", json={"text": f"  {STORY}  "})
+    assert resp.status_code == 201
     story = queued[0]
-    assert story["status"] == "queued" and story["language_choice"] == "hinglish"
-    assert story["transcript"] is None and story["title"] is None and story["retelling"] is None
-    assert story["audio_original"]  # the recording itself is kept
-    assert client.post(f"/api/stories/{story_id}/relisten", json={"language": "fr"}).status_code == 422
+    assert story["id"] == resp.json()["id"] and story["status"] == "queued"
+    assert story["transcript"] == STORY and story["written"] == 1  # the words as typed, trimmed
+    assert story["audio_original"] is None and story["answers_question_id"] is None
+
+
+def test_a_written_story_becomes_a_story_with_its_own_words(client):
+    story_id = client.post("/api/stories/written", json={"text": STORY}).json()["id"]
+    story = client.get(f"/api/stories/{story_id}").json()
+    assert story["status"] == "ready" and story["transcript"] == STORY and story["written"] == 1
+    assert client.get(f"/api/stories/{story_id}/audio").status_code == 404  # nothing was recorded
+
+
+def test_a_question_can_be_answered_in_writing(client):
+    story_id = upload(client).json()["id"]
+    question = db.get_story(story_id)["questions"][0]
+    resp = client.post("/api/stories/written", json={"text": "It was my cousin Maya, holding a lantern.",
+                                                     "answers_question_id": question["id"]})
+    assert resp.status_code == 201
+    answer = db.get_story(story_id)["questions"][0]["answer"]
+    assert answer["id"] == resp.json()["id"] and answer["written"] == 1
+    assert client.post("/api/stories/written", json={"text": STORY, "answers_question_id": 9999}).status_code == 404
+
+
+@pytest.mark.parametrize("text", ["", "   ", "Too short.", "x" * 20_001])
+def test_a_written_story_needs_a_few_sentences_and_fits_in_gemma(client, text):
+    resp = client.post("/api/stories/written", json={"text": text})
+    assert resp.status_code == 422
+    assert client.get("/api/stories").json() == []
 
 
 def test_stories_being_processed_cannot_be_changed(client):
@@ -191,7 +216,6 @@ def test_stories_being_processed_cannot_be_changed(client):
     db.update_story(story_id, status="thinking")
     assert client.patch(f"/api/stories/{story_id}", json={"title": "x"}).status_code == 409
     assert client.post(f"/api/stories/{story_id}/reread").status_code == 409
-    assert client.post(f"/api/stories/{story_id}/relisten", json={}).status_code == 409
     assert client.delete(f"/api/stories/{story_id}").status_code == 409
 
 

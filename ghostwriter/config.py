@@ -9,7 +9,9 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
 # faster-whisper sizes, smallest and fastest first. scripts\setup.ps1 downloads the one in .env.
-WHISPER_SIZES = ("tiny", "base", "small", "medium", "large-v3-turbo", "large-v3")
+# Ghostwriter listens in English: the ".en" models are trained for it; the others work too, more slowly.
+WHISPER_SIZES = ("tiny.en", "base.en", "small.en", "medium.en", "tiny", "base", "small", "medium",
+                 "large-v3-turbo", "large-v3")
 
 
 class Settings(BaseSettings):
@@ -33,9 +35,8 @@ class Settings(BaseSettings):
     # Without it the Seance still works, by keywords only.
     embed_model: str = "embeddinggemma:300m-qat-q8_0"
 
-    whisper_model: str = "small"  # one of WHISPER_SIZES; bigger hears names better but is slower
+    whisper_model: str = "small.en"  # one of WHISPER_SIZES; bigger hears names better but is slower
     whisper_compute_type: str = "int8"
-    whisper_language: str = ""  # e.g. "hi" to force Hindi; empty means auto-detect
 
     tts_enabled: bool = True
     piper_bin: str = "piper"  # or the full path to piper.exe

@@ -15,12 +15,12 @@ def test_samples_are_analysed_once_and_marked(data_dir, analysis, monkeypatch):
     monkeypatch.setattr(llm, "unanswered_questions", lambda transcript, analysis, answering=None: analysis.unfinished_business)
 
     ids = samples.seed()
-    assert len(ids) == 4
+    assert len(ids) == 2
     assert all(db.get_story(i)["status"] == "ready" and db.get_story(i)["is_sample"] for i in ids)
     assert db.get_story(ids[0])["reaction"].startswith("A note about")  # written during processing
-    assert any("दादी" in t or "नानी" in t for t in seen)  # Hindi transcripts pass through intact
+    assert any("Camp Wahkeena" in t for t in seen) and any("Old Hollis" in t for t in seen)  # campfire stories
     visits = [db.get_story(i)["last_visited_at"] for i in ids]
-    assert visits == sorted(visits, reverse=True) and len(set(visits)) == 4  # each fades a bit more
+    assert visits == sorted(visits, reverse=True) and len(set(visits)) == 2  # the second fades more
 
     assert samples.seed() == []  # running it again adds nothing
 

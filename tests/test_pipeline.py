@@ -17,9 +17,9 @@ from ghostwriter.models import StoryAnalysis
 from ghostwriter.transcribe import Quality, Transcript
 from tests.conftest import wav_bytes
 
-CLEAR = Quality(-0.3, 0.01, 1.4, 0.99, 0.0, scripts=["LATIN"])
-FOG = Quality(-0.67, 0.5, 1.9, 0.56, 0.29, low_words=["برو"], scripts=["ARABIC"],
-              reasons=["much of it sounded like noise or an unknown language"])
+CLEAR = Quality(-0.3, 0.01, 1.4, 0.0, scripts=["LATIN"])
+FOG = Quality(-0.67, 0.5, 1.9, 0.29, low_words=["برو"], scripts=["ARABIC"],
+              reasons=["much of it sounded like noise"])
 
 
 @pytest.fixture
@@ -37,11 +37,11 @@ def audio_story(data_dir):
 @pytest.fixture
 def fake_models(monkeypatch, analysis):
     """Whisper hears `heard[0]` with `heard[1]` quality; Gemma returns the fixture analysis."""
-    seen = SimpleNamespace(heard=("My cousin Meera buried a brass key.", CLEAR), analysed=[], noted=[], choices=[])
+    seen = SimpleNamespace(heard=("My cousin Meera buried a brass key.", CLEAR), analysed=[], noted=[], names=[])
 
-    def fake_transcribe(wav, choice="auto", names=()):
-        seen.choices.append((choice, list(names)))
-        return Transcript(seen.heard[0], "en", 0.99, 4.0, seen.heard[1])
+    def fake_transcribe(wav, names=()):
+        seen.names.append(list(names))
+        return Transcript(seen.heard[0], 4.0, seen.heard[1])
 
     def fake_analyse(transcript, answering=None):
         seen.analysed.append((transcript, answering))
@@ -55,20 +55,32 @@ def fake_models(monkeypatch, analysis):
 
 
 def test_clear_words_become_a_memory(audio_story, fake_models):
-    story_id = audio_story(language_choice="en")
+    story_id = audio_story()
     pipeline.process_story(story_id)
     story = db.get_story(story_id)
     assert story["status"] == "ready" and story["title"] == "The Lamp on Dadi's Terrace"
     assert json.loads(story["quality"])["reasons"] == []
-    assert fake_models.choices[0][0] == "en"  # the storyteller's language choice reaches Whisper
+    assert story["language"] == "en" and not story["written"]
     assert db.timings("transcribing") == [(11.0, 4.0)] and len(db.timings("thinking")) == 1
 
+
+
+def test_a_written_story_skips_listening_and_the_quality_check(data_dir, fake_models):
+    story_id = db.create_story(written=True)
+    db.update_story(story_id, transcript="Every Halloween Grandpa Joe told us the scarecrow walked.")
+    pipeline.process_story(story_id)
+    story = db.get_story(story_id)
+    assert story["status"] == "ready" and story["written"] == 1
+    assert fake_models.names == []  # Whisper was never asked
+    assert fake_models.analysed[0][0] == "Every Halloween Grandpa Joe told us the scarecrow walked."
+    assert story["quality"] is None and db.timings("transcribing") == []
+    assert pipeline.estimate({**story, "status": "queued"}) is not None  # reading and the note only
 
 def test_names_already_in_the_archive_help_whisper(audio_story, fake_models, analysis):
     first = audio_story()
     pipeline.process_story(first)  # saves Dadi, Allahabad, brass lamp
     pipeline.process_story(audio_story())
-    assert {"Dadi (grandmother)", "Allahabad", "brass lamp"} <= set(fake_models.choices[1][1])
+    assert {"Dadi (grandmother)", "Allahabad", "brass lamp"} <= set(fake_models.names[1])
 
 
 def test_unclear_words_never_become_a_made_up_memory(audio_story, fake_models):

@@ -85,7 +85,8 @@ def _story(s: dict) -> str:
         f"<p>{escape(s['summary'])}</p>",
         '<p class="meta">Some words were unclear, so the summary leaves them out.</p>' if s["uncertain"] else "",
         f"<dl>{rows}</dl>" if rows else "",
-        f'<h3>The words as they were spoken</h3><p class="transcript">{escape(s["transcript"])}</p>',
+        f'<h3>The words as they were {"written" if s.get("written") else "spoken"}</h3>'
+        f'<p class="transcript">{escape(s["transcript"])}</p>',
         f'<h3>The Archivist wrote</h3><p class="hand">{escape(s["reaction"])}</p>' if s["reaction"] else "",
         f"<h3>Unfinished business</h3><ul>{questions}</ul>" if questions else "",
         ('<h3>A haunted retelling</h3><p class="meta">A retelling by the Archivist, not the memory itself.</p>'

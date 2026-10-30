@@ -120,7 +120,7 @@ def test_retelling_is_kept_apart_and_never_touches_the_original(client, monkeypa
     assert after["retelling"] == "Gather close. The clock was listening..."
     assert (after["transcript"], after["summary"], after["title"]) == \
         (before["transcript"], before["summary"], before["title"])
-    assert "bhoot-kahani" in calls[0][0]["content"]
+    assert "campfire" in calls[0][0]["content"] and "emojis" in calls[0][0]["content"]  # a few, to set the mood
 
 
 def test_old_database_gets_the_new_column(data_dir):

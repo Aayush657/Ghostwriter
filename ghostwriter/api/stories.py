@@ -1,5 +1,5 @@
-"""Story routes: upload a recording, list the archive, read, edit, re-read, listen again and delete one
-story, play its audio, retry a failure, and the things Gemma writes about it."""
+"""Story routes: upload a recording or a written story, list the archive, read, edit, re-read and delete
+one story, play its audio, retry a failure, and the things Gemma writes about it."""
 
 from __future__ import annotations
 
@@ -26,15 +26,12 @@ router = APIRouter(prefix="/api/stories", tags=["stories"])
 
 MAX_UPLOAD_BYTES = 200 * 1024 * 1024
 CHUNK_BYTES = 1024 * 1024
-Language = Literal["auto", "en", "hi", "hinglish"]
-
 
 @router.post("", status_code=201)
 async def upload_story(
     background: BackgroundTasks,
     file: UploadFile,
     answers_question_id: int | None = Form(None),
-    language: Language = Form("auto"),
 ) -> dict:
     """Check the file really is audio, save it untouched, then transcribe and analyse it in the background.
 
@@ -67,10 +64,30 @@ async def upload_story(
         incoming.unlink(missing_ok=True)
         raise
 
-    story_id = db.create_story(answers_question_id, language_choice=language)
+    story_id = db.create_story(answers_question_id)
     relative = f"audio/{story_id}_original{ext}"
     incoming.replace(settings.data_dir / relative)
     db.update_story(story_id, audio_original=relative, duration_s=duration)
+    background.add_task(pipeline.process_story, story_id)
+    return {"id": story_id}
+
+
+# A written story: a few sentences at least, and no more than Gemma can read at once (about 3,500 words).
+StoryText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=20, max_length=20_000)]
+
+
+class WrittenStory(BaseModel):
+    text: StoryText
+    answers_question_id: int | None = None
+
+
+@router.post("/written", status_code=201)
+def write_story(story: WrittenStory, background: BackgroundTasks) -> dict:
+    """A story (or an answer) typed instead of recorded: Gemma reads it like a transcript, minus the audio steps."""
+    if story.answers_question_id is not None and not db.question_exists(story.answers_question_id):
+        raise HTTPException(404, "That question doesn't exist.")
+    story_id = db.create_story(story.answers_question_id, written=True)
+    db.update_story(story_id, transcript=story.text, language="en")
     background.add_task(pipeline.process_story, story_id)
     return {"id": story_id}
 
@@ -126,24 +143,6 @@ def reread_story(story_id: int, background: BackgroundTasks) -> dict:
     if not story["transcript"]:
         raise HTTPException(409, "There are no words to re-read yet.")
     db.update_story(story_id, status="queued", error=None, error_kind=None, reaction=None, started_at=None)
-    background.add_task(pipeline.process_story, story_id)
-    return {"id": story_id}
-
-
-class Relisten(BaseModel):
-    language: Language = "auto"
-
-
-@router.post("/{story_id}/relisten", status_code=202)
-def relisten_story(story_id: int, req: Relisten, background: BackgroundTasks) -> dict:
-    """Transcribe the recording again, in the chosen language, then read the new words."""
-    story = _idle_story_or_409(story_id)
-    if not story["audio_original"]:
-        raise HTTPException(409, "This story has no recording to listen to again.")
-    db.clear_reading(story_id)
-    db.update_story(story_id, status="queued", error=None, error_kind=None, transcript=None,
-                    transcript_original=None, quality=None, language_probability=None, retelling=None,
-                    language_choice=req.language, started_at=None)
     background.add_task(pipeline.process_story, story_id)
     return {"id": story_id}
 

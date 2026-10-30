@@ -2,6 +2,7 @@
 
 import { $, el, localTime, present } from "./dom.js";
 import { api, send, streamEvents } from "./api.js";
+import { attachAutocorrect, storyBox } from "./autocorrect.js";
 import { quill } from "./quill.js";
 import { micProblem, startRecording } from "./recorder.js";
 
@@ -15,7 +16,7 @@ const AUDIO_TYPES = AUDIO_EXTENSIONS.join(",");
 const MOODS = {
   joyful: { shape: "jack-o'-lantern", flame: "gold" },
   nostalgic: { shape: "dripping pillar candle", flame: "amber" },
-  loving: { shape: "clay diya", flame: "rose" },
+  loving: { shape: "clay oil lamp", flame: "rose" },
   poignant: { shape: "twisted taper", flame: "blue" },
   mysterious: { shape: "iron lantern", flame: "violet" },
   eerie: { shape: "skull candle", flame: "green" },
@@ -29,14 +30,14 @@ const FALLBACK_MOOD = "nostalgic";
 const COPY = {
   spooky: {
     tagline: "The ghost that keeps your stories.",
-    why: "Record the stories your family tells (Nani's recipes, Dada's journeys) before they're forgotten. Everything stays on this computer.",
+    why: "Keep the stories your family tells (the campfire legend, the night the lights went out, the scarecrow that walked) before they're forgotten. Everything stays on this computer.",
     intro: "Ghostwriter is home to the Archivist, a kind ghost who writes your stories down and remembers every word.",
     plainSwitch: "Plain mode: simple words, no effects",
     howLink: "How it works",
     aboutLink: "About",
     howTitle: "How Ghostwriter works",
     how1Title: "Tell a story.",
-    how1: "Speak into the microphone or upload a recording, in English, Hindi or both.",
+    how1: "Speak into the microphone, upload a recording, or write it down.",
     how2Title: "The Archivist writes it down.",
     how2: "It gives the story a title and notes who, where and when, then asks what it still wonders about.",
     how3Title: "Ask the Séance.",
@@ -78,7 +79,7 @@ const COPY = {
     sampleNote: "A fictional sample story, written for the demo. It is not a real memory.",
     seance: "Séance",
     seanceHint: "Ask a question about your stories. The Archivist answers only from them, and numbers the stories it used, like this [1].",
-    askPlaceholder: "What did Nani cook?",
+    askPlaceholder: "What happened at Pine Lake?",
     ask: "Ask",
     askTitle: "Summon an answer from your stories",
     consulting: "The candles lean. The Archivist is searching the shelves...",
@@ -87,12 +88,7 @@ const COPY = {
     emptyQuestion: "Ask me something first, my dear: a name, a place, a time.",
     askAbout: (name) => `Ask about ${name}`,
     give: "Give the Archivist a story",
-    giveHint: "Record it here, or upload a recording you already have. Short stories take about a minute to write down.",
-    languageLabel: "Language spoken",
-    langAuto: "Detect it for me",
-    langEn: "English",
-    langHi: "Hindi",
-    langMixed: "Hinglish (Hindi and English mixed)",
+    giveHint: "Tell it out loud, in English, or upload a recording you already have. Short stories take about a minute to write down.",
     micHint: "Your browser will ask to use the microphone. The recording stays on this computer.",
     orUpload: "Or upload a recording:",
     offer: "Upload recording",
@@ -120,9 +116,12 @@ const COPY = {
     writeNote: "Write the note now",
     unfinished: "Unfinished business",
     unfinishedHint: "What the Archivist still wonders about. Answer one, and your answer is added to this story.",
-    answerLanguage: "Answers are heard in:",
     answerRecord: "Record an answer",
     answerFile: "or upload a file",
+    answerWrite: "or write it",
+    answerWriteLabel: "Your answer",
+    answerPlaceholder: "Write your answer here...",
+    answerSubmit: "Add my answer",
     answerWorking: "Your answer is being written down...",
     addedLater: (date) => `Added later, ${date}`,
     addedTo: "Added later to",
@@ -133,8 +132,7 @@ const COPY = {
     removeAnswerOk: "Remove it",
     answerRemoved: "The answer has been removed.",
     transcript: "The words as they were spoken",
-    autoDetected: "auto-detected",
-    chosenLanguage: "you chose it",
+    transcriptWritten: "The words as you wrote them",
     unsure: "The Archivist wasn't sure of these words: ",
     uncertain: "The Archivist isn't sure of some words, so it left them out.",
     edited: "You corrected these words. Whisper's original words are kept too.",
@@ -143,9 +141,6 @@ const COPY = {
     rereadOffer: "The words are kept. Shall the Archivist read them again, for a new title, summary, tags and questions?",
     reread: "Let the Archivist re-read it",
     notNow: "Not now",
-    listenAgain: "Listen again",
-    listenAgainIn: "Listen to the recording again in",
-    listenAgainHint: "The Archivist hears the recording again and re-reads it. Corrections you made to the words are replaced.",
     missing: "That memory was never given to me.",
     back: "← back to the candle wall",
     retelling: "A haunted retelling",
@@ -166,7 +161,8 @@ const COPY = {
     fog: "The words came to me as fog...",
     fogText: "I could not make out a memory in this recording, so I wrote nothing down. You can:",
     fogWhy: "Why: ",
-    fogEdit: "Correct the words by hand",
+    fogEdit: "Write down what was said",
+    fogPlaceholder: "Write the story the way it was told...",
     tryAgain: "Try again",
     chooseAnother: "Choose another file",
     stopped: "Stopped. Nothing new was kept.",
@@ -193,15 +189,15 @@ const COPY = {
     aboutIntro: "Ghostwriter keeps the stories your family tells. The Archivist is the ghost who lives in it: it listens, writes each story down, and answers questions about them.",
     featuresTitle: "What everything does",
     features: [
-      ["Record or upload", "Speak a memory into the microphone or upload a recording, in English, Hindi or both."],
+      ["Record or upload", "Speak a memory into the microphone, in English, or upload a recording."],
+      ["Write it down", "Type a story instead, with spell check and autocorrect. Your draft is kept if you leave the page."],
       ["The candle wall", "Each story is a candle; its shape and flame colour show its mood. Unopened stories burn low."],
       ["Search and filter", "Find stories by words in their title or summary, or by a person, place, time or mood."],
       ["The story page", "The Archivist's note, a summary, who, where and when, the recording, and the words as spoken."],
       ["Unfinished business", "Questions the Archivist still has. Answer one and the answer joins the story."],
       ["Correct and re-read", "Fix misheard words, rename the story, edit its tags; the Archivist can read it again."],
-      ["Listen again", "Have the recording heard again in English, Hindi or Hinglish if the language was wrong."],
       ["Séance", "Ask a question; the Archivist answers only from your stories and numbers its sources."],
-      ["Haunted retelling", "The story retold as a campfire ghost story. The original is never changed."],
+      ["Haunted retelling", "The story retold as a campfire ghost story, with a few emojis. The original is never changed."],
       ["The Archivist's voice", "Have any note, answer or retelling read aloud."],
       ["Memory book", "Every story on one page to print, save as a PDF, or keep as a file."],
       ["Plain mode", "Simple words and no effects, for anyone who prefers them."],
@@ -213,17 +209,33 @@ const COPY = {
     close: "Close",
     badge: "Private: runs entirely on this computer",
     aboutFooter: "About and local tools",
+    writeTitle: "Write a story down",
+    writeHint: "No microphone, a noisy room, or a story that needs a second try? Write it here, the way you would tell it. The Archivist reads it just like a recording.",
+    writeLabel: "Your story",
+    writePlaceholder: "It was the last night at camp, and the fire had burned down to embers...",
+    autocorrectLabel: "Autocorrect",
+    writeHelp: "Misspelled words are underlined: right-click one for suggestions. Common typos are fixed as you type; press Backspace straight after a fix to undo it. Your draft is kept on this computer if you leave the page.",
+    writeSubmit: "Give it to the Archivist",
+    writeClear: "Clear the page",
+    wordCount: (n) => n === 0 ? "" : `${n} ${n === 1 ? "word" : "words"} · about ${Math.max(1, Math.round(n / 140))} min to tell`,
+    tooShort: "Write a little more, my dear: a few sentences at least.",
+    handing: "Handing your pages to the Archivist...",
+    fixed: (from, to) => `Autocorrect: “${from}” became “${to}”.`,
+    unfixed: (from) => `Kept “${from}” as you wrote it.`,
+    clearTitle: "Clear the page?",
+    clearText: "Everything written here will be gone.",
+    clearOk: "Clear it",
   },
   plain: {
     tagline: "A private archive for spoken family stories.",
-    why: "Record the stories your family tells (Nani's recipes, Dada's journeys) before they're forgotten. Everything stays on this computer.",
+    why: "Keep the stories your family tells (the campfire legend, the night the lights went out, the scarecrow that walked) before they're forgotten. Everything stays on this computer.",
     intro: "Ghostwriter transcribes each recording, summarises it and lets you ask questions about your stories.",
     plainSwitch: "Plain mode: simple words, no effects",
     howLink: "How it works",
     aboutLink: "About",
     howTitle: "How Ghostwriter works",
     how1Title: "Add a story.",
-    how1: "Record it with the microphone or upload a recording, in English, Hindi or both.",
+    how1: "Record it with the microphone, upload a recording, or type it.",
     how2Title: "It is transcribed and summarised.",
     how2: "Each story gets a title, a summary, tags and a few follow-up questions.",
     how3Title: "Ask questions.",
@@ -263,7 +275,7 @@ const COPY = {
     sampleNote: "A fictional sample story, written for the demo. It is not real.",
     seance: "Ask your stories",
     seanceHint: "Answers come only from your stories, with numbered sources like this [1].",
-    askPlaceholder: "What did Nani cook?",
+    askPlaceholder: "What happened at Pine Lake?",
     ask: "Ask",
     askTitle: "Ask a question about your stories",
     consulting: "Searching your stories...",
@@ -272,12 +284,7 @@ const COPY = {
     emptyQuestion: "Type a question first.",
     askAbout: (name) => `Ask about ${name}`,
     give: "Add a story",
-    giveHint: "Record it here, or upload a recording. Short stories take about a minute to process.",
-    languageLabel: "Language spoken",
-    langAuto: "Detect automatically",
-    langEn: "English",
-    langHi: "Hindi",
-    langMixed: "Hinglish (Hindi and English mixed)",
+    giveHint: "Record it here in English, or upload a recording. Short stories take about a minute to process.",
     micHint: "Your browser will ask to use the microphone. The recording stays on this computer.",
     orUpload: "Or upload a recording:",
     offer: "Upload recording",
@@ -305,9 +312,12 @@ const COPY = {
     writeNote: "Write the AI note",
     unfinished: "Follow-up questions",
     unfinishedHint: "Answer one, and your answer is added to this story.",
-    answerLanguage: "Answers are transcribed in:",
     answerRecord: "Record an answer",
     answerFile: "or upload a file",
+    answerWrite: "or type it",
+    answerWriteLabel: "Answer",
+    answerPlaceholder: "Type your answer...",
+    answerSubmit: "Save answer",
     answerWorking: "Your answer is being processed...",
     addedLater: (date) => `Added later, ${date}`,
     addedTo: "Added later to",
@@ -318,8 +328,7 @@ const COPY = {
     removeAnswerOk: "Remove it",
     answerRemoved: "Answer removed.",
     transcript: "Transcript",
-    autoDetected: "auto-detected",
-    chosenLanguage: "chosen",
+    transcriptWritten: "Text",
     unsure: "Low-confidence words: ",
     uncertain: "Some words were unclear and were left out of the summary.",
     edited: "Edited. The original transcript is kept too.",
@@ -328,9 +337,6 @@ const COPY = {
     rereadOffer: "Saved. Analyse the edited transcript again (title, summary, tags, questions)?",
     reread: "Analyse again",
     notNow: "Not now",
-    listenAgain: "Transcribe again",
-    listenAgainIn: "Transcribe the recording again in",
-    listenAgainHint: "The recording is transcribed and analysed again. Manual edits to the transcript are replaced.",
     missing: "Story not found.",
     back: "← all stories",
     retelling: "Retelling",
@@ -351,7 +357,8 @@ const COPY = {
     fog: "This recording was too unclear to transcribe",
     fogText: "No title, summary or questions were written. You can:",
     fogWhy: "Why: ",
-    fogEdit: "Type or fix the transcript",
+    fogEdit: "Type the story instead",
+    fogPlaceholder: "Type the story...",
     tryAgain: "Retry",
     chooseAnother: "Choose another file",
     stopped: "Stopped.",
@@ -378,15 +385,15 @@ const COPY = {
     aboutIntro: "Ghostwriter transcribes and organises spoken family stories, and answers questions about them. It runs entirely on this computer.",
     featuresTitle: "Features",
     features: [
-      ["Record or upload", "Record with the microphone or upload a recording, in English, Hindi or both."],
+      ["Record or upload", "Record with the microphone (English) or upload a recording."],
+      ["Type a story", "Type or paste a story instead, with spell check and autocorrect. Drafts are saved on this computer."],
       ["Stories", "Each story is a card coloured by its mood. Stories you haven't opened for a while look dimmer."],
       ["Search and filter", "Find stories by words in their title or summary, or by a person, place, time or mood."],
       ["Story page", "An AI note, a summary, tags, the recording and the transcript."],
       ["Follow-up questions", "Answer one and the answer is added to the story."],
       ["Edit and analyse again", "Fix the transcript, rename the story or edit its tags, then analyse it again."],
-      ["Transcribe again", "Transcribe the recording again in English, Hindi or Hinglish if the language was wrong."],
       ["Questions", "Ask about your stories; answers come only from them, with numbered sources."],
-      ["Retelling", "A creative retelling of a story. The original is never changed."],
+      ["Retelling", "A creative retelling of a story, with a few emojis. The original is never changed."],
       ["Read aloud", "Any note, answer or retelling can be read aloud."],
       ["Export", "Every story on one printable page, or saved as a PDF or file."],
       ["Plain mode", "Simple words and no effects."],
@@ -398,6 +405,22 @@ const COPY = {
     close: "Close",
     badge: "Private: runs entirely on this computer",
     aboutFooter: "About and local tools",
+    writeTitle: "Type a story",
+    writeHint: "Type or paste a story instead of recording it. It is processed the same way.",
+    writeLabel: "Story text",
+    writePlaceholder: "Type or paste the story here...",
+    autocorrectLabel: "Autocorrect",
+    writeHelp: "Misspelled words are underlined (right-click for suggestions). Common typos are corrected as you type; press Backspace right after a correction to undo it. Drafts are saved on this computer.",
+    writeSubmit: "Save story",
+    writeClear: "Clear",
+    wordCount: (n) => n === 0 ? "" : `${n} ${n === 1 ? "word" : "words"}`,
+    tooShort: "Write at least a few sentences.",
+    handing: "Saving...",
+    fixed: (from, to) => `Corrected “${from}” to “${to}”.`,
+    unfixed: (from) => `Kept “${from}”.`,
+    clearTitle: "Clear the text?",
+    clearText: "The draft will be deleted.",
+    clearOk: "Clear",
   },
 };
 
@@ -432,21 +455,6 @@ function clock(since = Date.now()) {
 const working = (text, onCancel) => el("p", { className: "status working", role: "status" },
   `${text} `, clock(), onCancel && el("button", { type: "button", className: "link", textContent: voice().cancel, onclick: onCancel }));
 
-const languageNames = new Intl.DisplayNames(["en"], { type: "language" });
-const languageName = (code) => { try { return languageNames.of(code); } catch { return code; } };
-const LANGUAGE_CHOICES = ["auto", "en", "hi", "hinglish"];
-const choiceLabel = (choice) => ({ auto: voice().langAuto, en: voice().langEn, hi: voice().langHi, hinglish: voice().langMixed })[choice];
-const languageChoice = () => $("#language").value;
-
-// A language picker that shares the remembered choice with the one next to the record button.
-function languagePicker(label) {
-  const select = el("select", { ariaLabel: label },
-    ...LANGUAGE_CHOICES.map((choice) => el("option", { value: choice, textContent: choiceLabel(choice) })));
-  select.value = languageChoice();
-  select.onchange = () => { $("#language").value = select.value; store.set("language", select.value); };
-  return select;
-}
-
 // --------------------------------------------------------------------------- plain mode and copy
 
 function applyVoice() {
@@ -458,6 +466,7 @@ function applyVoice() {
   $("#features").replaceChildren(...v.features.flatMap(([term, text]) => [el("dt", { textContent: term }), el("dd", { textContent: text })]));
   renderLegend();
   renderRecorder();
+  countWords();
 }
 
 // --------------------------------------------------------------------------- health (About panel)
@@ -864,7 +873,6 @@ async function upload(file, { answersQuestionId = null, status, form = null, aft
   if (!AUDIO_EXTENSIONS.includes(ext)) return showError(v.wrongType(ext || file.name));
   const data = new FormData();
   data.append("file", file);
-  data.append("language", languageChoice());
   if (answersQuestionId) data.append("answers_question_id", answersQuestionId);
   const button = form?.querySelector("button");
   status.replaceChildren(el("p", { className: "status", role: "status", textContent: v.offering }));
@@ -885,6 +893,78 @@ async function upload(file, { answersQuestionId = null, status, form = null, aft
   } finally {
     if (button) button.disabled = false;
   }
+}
+
+// --------------------------------------------------------------------------- written stories
+
+const wordsIn = (text) => text.trim().split(/\s+/).filter(Boolean).length;
+
+// Give typed words to the Archivist (a story, or an answer to `answersQuestionId`). Returns the new id.
+async function sendWritten(text, answersQuestionId = null) {
+  const { id } = await send("/api/stories/written", "POST", { text, answers_question_id: answersQuestionId });
+  return id;
+}
+
+function countWords() {
+  const box = $("#write-text");
+  if (box) $("#write-count").textContent = voice().wordCount(wordsIn(box.value));
+}
+
+// The "Write a story down" page: autocorrect (switchable, remembered), a word count, and a draft that
+// survives leaving the page. Sending it opens the new story, like a recording does.
+function setUpWriting() {
+  const box = $("#write-text");
+  const form = $("#write-form");
+  const status = $("#write-status");
+  const toggle = $("#autocorrect-toggle");
+  const note = $("#write-fixed");
+  let hideNote = null;
+  toggle.checked = store.get("autocorrect", "1") === "1";
+  toggle.addEventListener("change", () => store.set("autocorrect", toggle.checked ? "1" : "0"));
+  attachAutocorrect(box, { enabled: () => toggle.checked, onFix: (from, to, undone) => {
+    note.textContent = undone ? voice().unfixed(from) : voice().fixed(from, to);
+    clearTimeout(hideNote);
+    hideNote = setTimeout(() => { note.textContent = ""; }, 4000);
+  } });
+  box.value = store.get("draft", "");
+  countWords();
+  box.addEventListener("input", () => {
+    store.set("draft", box.value);
+    countWords();
+    status.replaceChildren();
+  });
+  $("#write-clear").addEventListener("click", async () => {
+    const v = voice();
+    if (box.value.trim() && !await confirmDialog({ title: v.clearTitle, text: v.clearText, ok: v.clearOk, cancel: v.keepIt })) return;
+    box.value = "";
+    store.set("draft", "");
+    countWords();
+    box.focus();
+  });
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const v = voice();
+    const text = box.value.trim();
+    if (wordsIn(text) < 8) {
+      status.replaceChildren(el("p", { className: "error", role: "alert", textContent: v.tooShort }));
+      return box.focus();
+    }
+    const button = form.querySelector("button[type=submit]");
+    button.disabled = true;
+    status.replaceChildren(el("p", { className: "status", textContent: v.handing }));
+    try {
+      const id = await sendWritten(text);
+      box.value = "";
+      store.set("draft", "");
+      countWords();
+      status.replaceChildren();
+      location.hash = `#/story/${id}`;
+    } catch (err) {
+      status.replaceChildren(el("p", { className: "error", role: "alert", textContent: v.refused + err.message }));
+    } finally {
+      button.disabled = false;
+    }
+  });
 }
 
 // --------------------------------------------------------------------------- story page
@@ -944,7 +1024,7 @@ const editable = (s) => ["ready", "failed", "unclear"].includes(s.status);
 // Which step the Archivist is on, for how long, and about how long is left. A step list, not buttons.
 function progress(s) {
   const v = voice();
-  const stages = s.answers_question_id ? STAGES.slice(0, 2) : STAGES;
+  const stages = STAGES.filter((stage) => !(s.written && stage === "transcribing") && !(s.answers_question_id && stage === "noting"));
   const now = stages.indexOf(s.status);
   const done = (stage, i) => i < now || (stage === "transcribing" && Boolean(s.transcript));
   if (!firstSeen.has(s.id)) firstSeen.set(s.id, Date.now());
@@ -1049,42 +1129,13 @@ function tagsBlock(s) {
   return wrap;
 }
 
-// "Listen again in [language]": transcribe the recording again, then read the new words.
-function listenAgain(s) {
-  const v = voice();
-  const picker = languagePicker(v.listenAgainIn);
-  picker.value = s.language_choice || "auto";
-  picker.onchange = null; // a one-off choice for this recording
-  return el("div", { className: "listen-again" },
-    el("label", {}, `${v.listenAgainIn} `, picker), " ",
-    el("button", { type: "button", className: "secondary", textContent: v.listenAgain, onclick: async () => {
-      try {
-        await send(`/api/stories/${s.id}/relisten`, "POST", { language: picker.value });
-        written.delete(`reaction:${s.id}`);
-        written.delete(`retelling:${s.id}`);
-        firstSeen.delete(s.id);
-        await refresh(true);
-        $("#story .progress")?.scrollIntoView({ block: "center" });
-      } catch (err) {
-        toast(v.trouble + err.message);
-      }
-    } }),
-    el("p", { className: "meta", textContent: v.listenAgainHint }));
-}
-
-// What language the words are in, and whether the visitor chose it or Whisper guessed.
-function languageNote(s) {
-  if (!s.language) return "";
-  const how = s.language_choice && s.language_choice !== "auto" ? voice().chosenLanguage : voice().autoDetected;
-  return `${s.language_choice === "hinglish" ? voice().langMixed : languageName(s.language)} (${how})`;
-}
-
-// "The words as they were spoken", with an editor; saving offers to let Gemma read them again.
+// "The words as they were spoken" (or written), with an editor; saving offers to let Gemma read them
+// again. For a recording lost in fog the editor starts empty: the visitor writes down what was said.
 function transcriptBlock(s) {
   const v = voice();
   const quality = s.quality ? JSON.parse(s.quality) : null;
   const details = el("details", { className: "words", id: `words-${s.id}` },
-    el("summary", {}, v.transcript, s.language && el("span", { className: "meta" }, ` · ${languageNote(s)}`)),
+    el("summary", {}, s.written ? v.transcriptWritten : v.transcript),
     el("p", { className: "transcript content", textContent: s.transcript }));
   if (quality?.low_words?.length && s.status === "ready") {
     details.append(el("p", { className: "meta" }, v.unsure, el("span", { className: "content", textContent: quality.low_words.slice(0, 8).join(", ") })));
@@ -1093,7 +1144,10 @@ function transcriptBlock(s) {
   if (!editable(s)) return details;
   const tools = el("div", { className: "row" });
   tools.append(el("button", { type: "button", className: "link edit-words", textContent: v.editWords, onclick: () => {
-    const box = el("textarea", { value: s.transcript, rows: 8, required: true, ariaLabel: v.transcript });
+    const fog = s.status === "unclear";
+    const box = storyBox({ value: fog ? "" : s.transcript, rows: fog ? 10 : 8, required: true, ariaLabel: v.transcript,
+                           placeholder: fog ? v.fogPlaceholder : "" });
+    attachAutocorrect(box);
     const form = el("form", { className: "transcript-edit editing" }, box,
       el("div", { className: "row" },
         el("button", { type: "submit", textContent: v.save }),
@@ -1105,6 +1159,7 @@ function transcriptBlock(s) {
       if (!box.reportValidity()) return;
       try {
         await send(`/api/stories/${s.id}`, "PATCH", { transcript: box.value });
+        if (fog) return reread(s.id); // written down instead: read it straight away
         form.replaceWith(el("div", { className: "reread editing", role: "status" },
           el("p", { textContent: v.rereadOffer }),
           el("button", { type: "button", textContent: v.reread, onclick: () => reread(s.id) }), " ",
@@ -1118,7 +1173,6 @@ function transcriptBlock(s) {
     box.focus();
   } }), el("span", { className: "meta", textContent: v.editWordsHint }));
   details.append(tools);
-  if (s.audio_original && s.status !== "unclear") details.append(listenAgain(s));
   return details;
 }
 
@@ -1142,7 +1196,7 @@ function addedLater(answer) {
     el("p", { className: "meta", textContent: v.addedLater(localTime(answer.created_at)) }),
     el("p", { className: "content", textContent: answer.summary }),
     answer.audio_original && el("audio", { controls: true, preload: "metadata", src: `/api/stories/${answer.id}/audio`, ariaLabel: v.answerAudio }),
-    el("details", {}, el("summary", {}, v.transcript, el("span", { className: "meta" }, ` · ${languageNote(answer)}`)),
+    el("details", {}, el("summary", {}, answer.written ? v.transcriptWritten : v.transcript),
       el("p", { className: "transcript content", textContent: answer.transcript })),
     remove);
 }
@@ -1153,20 +1207,44 @@ function questionItem(q) {
   const picker = el("input", { type: "file", accept: AUDIO_TYPES, hidden: true });
   const status = el("div", { className: "answer-status" });
   picker.onchange = () => picker.files[0] && upload(picker.files[0], { answersQuestionId: q.id, status });
+  const writeIt = () => {
+    const box = storyBox({ rows: 4, required: true, ariaLabel: v.answerWriteLabel, placeholder: v.answerPlaceholder, maxLength: 20000 });
+    attachAutocorrect(box);
+    const form = el("form", { className: "answer-write editing" }, box,
+      el("div", { className: "row" },
+        el("button", { type: "submit", textContent: v.answerSubmit }),
+        el("button", { type: "button", className: "link", textContent: v.cancelEdit, onclick: () => form.remove() })));
+    form.onsubmit = async (event) => {
+      event.preventDefault();
+      form.querySelector(".error")?.remove();
+      if (wordsIn(box.value) < 3) {
+        form.append(el("p", { className: "error", role: "alert", textContent: voice().tooShort }));
+        return box.focus();
+      }
+      try {
+        await sendWritten(box.value.trim(), q.id);
+        form.remove();
+        refresh(true);
+      } catch (err) {
+        form.append(el("p", { className: "error", role: "alert", textContent: voice().refused + err.message }));
+      }
+    };
+    status.replaceChildren(form);
+    box.focus();
+  };
   return el("li", {}, el("span", { className: "content", textContent: q.text }),
     el("div", { className: "answer-tools" }, recorderPanel({ answersQuestionId: q.id }),
-      el("button", { type: "button", className: "link", textContent: v.answerFile, onclick: () => picker.click() }), picker),
+      el("button", { type: "button", className: "link", textContent: v.answerFile, onclick: () => picker.click() }), picker,
+      el("button", { type: "button", className: "link", textContent: v.answerWrite, onclick: writeIt })),
     status);
 }
 
 function unfinishedBlock(s) {
   const v = voice();
   if (s.questions.length === 0 || s.status !== "ready") return null;
-  const open = s.questions.some((q) => !q.answer);
   return el("section", { className: "unfinished" },
     el("h3", { textContent: v.unfinished }),
     el("p", { className: "hint", textContent: v.unfinishedHint }),
-    open && el("label", { className: "meta answer-language" }, `${v.answerLanguage} `, languagePicker(v.answerLanguage)),
     el("ul", { className: "questions" }, ...s.questions.map(questionItem)));
 }
 
@@ -1178,7 +1256,6 @@ function fogBlock(s) {
     el("h3", { className: "handwriting", textContent: v.fog }),
     el("p", { textContent: v.fogText }),
     el("ul", { className: "fog-actions" },
-      s.audio_original && el("li", {}, listenAgain(s)),
       el("li", {}, el("button", { type: "button", className: "secondary", textContent: v.fogEdit, onclick: () => {
         const words = $(`#words-${s.id}`);
         words.open = true;
@@ -1222,6 +1299,10 @@ async function deleteWithUndo(id, message, leave) {
   } catch (err) {
     return toast(v.trouble + err.message);
   }
+  // A story added later may reuse this id once it is purged: forget its note, retelling and clock.
+  written.delete(`reaction:${id}`);
+  written.delete(`retelling:${id}`);
+  firstSeen.delete(id);
   toast(message, { label: v.undo, run: async () => {
     try {
       await api(`/api/stories/${id}/restore`, { method: "POST" });
@@ -1442,7 +1523,6 @@ async function start() {
   if (defaults.moods && defaults.moods.join() !== Object.keys(MOODS).join()) console.warn("mood lists differ", defaults.moods);
   plain = store.get("plain", defaults.plain_mode_default ? "1" : "0") === "1";
   $("#plain-toggle").checked = plain;
-  $("#language").value = LANGUAGE_CHOICES.includes(store.get("language", "auto")) ? store.get("language", "auto") : "auto";
   applyVoice();
 
   $("#plain-toggle").addEventListener("change", (event) => {
@@ -1454,7 +1534,6 @@ async function start() {
     loadHealth().catch(() => {});
     refresh(true);
   });
-  $("#language").addEventListener("change", (event) => store.set("language", event.target.value));
   $("#seance-form").addEventListener("submit", (event) => {
     event.preventDefault();
     const question = event.target.question.value.trim();
@@ -1480,6 +1559,7 @@ async function start() {
     if (file) upload(file, { status: $("#upload-status"), form: event.target });
   });
   $("#upload-form").file.addEventListener("change", () => $("#upload-status").replaceChildren());
+  setUpWriting();
   $("#samples-remove").addEventListener("click", async () => {
     const v = voice();
     if (!await confirmDialog({ title: v.removeSamplesTitle, text: v.removeSamplesText, ok: v.removeSamplesOk, cancel: v.keepIt })) return;

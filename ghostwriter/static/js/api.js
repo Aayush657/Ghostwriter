@@ -1,7 +1,7 @@
 // Talking to the local Ghostwriter server. Nothing here ever leaves this machine.
 
 const FIELDS = { title: "The title", transcript: "The words", question: "The question", new: "The tag",
-                 mood: "The mood", language: "The language", file: "The file" };
+                 mood: "The mood", text: "The story", file: "The file" };
 
 // FastAPI's error detail is a sentence, or (for invalid input) a list of problems. Always plain words.
 export function readableError(detail, status) {
@@ -9,6 +9,7 @@ export function readableError(detail, status) {
   if (Array.isArray(detail)) {
     return detail.map((problem) => {
       const field = FIELDS[problem.loc?.at(-1)] || "That value";
+      if (problem.type === "string_too_short" && problem.ctx?.min_length > 1) return `${field} is too short (at least ${problem.ctx.min_length} characters).`;
       if (problem.type === "string_too_short" || problem.type === "missing") return `${field} can't be empty.`;
       if (problem.type === "string_too_long") return `${field} is too long (at most ${problem.ctx?.max_length} characters).`;
       if (problem.type === "literal_error" || problem.type === "enum") return `${field} isn't one of the choices.`;
