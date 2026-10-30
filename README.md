@@ -13,6 +13,7 @@ Everything runs on your own laptop with open models: **Gemma 4** and **Embedding
 Ollama), **Whisper** (through faster-whisper) and **Piper**. Turn the Wi-Fi off and it still works.
 
 Built for the DEV **Hacktoberfest Open-Source AI Challenge, Week 4: "Ghost in the Machine"**.
+Project page: **[theghostwriter.tech](https://theghostwriter.tech)**.
 
 ![The candle wall: each story is a candle whose shape and flame colour show its mood](docs/screenshots/candle-wall.png)
 
@@ -256,7 +257,7 @@ Recordings stay in `data\audio\`. From the command line:
 
 ## Landing page (.tech)
 
-`docs/` is a small static site (no build step, fonts bundled) for the project's .tech domain.
+`docs/` is a small static site (no build step, fonts bundled), live at [theghostwriter.tech](https://theghostwriter.tech).
 `docs/book.html` is a real memory book made from fictional sample stories, so visitors can read the
 ghost's output, and `docs/screenshots/` holds the screenshots above. To remake the book (the exporter
 refuses to put real stories in `docs/`):

@@ -51,19 +51,19 @@ models, with the Wi-Fi switched off.
 
 In the video I switch the Wi-Fi off in a dark room, tell the ghost a story, and let it write.
 
-![The candle wall: each story is a candle whose shape and flame colour show its mood](PLACEHOLDER_SITE/screenshots/candle-wall.png)
+![The candle wall: each story is a candle whose shape and flame colour show its mood](https://theghostwriter.tech/screenshots/candle-wall.png)
 
-![A story with the Archivist's note, and an answer added later under its question](PLACEHOLDER_SITE/screenshots/story.png)
+![A story with the Archivist's note, and an answer added later under its question](https://theghostwriter.tech/screenshots/story.png)
 
-![A séance answer with numbered sources](PLACEHOLDER_SITE/screenshots/seance.png)
+![A séance answer with numbered sources](https://theghostwriter.tech/screenshots/seance.png)
 
-![An unclear recording: the words came to me as fog](PLACEHOLDER_SITE/screenshots/unclear.png)
+![An unclear recording: the words came to me as fog](https://theghostwriter.tech/screenshots/unclear.png)
 
 **The moment that made it worth it:** [PLACEHOLDER: what happened when someone heard their own story
 read back by the ghost. Describe only what really happened. If you didn't get to do this, delete this
 paragraph.]
 
-Project page: [PLACEHOLDER: your .tech link]
+Project page: [theghostwriter.tech](https://theghostwriter.tech)
 
 ## Code
 
@@ -283,7 +283,7 @@ comes back when someone does.
   validation, repair and a self-check of its own questions), grounded séance answers with citations,
   the Archivist's voice and the haunted retellings. EmbeddingGemma gives every story a meaning vector,
   so the séance finds stories by what they mean, in either language.
-- **Best Use of a .tech Domain:** the project page lives at [PLACEHOLDER: your .tech domain].
+- **Best Use of a .tech Domain:** the project page lives at [theghostwriter.tech](https://theghostwriter.tech).
 
 ## My Agent Session
 
@@ -306,9 +306,9 @@ If you build your own, tell it something true. It's listening.
 Before publishing:
 1. Search this file for "PLACEHOLDER" and fill or delete every one. Never invent the "real moment".
    The post says the demo was recorded with the Wi-Fi off: keep that only if the video shows it.
-2. PLACEHOLDER_SITE in the four image links: your live .tech domain (e.g. https://ghostwriter.tech),
-   where docs/screenshots/ is published. Or upload the PNGs from docs/screenshots/ with DEV's image
-   button and use the links it gives you.
+2. The four image links point to https://theghostwriter.tech/screenshots/. Open one before publishing: if the domain
+   isn't working yet, use https://aayush657.github.io/Ghostwriter/screenshots/ instead, or upload the
+   PNGs from docs/screenshots/ with DEV's image button.
 3. The front matter must stay the very first thing in the post. DEV allows up to 4 tags; the two
    required ones are there. You may add e.g. "ai" and "opensource".
 4. Re-read it aloud once in your own voice and change anything that doesn't sound like you.

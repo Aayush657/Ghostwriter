@@ -33,7 +33,7 @@ screen. Don't speed anything up without a caption.
 | 1:02-1:22 | **Screen.** Seance. | Ask something your stories answer in other words (e.g. "Which of my relatives was a good cook?"): the answer writes itself in, with a numbered source. Then ask something you never told it: *"That memory was never given to me."* | VO: "It finds stories by meaning, and only answers from what I told it. When it doesn't know, it says so." |
 | 1:22-1:36 | **Screen.** | Click *Let the Archivist speak*: the ghost voice plays at once. Optional: *Retell it as a ghost story*, first lines. | (Let the voice speak. No VO.) |
 | 1:36-1:50 | **Room, phone camera.** | **The real moment:** someone hearing their own story read back by the ghost. | [PLACEHOLDER: what actually happened. Don't stage it; if it doesn't happen, cut this shot.] |
-| 1:50-2:00 | **End card.** | "Ghostwriter: the ghost that keeps your stories. Gemma 4, EmbeddingGemma, Whisper, Piper. Fully offline." Repo and .tech links. | VO: "Tell it something true. It's listening." |
+| 1:50-2:00 | **End card.** | "Ghostwriter: the ghost that keeps your stories. Gemma 4, EmbeddingGemma, Whisper, Piper. Fully offline." github.com/Aayush657/Ghostwriter and theghostwriter.tech. | VO: "Tell it something true. It's listening." |
 
 Optional, if you have 10 more seconds: open the *Words lost in fog* candle (an unclear recording) to
 show that the ghost refuses to make a memory out of noise.
