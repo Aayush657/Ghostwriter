@@ -26,3 +26,7 @@ models/
 *.webm
 *.ogg
 !samples/audio/*
+
+# Voice samples made for choosing the Archivist voice (not part of the app)
+voice-samples/
+voice-lab/

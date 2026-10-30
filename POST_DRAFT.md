@@ -193,9 +193,11 @@ A candle's life is `1 - days_since_visit / 30`, and it shrinks the flame to less
 and fades its glow. A registered CSS custom property (`@property --life`) lets the flame grow back
 smoothly when you open the story.
 
-The voice is Piper, an open-source neural text-to-speech engine, piped straight into ffmpeg:
-`rubberband` lowers the pitch without slowing the speech, a three-tap `aecho` makes a stone room and a
-little `chorus` adds the ghostly doubling. It speaks the first sentence while the rest is being made,
+The voice is Piper, an open-source neural text-to-speech engine, piped straight into ffmpeg. My
+first ghost voice was so drenched in effects that it was hard to understand, so I built a little
+voice lab: ten female voices with free licences, with live sliders for echo, a stone room, pitch,
+pace, warmth and a ghostly shimmer. I picked Cori, a clear British voice trained on public-domain
+audiobooks, a little deeper and slower, with a faint echo and a small stone room. It speaks the first sentence while the rest is being made,
 and the Archivist's notes are voiced ahead of time, so pressing play starts at once.
 
 ### Testing it like a stranger would
@@ -225,7 +227,7 @@ the CPU.
 | Séance answer | first words in 7-24 s, complete in 11-29 s |
 | "Never given to me" | 0.1 s (Gemma isn't asked) |
 | Finding stories by meaning (EmbeddingGemma) | 60-80 ms per question |
-| Ghost voice | a prepared note starts in 0.1 s; something new in 2.3 s |
+| Ghost voice | a prepared note starts at once; something new in about 3.3 s |
 
 ### What isn't great yet
 
@@ -275,9 +277,9 @@ The open approach was harder in specific ways, and I'd rather say so:
   a machine. The upside is that I can see and test every guard rail.
 - **CPU speed shapes the design.** Processing after recording, one job at a time, streaming
   everything, and voicing notes ahead of time all exist because there's no GPU doing the work.
-- **Licences matter more when you ship the weights.** I chose the ghost's voice by its licence:
-  two other candidate voices were licensed for non-commercial use only, so I used one trained on a
-  CC BY-SA dataset. Piper (which bundles the GPL-licensed espeak-ng) runs as a separate program, and
+- **Licences matter more when you ship the weights.** I only considered voices I'm free to use:
+  several good ones were licensed for non-commercial use only, so the ghost speaks with a voice
+  trained on public-domain audiobook recordings. Piper (which bundles the GPL-licensed espeak-ng) runs as a separate program, and
   everything is credited below.
 - **"Offline" needs an asterisk.** Ollama itself asks ollama.com for model recommendations when it's
   online. Ghostwriter never does, and nothing breaks without the network, but I'd rather you heard
@@ -309,7 +311,7 @@ comes back when someone does.
 Gemma 4 by Google DeepMind (Apache 2.0) · EmbeddingGemma by Google DeepMind (Gemma Terms of Use) ·
 Ollama (MIT) · Whisper by OpenAI, via faster-whisper and CTranslate2 (MIT) · Silero VAD (MIT) · Piper
 by Rhasspy (MIT) with espeak-ng (GPL-3.0) and ONNX Runtime (MIT) · the
-`en_GB-northern_english_male-medium` voice, trained on OpenSLR 83 (CC BY-SA 4.0) · FFmpeg (GPL-3.0) ·
+`en_GB-cori-high` voice, trained on LibriVox recordings (public domain) · FFmpeg (GPL-3.0) ·
 SQLite (public domain) · FastAPI, Uvicorn, httpx, pydantic · Playwright (tests) · Caveat and IM Fell
 English fonts (SIL Open Font License). The sample stories in the repo are fictional and written for
 this project. Full details are in the README.

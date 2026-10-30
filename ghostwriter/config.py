@@ -40,7 +40,7 @@ class Settings(BaseSettings):
 
     tts_enabled: bool = True
     piper_bin: str = "piper"  # or the full path to piper.exe
-    piper_voice: str = "en_GB-northern_english_male-medium"  # file name in models/piper/
+    piper_voice: str = "en_GB-cori-high"  # file name in models/piper/ (chosen in the voice lab)
 
     plain_mode_default: bool = False
 
@@ -75,7 +75,7 @@ class Settings(BaseSettings):
 
     @property
     def piper_voice_path(self) -> Path:
-        """The Piper voice model, e.g. models/piper/en_GB-northern_english_male-medium.onnx (+ .onnx.json)."""
+        """The Piper voice model, e.g. models/piper/en_GB-cori-high.onnx (+ .onnx.json)."""
         return self.models_dir / "piper" / f"{self.piper_voice}.onnx"
 
 

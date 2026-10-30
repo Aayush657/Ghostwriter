@@ -68,8 +68,10 @@ _Demo video: [PLACEHOLDER]_
   its own ghostly ways (it has kept stories since the house was lit by oil lamps). It never solves a
   mystery your story leaves open, and never adds a fact you didn't give it.
 - **Whispers.** On launch the Archivist sometimes murmurs a line from a faded story, and says which.
-- **Ghost voice.** The Archivist can speak, using Piper text-to-speech with ffmpeg effects. It starts
-  with the first sentence while the rest is made; notes are voiced in advance. Optional.
+- **Ghost voice.** The Archivist speaks with Cori, a clear British Piper voice (public domain), made a
+  little deeper and slower, with a faint echo and a small stone room. The voice and its effects were
+  chosen by ear in a voice lab of ten female voices. It starts with the first sentence while the rest
+  is made; notes and retellings are voiced in advance. Optional.
 - **Haunted retelling.** One click retells a memory as a campfire ghost story of 300-450 words, told
   to you, building slowly to your story's own twist: every event kept in order, every spoken line word
   for word, only the atmosphere added, with three to five emojis to set the mood (the voice skips
@@ -129,7 +131,7 @@ the candle wall takes them out again.
    [Piper 2023.11.14-2 release](https://github.com/rhasspy/piper/releases/tag/2023.11.14-2) and unzip
    it, for example to `C:\Users\<you>\Tools\piper`.
 2. Add `GW_PIPER_BIN=C:\Users\<you>\Tools\piper\piper.exe` to `.env` (or put that folder on PATH).
-3. `scripts\setup.ps1` downloads the voice (`en_GB-northern_english_male-medium`) into `models\piper\`.
+3. `scripts\setup.ps1` downloads the voice (`en_GB-cori-high`, 109 MB) into `models\piper\`.
 
 Without Piper, everything else works and the "speak" buttons don't appear.
 
@@ -226,7 +228,7 @@ Intel i7-13620H, 16 GB RAM, integrated graphics only (everything on the CPU):
 | Gemma 4 e4b generation | 10-19 tokens/s on replies over 50 tokens; 15.8 s to load the model cold |
 | Seance answer | first words after 7-24 s, complete in 11-29 s; "never given to me" in 0.1 s |
 | Meaning search (EmbeddingGemma) | 60-80 ms per question |
-| Ghost voice | first sentence of a new text in 2.3 s; a note voiced in advance starts in 0.1 s |
+| Ghost voice | first sentence of a new text in about 3.3 s; a note voiced in advance starts at once |
 | Haunted retelling | 45-80 s to write 250-350 words (it appears word by word as it is written) |
 | The Archivist's note | 21-38 s for 100-125 words, written while the story is processed |
 
@@ -317,7 +319,7 @@ Every model, library, font and tool this project relies on:
 | Piper text-to-speech (2023.11.14-2, run as a separate program) | Michael Hansen / Rhasspy | MIT |
 | espeak-ng (bundled inside Piper, for phonemes) | espeak-ng contributors | GPL-3.0 |
 | ONNX Runtime (inside Piper and faster-whisper) | Microsoft | MIT |
-| Voice `en_GB-northern_english_male-medium` | Piper voices (rhasspy/piper-voices), trained on [OpenSLR 83](http://www.openslr.org/83/) | CC BY-SA 4.0 |
+| Voice `en_GB-cori-high` ("Cori") | Piper voices (rhasspy/piper-voices), trained on [LibriVox](https://librivox.org) recordings | Public domain |
 | FFmpeg and ffprobe (gyan.dev full build, run as separate programs) | FFmpeg developers | GPL-3.0 |
 | SQLite with FTS5 | SQLite developers | Public domain |
 | FastAPI | Sebastián Ramírez | MIT |

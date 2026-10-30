@@ -26,10 +26,20 @@ from ghostwriter.whispers import SENTENCE_END
 
 log = logging.getLogger(__name__)
 
-# Pitch down (rubberband keeps the speed), soften the highs, a stone-room echo, a faint ghostly doubling.
-GHOST_EFFECTS = ("rubberband=pitch=0.84,lowpass=f=5500,"
-                 "aecho=0.8:0.85:55|110|190:0.35|0.22|0.12,"
-                 "chorus=0.6:0.9:45:0.3:0.3:1.5,volume=2.4")  # measured peak -2 dB: loud, no clipping
+# The Archivist's voice, as chosen in the voice lab (Cori; pitch 0.90x, pace 0.90x; echo 10% at
+# 120 ms with 25% repeats; a 0.8 s stone room at 20%; low cut 60 Hz; warmth +4 dB; shimmer 6%).
+# Piper slows the pace itself, which sounds cleaner than stretching the audio afterwards.
+LENGTH_SCALE = 1 / 0.90
+ROOM_SECONDS = 0.8
+ROOM_GAIN = 25.0  # afir normalises the room ~38 dB under the voice; x25 restores the lab's 0.32 share
+GHOST_GRAPH = (
+    "[0:a]apad=pad_dur=0.4,rubberband=pitch=0.90,highpass=f=60,bass=g=4:f=250,"  # room for the echo's tail
+    "chorus=1:1:22:0.06:0.8:4,asplit=2[voice][wall];"                             # the faint double voice
+    "[voice]aecho=0.9:1:120|240|360:0.1|0.025|0.006[near];"                       # dry voice + echo repeats
+    f"[wall][1:a]afir[room];[room]volume={ROOM_GAIN}[far];"                        # the stone room
+    "[near][far]amix=inputs=2:normalize=0,alimiter=limit=0.9,"
+    "loudnorm=I=-16:TP=-1.5:LRA=11,aresample=44100"                                # every part equally loud
+)
 MAX_CHARS = 3500  # about three and a half minutes of speech; fits a whole retelling (300-450 words)
 PART_CHARS = 280  # later parts gather sentences up to about this length
 
@@ -80,8 +90,21 @@ def prepare(text: str) -> None:
 
 def cache_path(text: str, ghostly: bool = True) -> Path:
     """Where the spoken version of `text` is (or would be) kept."""
-    key = hashlib.sha256(f"{settings.piper_voice}|{ghostly}|{clean(text)[:MAX_CHARS]}".encode()).hexdigest()[:24]
+    sound = GHOST_GRAPH if ghostly else "plain"  # changing the effects never replays old audio
+    key = hashlib.sha256(f"{settings.piper_voice}|{LENGTH_SCALE}|{sound}|{clean(text)[:MAX_CHARS]}".encode()).hexdigest()[:24]
     return settings.data_dir / "tts" / f"{key}.wav"
+
+
+def _room() -> Path:
+    """The stone room's impulse response: fading noise, made once with ffmpeg and kept beside the cache."""
+    path = settings.data_dir / "tts" / f"room-{ROOM_SECONDS}s.wav"
+    if not path.exists():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        subprocess.run([settings.ffmpeg_bin, "-y", "-loglevel", "error", "-f", "lavfi", "-i",
+                        f"anoisesrc=d={ROOM_SECONDS}:c=white:r=22050:a=0.5:seed=7", "-af",
+                        f"afade=t=out:st=0:d={ROOM_SECONDS}:curve=cub", "-ac", "1", str(path)],
+                       check=True, capture_output=True, timeout=30)
+    return path
 
 
 def speak(text: str, ghostly: bool = True) -> Path:
@@ -104,7 +127,7 @@ def speak(text: str, ghostly: bool = True) -> Path:
     rate = json.loads(Path(f"{voice}.json").read_text(encoding="utf-8"))["audio"]["sample_rate"]
     try:
         piper = subprocess.Popen(
-            [settings.piper_bin, "--model", str(voice), "--length_scale", "1.15",
+            [settings.piper_bin, "--model", str(voice), "--length_scale", f"{LENGTH_SCALE:.3f}",
              "--sentence_silence", "0.35", "--output_raw"],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
         )
@@ -114,7 +137,8 @@ def speak(text: str, ghostly: bool = True) -> Path:
     try:
         ffmpeg = subprocess.Popen(
             [settings.ffmpeg_bin, "-y", "-loglevel", "error", "-f", "s16le", "-ar", str(rate), "-ac", "1",
-             "-i", "pipe:0", "-af", GHOST_EFFECTS if ghostly else "anull", str(partial)],
+             "-i", "pipe:0", *(["-i", str(_room()), "-filter_complex", GHOST_GRAPH] if ghostly else ["-af", "anull"]),
+             str(partial)],
             stdin=piper.stdout, stderr=subprocess.PIPE, text=True,
         )
     except FileNotFoundError:

@@ -255,11 +255,19 @@ never come from an unclear story.
 
 ## 12. The ghost's voice
 
-Piper runs as a separate program and pipes raw audio into ffmpeg (`rubberband` lowers the pitch,
-`aecho` makes a stone room, `chorus` adds a faint doubling). Text is spoken **in parts**: the first
+Piper runs as a separate program and pipes raw audio into ffmpeg. The voice is Cori
+(`en_GB-cori-high`, public domain), a little deeper (`rubberband`, pitch 0.90) and slower (Piper's own pace, 0.90), a faint echo
+(`aecho`, 120 ms), a small stone room (`afir` with a 0.8 s room made from fading noise), a
+60 Hz low cut, +4 dB of warmth and a 6% shimmer (`chorus`), then levelled (`loudnorm`). The first version (a male voice
+pitched down hard, three long echoes and a strong chorus, highs cut) was clear in the lab but
+garbled in the app, so the voice was chosen again by ear in a voice lab: ten female Piper voices with
+free licences, live echo, room, pitch, pace, tone and shimmer controls, and a "copy my choice"
+button whose settings were rebuilt in ffmpeg (the room's level was matched by measurement).
+The cache key includes the effect settings, so changing them never replays old audio. Text is
+spoken **in parts**: the first
 sentence alone, then a few sentences at a time. The page plays part 1 while part 2 is being made, so
-a long text starts speaking after the first sentence is made (measured: 2.3 s for a new six-sentence
-retelling, instead of waiting for all of it). Each part is cached by a hash of its text, and a story's
+a long text starts speaking after the first sentence is made (measured: about 3.3 s with Cori,
+instead of waiting for all of it). Each part is cached by a hash of its text, and a story's
 note (and a retelling, once written) is **voiced in the background** as soon as it exists, so
 pressing play on a note starts at once (measured: 0.1 s).
 

@@ -13,6 +13,28 @@ _Last updated: Fri Oct 30, 2026_
 - **Remaining work is the user's**: record the demo, fill the personal placeholders, publish (see
   "Next actions").
 
+## Oct 30 (late): a clearer, female Archivist voice
+
+The old voice (northern_english_male, rubberband pitch 0.84, lowpass 5.5 kHz, three echoes with long
+decays, chorus 0.3) was garbled. A first page offered eight voices (three effect levels + five free
+male/female voices); the user asked for a female voice and a page to tune it. The voice lab
+(`voice-lab/voice-lab.html`, git-ignored) had ten female Piper voices with free licences (Cori, Alba,
+Southern English, LJ Speech, Kristin, Kathleen, VCTK p234 and p238, LibriTTS 3922, ARU 03; multi-speaker
+models screened by measured pitch, all 153-203 Hz), two lines, Web Audio effects (pitch without pace
+via an offline re-render + preservesPitch, echo, convolution room, filters, shimmer, waver), presets
+and a "copy my choice" button. Licences checked on each MODEL_CARD; Ryan, HFC, Lessac, Semaine (non-
+commercial or restrictive) and Amy, Jenny, Alan, Kusal (unclear) left out.
+
+The user's choice: Cori (en_GB-cori-high, public domain), pitch 0.90, pace 0.90, echo 10% at 120 ms
+with 25% repeats, room 20% at 0.8 s, low cut 60 Hz, warmth +4 dB, shimmer 6%. Built as `GHOST_GRAPH`:
+Piper `length_scale` 1/0.90; `rubberband=pitch=0.90`, `highpass=60`, `bass=g=4:f=250`, `chorus` 6%,
+then dry 0.9 + `aecho` taps 120/240/360 ms at 0.1/0.025/0.006, plus `afir` with a 0.8 s cubic-fading
+noise room; afir comes out 37.9 dB under the voice, so ROOM_GAIN 25 restores the lab's 0.32 share;
+`alimiter`, `loudnorm` -16 LUFS. Measured: a part in 3.3-3.6 s (the high-quality model is ~1 s slower
+than before), mean -16 dB, peak -1.5 dB, no clipping. The cache key now includes the effect settings.
+All notes and retellings in demo-data re-voiced; the other 13 voice models deleted (models/piper
+1.1 GB -> 109 MB); setup.ps1, .env.example and the credits name Cori.
+
 ## Oct 30 (night): sentence capitals, a livelier Archivist, fuller notes and retellings
 
 The user wrote a short story with a twist and found the capitals inconsistent and the Archivist's
