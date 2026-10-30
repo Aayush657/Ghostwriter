@@ -6,7 +6,7 @@ from ghostwriter import db, llm, samples
 def test_samples_are_analysed_once_and_marked(data_dir, analysis, monkeypatch):
     seen = []
 
-    def fake_analyse(transcript, answering=None):
+    def fake_analyse(transcript, answering=None, written=False):
         seen.append(transcript)
         return analysis
 
@@ -31,7 +31,7 @@ def test_a_note_that_fails_never_fails_the_story(data_dir, analysis, monkeypatch
     def no_gemma(story):
         raise llm.LLMError("Ollama isn't running.")
 
-    monkeypatch.setattr(llm, "analyse_story", lambda transcript, answering=None: analysis)
+    monkeypatch.setattr(llm, "analyse_story", lambda transcript, answering=None, written=False: analysis)
     monkeypatch.setattr(llm, "write_note", no_gemma)
     monkeypatch.setattr(llm, "unanswered_questions", lambda transcript, analysis, answering=None: analysis.unfinished_business)
     story_id = db.create_story()

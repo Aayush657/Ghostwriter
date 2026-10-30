@@ -56,11 +56,13 @@ const COPY = {
     filterLabel: "Show only memories about",
     allMemories: "every memory",
     clearFilter: "Clear filter",
-    count: (shown, total) => shown === total ? `${total} ${total === 1 ? "memory" : "memories"}` : `Showing ${shown} of ${total}`,
+    count: (shown, total, retry) => (shown === total ? `${total} ${total === 1 ? "memory" : "memories"}` : `Showing ${shown} of ${total}`)
+      + (retry ? `, and ${retry} that ${retry === 1 ? "needs" : "need"} another try` : ""),
     lighting: "Lighting the candles...",
     emptyWall: "No candles yet. The wall waits for its first memory.",
     emptyAction: "Give the Archivist its first story",
     filterEmpty: "No memory matches that.",
+    searchEmpty: "No memory matches that search.",
     legendTitle: "Each mood has its own candle and flame. Choose one to light only its candles:",
     legendItem: (mood, look) => `${mood}: ${look.shape}, ${look.flame} flame`,
     legendDim: "A dim entry has no stories with that mood yet.",
@@ -104,7 +106,7 @@ const COPY = {
     oneAtATime: "One recording at a time, my dear.",
     sending: "Sending it to the Archivist...",
     offering: "Offering it to the Archivist...",
-    wrongType: (ext) => `The Archivist can't hear "${ext}" files. Choose a wav, mp3, m4a, webm or ogg recording.`,
+    wrongType: (ext) => `${ext ? `The Archivist can't hear "${ext}" files.` : "That file has no type (like .mp3), so the Archivist can't hear it."} Choose a wav, mp3, m4a, webm or ogg recording.`,
     accepted: "The Archivist has your story.",
     refused: "The Archivist refused it: ",
     trouble: "The candle gutters. ",
@@ -136,6 +138,8 @@ const COPY = {
     unsure: "The Archivist wasn't sure of these words: ",
     uncertain: "The Archivist isn't sure of some words, so it left them out.",
     edited: "You corrected these words. Whisper's original words are kept too.",
+    editedWritten: "You changed these words. Your original words are kept too.",
+    fromAnswer: "added in an answer",
     editWords: "Correct the words",
     editWordsHint: "Fix any misheard words. The Archivist can then re-read the story.",
     rereadOffer: "The words are kept. Shall the Archivist read them again, for a new title, summary, tags and questions?",
@@ -218,7 +222,7 @@ const COPY = {
     writeSubmit: "Give it to the Archivist",
     writeClear: "Clear the page",
     wordCount: (n) => n === 0 ? "" : `${n} ${n === 1 ? "word" : "words"} · about ${Math.max(1, Math.round(n / 140))} min to tell`,
-    tooShort: "Write a little more, my dear: a few sentences at least.",
+    tooShort: (n) => `Write a little more, my dear: at least ${n} letters, a sentence or two.`,
     handing: "Handing your pages to the Archivist...",
     fixed: (from, to) => `Autocorrect: “${from}” became “${to}”.`,
     unfixed: (from) => `Kept “${from}” as you wrote it.`,
@@ -252,11 +256,13 @@ const COPY = {
     filterLabel: "Show only stories about",
     allMemories: "All stories",
     clearFilter: "Clear filter",
-    count: (shown, total) => shown === total ? `${total} ${total === 1 ? "story" : "stories"}` : `Showing ${shown} of ${total}`,
+    count: (shown, total, retry) => (shown === total ? `${total} ${total === 1 ? "story" : "stories"}` : `Showing ${shown} of ${total}`)
+      + (retry ? `, ${retry} failed` : ""),
     lighting: "Loading...",
     emptyWall: "No stories yet.",
     emptyAction: "Add your first story",
     filterEmpty: "No story matches that filter.",
+    searchEmpty: "No story matches that search.",
     legendTitle: "Colours show each story's mood. Choose one to show only those stories:",
     legendItem: (mood, look) => `${mood} (${look.flame})`,
     legendDim: "A dim entry has no stories with that mood yet.",
@@ -300,7 +306,7 @@ const COPY = {
     oneAtATime: "One recording at a time.",
     sending: "Uploading...",
     offering: "Uploading...",
-    wrongType: (ext) => `"${ext}" files are not supported. Choose a wav, mp3, m4a, webm or ogg recording.`,
+    wrongType: (ext) => `${ext ? `"${ext}" files are not supported.` : "That file has no file type."} Choose a wav, mp3, m4a, webm or ogg recording.`,
     accepted: "Uploaded.",
     refused: "Upload failed: ",
     trouble: "Error: ",
@@ -332,6 +338,8 @@ const COPY = {
     unsure: "Low-confidence words: ",
     uncertain: "Some words were unclear and were left out of the summary.",
     edited: "Edited. The original transcript is kept too.",
+    editedWritten: "Edited. The original text is kept too.",
+    fromAnswer: "from an answer",
     editWords: "Edit transcript",
     editWordsHint: "Fix any misheard words, then analyse the story again.",
     rereadOffer: "Saved. Analyse the edited transcript again (title, summary, tags, questions)?",
@@ -414,7 +422,7 @@ const COPY = {
     writeSubmit: "Save story",
     writeClear: "Clear",
     wordCount: (n) => n === 0 ? "" : `${n} ${n === 1 ? "word" : "words"}`,
-    tooShort: "Write at least a few sentences.",
+    tooShort: (n) => `Write at least ${n} characters.`,
     handing: "Saving...",
     fixed: (from, to) => `Corrected “${from}” to “${to}”.`,
     unfixed: (from) => `Kept “${from}”.`,
@@ -428,7 +436,7 @@ const GHOST_LINES = ["Boo!", "Who disturbs my rest?", "Mind the candles, my dear
                      "Shh... the memories are sleeping.", "Tell me a story.", "Still here. Always here."];
 
 let plain = false;
-let config = { undo_seconds: 10, max_recording_minutes: 30 };
+let config = { undo_seconds: 10, max_recording_minutes: 30, min_story_chars: 20 };
 const voice = () => COPY[plain ? "plain" : "spooky"];
 
 // --------------------------------------------------------------------------- small helpers
@@ -608,6 +616,7 @@ let allStories = []; // everything the server listed, answers included
 let wallKey = ""; // skip re-rendering (and restarting the flame animations) when nothing changed
 
 const topLevel = () => allStories.filter((s) => !s.parent_id); // answers live inside their story
+const needsRetry = (s) => s.status === "failed" || s.status === "unclear"; // counted apart, everywhere
 const statusText = (s) => (s.status === "ready" ? s.title : voice().status[s.status] || s.status);
 const daysSinceVisit = (story) => (Date.now() - utc(story.last_visited_at)) / 86_400_000;
 const life = (story) => Math.min(1, Math.max(0, 1 - daysSinceVisit(story) / FADE_DAYS));
@@ -704,7 +713,8 @@ function renderWall() {
   const split = filter.indexOf(":");
   const [kind, value] = [filter.slice(0, split), filter.slice(split + 1)];
   const matchesFilter = (s) => !filter || (kind === "mood" ? s.status === "ready" && moodOf(s) === value : tagsOf(s)[kind]?.includes(value));
-  const matchesQuery = (s) => !query || `${s.title || ""} ${s.summary || ""}`.toLowerCase().includes(query);
+  const searchable = (s) => [s, ...allStories.filter((a) => a.parent_id === s.id)].map((x) => `${x.title || ""} ${x.summary || ""}`).join(" ");
+  const matchesQuery = (s) => !query || searchable(s).toLowerCase().includes(query);
   const stories = topLevel();
   const shown = stories.filter((s) => matchesFilter(s) && matchesQuery(s));
   const empty = stories.length === 0
@@ -712,10 +722,11 @@ function renderWall() {
         el("p", { className: "handwriting", textContent: v.emptyWall }),
         el("a", { className: "button", href: "#new-story", textContent: v.emptyAction,
                   onclick: (event) => { event.preventDefault(); $("#new-story").scrollIntoView({ behavior: "smooth" }); $("#recorder button")?.focus(); } }))]
-    : [el("p", { className: "meta", textContent: v.filterEmpty })];
+    : [el("p", { className: "meta", textContent: query && !filter ? v.searchEmpty : v.filterEmpty })];
   $("#wall").replaceChildren(...(shown.length ? shown.map(candle) : empty));
   $("#archive").classList.toggle("is-empty", stories.length === 0); // no tools or key until there's a candle
-  $("#wall-count").textContent = stories.length ? v.count(shown.length, stories.length) : "";
+  const retry = stories.filter(needsRetry).length;
+  $("#wall-count").textContent = stories.length ? v.count(shown.length - shown.filter(needsRetry).length, stories.length - retry, retry) : "";
   $("#filter-clear").hidden = !filter && !query;
   $("#samples-row").hidden = !stories.some((s) => s.is_sample);
   syncLegend();
@@ -764,8 +775,7 @@ function renderChips() {
 
 async function loadStories() {
   const stories = await api("/api/stories");
-  const ready = stories.filter((s) => s.status === "ready" && !s.parent_id).length;
-  $("#greeting").textContent = voice().greeting(ready);
+  $("#greeting").textContent = voice().greeting(stories.filter((s) => !s.parent_id && !needsRetry(s)).length);
   const key = JSON.stringify(stories) + plain;
   if (key !== wallKey) {
     wallKey = key;
@@ -873,7 +883,7 @@ async function upload(file, { answersQuestionId = null, status, form = null, aft
     status.replaceChildren(el("p", { className: "error", role: "alert", textContent: message }));
     after?.(status.firstChild);
   };
-  if (!AUDIO_EXTENSIONS.includes(ext)) return showError(v.wrongType(ext || file.name));
+  if (!AUDIO_EXTENSIONS.includes(ext)) return showError(v.wrongType(ext));
   const data = new FormData();
   data.append("file", file);
   if (answersQuestionId) data.append("answers_question_id", answersQuestionId);
@@ -948,8 +958,8 @@ function setUpWriting() {
     event.preventDefault();
     const v = voice();
     const text = box.value.trim();
-    if (wordsIn(text) < 8) {
-      status.replaceChildren(el("p", { className: "error", role: "alert", textContent: v.tooShort }));
+    if (text.length < config.min_story_chars) {
+      status.replaceChildren(el("p", { className: "error", role: "alert", textContent: v.tooShort(config.min_story_chars) }));
       return box.focus();
     }
     const button = form.querySelector("button[type=submit]");
@@ -1084,8 +1094,12 @@ const TAG_KINDS = ["person", "place", "era", "keepsake"];
 function tagsBlock(s) {
   const v = voice();
   const e = s.entities || {};
-  const rows = TAG_KINDS.filter((kind) => e[kind]?.length).flatMap((kind) =>
-    [el("dt", { textContent: v.tagLabels[kind] }), el("dd", { className: "content", textContent: e[kind].join(", ") })]);
+  const merged = tagsOf(s); // with the tags of the answers added to it
+  const rows = TAG_KINDS.filter((kind) => merged[kind]?.length).flatMap((kind) => {
+    const own = e[kind] || [], later = [...new Set(merged[kind])].filter((value) => !own.includes(value));
+    return [el("dt", { textContent: v.tagLabels[kind] }), el("dd", { className: "content" }, own.join(", "),
+      ...later.flatMap((value, i) => [own.length || i ? ", " : "", value, el("span", { className: "meta", textContent: ` (${v.fromAnswer})` })]))];
+  });
   if (s.mood) rows.push(el("dt", { textContent: v.moodLabel }), el("dd", { textContent: s.mood }));
   const list = el("dl", { className: "details" }, ...rows);
   if (s.status !== "ready") return list;
@@ -1104,9 +1118,15 @@ function tagsBlock(s) {
           fields.push({ kind, old: value, input });
           return input;
         });
-        const add = el("input", { type: "text", maxLength: 80, placeholder: v.addTag(label), ariaLabel: v.addTag(label) });
-        fields.push({ kind, old: "", input: add });
-        return el("fieldset", {}, el("legend", { textContent: label }), ...inputs, add);
+        const set = el("fieldset", {}, el("legend", { textContent: label }), ...inputs);
+        const addBox = () => { // typing in the empty box brings the next one, so several can be added at once
+          const add = el("input", { type: "text", maxLength: 80, placeholder: v.addTag(label), ariaLabel: v.addTag(label) });
+          fields.push({ kind, old: "", input: add });
+          add.addEventListener("input", () => { if (add.value.trim() && add === set.lastElementChild) set.append(addBox()); });
+          return add;
+        };
+        set.append(addBox());
+        return set;
       }),
       el("label", { className: "mood-pick" }, `${v.moodLabel} `, mood),
       el("div", { className: "row" },
@@ -1143,12 +1163,14 @@ function transcriptBlock(s) {
   if (quality?.low_words?.length && s.status === "ready") {
     details.append(el("p", { className: "meta" }, v.unsure, el("span", { className: "content", textContent: quality.low_words.slice(0, 8).join(", ") })));
   }
-  if (s.transcript_original) details.append(el("p", { className: "meta", textContent: v.edited }));
+  const edited = el("p", { className: "meta", textContent: s.written ? v.editedWritten : v.edited });
+  if (s.transcript_original) details.append(edited);
   if (!editable(s)) return details;
   const tools = el("div", { className: "row" });
   tools.append(el("button", { type: "button", className: "link edit-words", textContent: v.editWords, onclick: () => {
     const fog = s.status === "unclear";
-    const box = storyBox({ value: fog ? "" : s.transcript, rows: fog ? 10 : 8, required: true, ariaLabel: v.transcript,
+    const box = storyBox({ value: fog ? "" : s.transcript, rows: fog ? 10 : 8, required: true,
+                           ariaLabel: s.written ? v.transcriptWritten : v.transcript,
                            placeholder: fog ? v.fogPlaceholder : "" });
     attachAutocorrect(box);
     const form = el("form", { className: "transcript-edit editing" }, box,
@@ -1163,10 +1185,13 @@ function transcriptBlock(s) {
       try {
         await send(`/api/stories/${s.id}`, "PATCH", { transcript: box.value });
         if (fog) return reread(s.id); // written down instead: read it straight away
-        form.replaceWith(el("div", { className: "reread editing", role: "status" },
+        details.querySelector(".transcript").textContent = box.value; // the new words show at once
+        if (!edited.isConnected) details.querySelector(".transcript").after(edited);
+        const offer = el("div", { className: "reread editing", role: "status" },
           el("p", { textContent: v.rereadOffer }),
           el("button", { type: "button", textContent: v.reread, onclick: () => reread(s.id) }), " ",
-          el("button", { type: "button", className: "link", textContent: v.notNow, onclick: () => refresh(true) })));
+          el("button", { type: "button", className: "link", textContent: v.notNow, onclick: () => offer.replaceWith(tools) }));
+        form.replaceWith(offer); // "Not now" puts the tools back: no redraw, no jump, the words stay open
       } catch (err) {
         form.append(el("p", { className: "error", role: "alert", textContent: v.trouble + err.message }));
       }
@@ -1220,8 +1245,8 @@ function questionItem(q) {
     form.onsubmit = async (event) => {
       event.preventDefault();
       form.querySelector(".error")?.remove();
-      if (wordsIn(box.value) < 3) {
-        form.append(el("p", { className: "error", role: "alert", textContent: voice().tooShort }));
+      if (box.value.trim().length < config.min_story_chars) {
+        form.append(el("p", { className: "error", role: "alert", textContent: voice().tooShort(config.min_story_chars) }));
         return box.focus();
       }
       const button = form.querySelector("button[type=submit]");
@@ -1362,6 +1387,7 @@ async function showStory(id) {
   try {
     const story = await api(`/api/stories/${id}`);
     page.replaceChildren(...renderStory(story));
+    document.title = `${story.title || voice().status[story.status] || "A memory"} · Ghostwriter`;
     return story;
   } catch {
     page.replaceChildren(
@@ -1435,6 +1461,7 @@ async function refresh(force = false) {
       const left = shown.id;
       stopSpeaking(); // leaving a story silences its voice
       document.body.classList.remove("reading");
+      document.title = "Ghostwriter";
       $("#story").hidden = true;
       $("#story").replaceChildren(); // nothing of it stays behind, for screen readers or scripts
       window.scrollTo(0, leftByDeleting ? 0 : homeScroll);
@@ -1595,7 +1622,12 @@ async function start() {
     $("#how").scrollIntoView({ block: "center" });
     $("#how-close").focus({ preventScroll: true });
   });
-  const openAbout = () => { loadHealth().catch(() => {}); $("#about").showModal(); };
+  const openAbout = () => {
+    loadHealth().catch(() => {});
+    $("#about").showModal();
+    $("#about-title").focus(); // not Close, at the bottom, which scrolled the dialog down
+    $("#about .about-body").scrollTop = 0;
+  };
   $("#about-open").addEventListener("click", openAbout);
   $("#about-open-footer").addEventListener("click", openAbout);
 

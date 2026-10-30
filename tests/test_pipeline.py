@@ -43,7 +43,7 @@ def fake_models(monkeypatch, analysis):
         seen.names.append(list(names))
         return Transcript(seen.heard[0], 4.0, seen.heard[1])
 
-    def fake_analyse(transcript, answering=None):
+    def fake_analyse(transcript, answering=None, written=False):
         seen.analysed.append((transcript, answering))
         return analysis.model_copy(update={"unfinished_business": [] if answering else analysis.unfinished_business})
 
@@ -109,7 +109,7 @@ def test_words_corrected_by_hand_are_read_even_after_fog(audio_story, fake_model
 
 
 def test_gemma_describing_only_garbled_words_means_unclear(audio_story, fake_models, monkeypatch):
-    def unclear(transcript, answering=None):
+    def unclear(transcript, answering=None, written=False):
         raise llm.UnclearStory()
     monkeypatch.setattr(llm, "analyse_story", unclear)
     story_id = audio_story()
@@ -150,7 +150,7 @@ def test_a_bad_file_and_a_passing_problem_fail_differently(audio_story, fake_mod
     pipeline.process_story(story_id)
     assert db.get_story(story_id)["error_kind"] == "audio"
 
-    def no_ollama(transcript, answering=None):
+    def no_ollama(transcript, answering=None, written=False):
         raise llm.LLMError("Ollama isn't running.")
     monkeypatch.setattr(llm, "analyse_story", no_ollama)
     db.update_story(story_id, status="queued", transcript="words")

@@ -80,7 +80,7 @@ def _run(story_id: int) -> None:
     answering = story.get("answers")
     started = time.perf_counter()
     try:
-        analysis = llm.analyse_story(story["transcript"], answering)
+        analysis = llm.analyse_story(story["transcript"], answering, written=bool(story.get("written")))
     except UnclearStory:
         log.info("story %s: Gemma could only describe the words, not a memory", story_id)
         db.clear_reading(story_id)

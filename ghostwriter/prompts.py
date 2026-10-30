@@ -36,8 +36,8 @@ or a keepsake. Never ask what the story already says, even in other words: if it
 ask what kind of car it was. Never ask what the storyteller says nobody knows or never found out: if \
 "grandmother never told me who made the tea", do not ask who made the tea."""
 
-ANSWER_QUESTIONS = """an empty list. This recording answers a question about an earlier story, so it \
-asks nothing new."""
+ANSWER_QUESTIONS = """an empty list. This answers a question about an earlier story, so it asks \
+nothing new."""
 
 
 def analyse_system(answering: dict | None = None) -> str:
@@ -54,15 +54,18 @@ CHECK_QUESTIONS = """Now check each of your questions against the storyteller's 
 Reply with JSON only."""
 
 
-def analyse_user(transcript: str, answering: dict | None = None) -> str:
-    """`answering` is the unfinished-business question this recording replies to, with its story."""
+def analyse_user(transcript: str, answering: dict | None = None, written: bool = False) -> str:
+    """`answering` is the unfinished-business question these words reply to, with its story. `written`
+    words were typed by the storyteller, so Gemma never calls them a recording."""
+    tag = "written_by_the_storyteller" if written else "transcript"
     if not answering:
-        return f"<transcript>\n{transcript}\n</transcript>"
-    return (f"This recording answers a question the archivist asked about an earlier memory.\n"
+        return f"<{tag}>\n{transcript}\n</{tag}>"
+    kind = "This written answer" if written else "This recorded answer"
+    return (f"{kind} replies to a question the archivist asked about an earlier memory.\n"
             f"The earlier memory: {answering['story_title']}. {answering['story_summary']}\n"
             f'The question: "{answering["text"]}"\n'
             f"Write the title and summary of this answer as part of that memory: name the people, places "
-            f"and things it shares with the earlier memory.\n\n<transcript>\n{transcript}\n</transcript>")
+            f"and things it shares with the earlier memory.\n\n<{tag}>\n{transcript}\n</{tag}>")
 
 
 def repair(error: str) -> str:
@@ -82,7 +85,7 @@ you leave behind you, a candle you let gutter, the shelf where a memory will res
 always matters more than you do. You call the stories "memories" and the person "my dear" now and \
 then, not every time. Mix short sentences with longer, flowing ones. Vary how you begin; never open \
 two answers the same way, and never open with a remark about the cold or a chill. You are a ghost, not \
-a machine: never mention memory banks, data, files, systems, models or AI. No emojis unless asked."""
+a machine: never mention memory banks, data, files, systems, models or AI. No emojis."""
 
 PLAIN = """You are a helpful assistant for a personal story archive. Write clearly and simply, \
 in a neutral tone."""
@@ -130,9 +133,10 @@ def _source(story: dict) -> str:
     transcript = story["transcript"] or ""
     if len(transcript) > MAX_SOURCE_CHARS:
         transcript = transcript[:MAX_SOURCE_CHARS] + " [...]"
+    words = "Their own written words" if story.get("written") else "Transcript"  # never "this recording"
     return (f"[S{story['id']}] {story['title']}\n"
             f"Summary: {story['summary']}\n"
-            f"Transcript: {transcript}")
+            f"{words}: {transcript}")
 
 
 def excerpt(transcript: str, words: list[str]) -> str:
@@ -180,8 +184,9 @@ vivid sentences, in your own voice, keeping the storyteller's details and any wo
 dwell on it. If the memory leaves something unexplained, leave it unexplained and let it linger: \
 never solve a mystery, and never explain away what is strange.
 - Then say what it stirred in you, with one small aside about your own ghostly ways.
-- Use only people, places, objects and events that are in the memory. You may add mood (the dark, the \
-hush, the flicker of a candle) but no new facts. Do not ask questions; the storyteller is asked about \
+- Never contradict the memory: where things were, who did what and what happened stay exactly as \
+told (if a light was in the sky, it stays in the sky). Use only people, places, objects and events \
+that are in the memory. You may add mood (the dark, the hush, the flicker of a candle) but no new facts. Do not ask questions; the storyteller is asked about \
 the gaps separately. No title and no emojis."""
 
 def reaction_messages(story: dict) -> list[dict]:
@@ -206,12 +211,13 @@ as the memory does. Never tell it as "I": it happened to them, not to you.
 storyteller saw, heard or found stays exactly that. End on the memory's own turn or twist.
 3. Keep every real person, place and object, and every line someone spoke, word for word, in \
 quotation marks.
-4. Add mood and the senses (wind, cold, smoke, a creak, the hush before something happens) but no new \
-events, no deaths, injuries or tragedies, and never explain away what the memory leaves unexplained.
+4. Atmosphere comes only from the dark, the weather, light, sound and silence (wind, cold, a creak, the \
+hush before something happens). Never add objects, food, furnishings, smells or actions that are not \
+in the memory, no new events, no deaths, injuries or tragedies, and never explain away what the memory \
+leaves unexplained. Never move or change anything: what was above stays above, what was below stays below.
 5. Write 300 to 450 words, in short paragraphs, mostly in full, flowing sentences; a short sentence \
 only when the moment needs a jolt.
-6. Use three to five emojis in all, where they fit the moment (such as 🔥 🌲 🌙 🕯️ 👻 🦉 🍂 🎃): \
-each at the end of a sentence, never two next to each other, never in place of a word.
+6. No emojis.
 7. In English, with no title."""
 
 def retelling_messages(story: dict) -> list[dict]:

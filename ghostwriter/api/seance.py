@@ -12,7 +12,7 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable, Iterator
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -33,8 +33,8 @@ class Question(BaseModel):
 
 
 @router.post("/seance")
-def seance(q: Question) -> StreamingResponse:
-    return stream(_answer(q))
+def seance(q: Question, request: Request) -> StreamingResponse:
+    return stream(_answer(q), request)
 
 
 def split_citations(pieces: Iterable[str]) -> Iterator[tuple[str, str | int]]:

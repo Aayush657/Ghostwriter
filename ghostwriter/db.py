@@ -325,26 +325,31 @@ def list_stories() -> list[dict]:
         return rows
 
 
-def rename_tag(story_id: int, kind: str, old: str, new: str) -> None:
+def rename_tag(story_id: int, kind: str, old: str, new: str) -> bool:
     """Rename one of a story's tags. Renaming to a tag it already has merges the two; "" removes it.
     An empty `old` adds `new` as a new tag.
 
     Only this story changes: "grandmother" in one story may be Nani, in another Dadi.
+    Tags match whatever their case ("SON" is "son"); the spelling already there is kept. Returns False
+    if `old` isn't one of the story's tags.
     """
-    new = new.strip()
+    new, old = new.strip(), old.strip()
     with connect() as con:
-        exists = con.execute("SELECT 1 FROM entities WHERE story_id = ? AND kind = ? AND value = ?",
-                             (story_id, kind, new)).fetchone()
-        if not old.strip():
-            if new and not exists:
+        same = "story_id = ? AND kind = ? AND value = ? COLLATE NOCASE"
+        if old and not con.execute(f"SELECT 1 FROM entities WHERE {same}", (story_id, kind, old)).fetchone():
+            return False
+        exists = new and new.lower() != old.lower() and con.execute(
+            f"SELECT 1 FROM entities WHERE {same}", (story_id, kind, new)).fetchone()
+        if not old:
+            if new and not con.execute(f"SELECT 1 FROM entities WHERE {same}", (story_id, kind, new)).fetchone():
                 con.execute("INSERT INTO entities (story_id, kind, value) VALUES (?, ?, ?)", (story_id, kind, new))
         elif not new or exists:
-            con.execute("DELETE FROM entities WHERE story_id = ? AND kind = ? AND value = ?", (story_id, kind, old))
+            con.execute(f"DELETE FROM entities WHERE {same}", (story_id, kind, old))
         else:
-            con.execute("UPDATE entities SET value = ? WHERE story_id = ? AND kind = ? AND value = ?",
-                        (new, story_id, kind, old))
+            con.execute(f"UPDATE entities SET value = ? WHERE {same}", (new, story_id, kind, old))
         con.execute("UPDATE stories SET tags = (SELECT group_concat(value, ' · ') FROM entities "
                     "WHERE story_id = ?) WHERE id = ?", (story_id, story_id))
+    return True
 
 
 def live_answer(question_id: int) -> int | None:

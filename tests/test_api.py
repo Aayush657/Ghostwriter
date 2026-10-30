@@ -360,3 +360,45 @@ def test_a_browser_recording_plays_with_a_duration(client, data_dir, tmp_path):
     assert abs(float(duration(served)) - 2.0) < 0.2
     original = data_dir / db.get_story(story_id)["audio_original"]
     assert original.read_bytes() == live.read_bytes()  # the recording as given is untouched
+
+
+def test_tags_match_whatever_their_case(client):
+    story_id = upload(client).json()["id"]
+    add = lambda new, old="": client.post(f"/api/stories/{story_id}/tags", json={"kind": "person", "old": old, "new": new})  # noqa: E731
+    assert add("son").status_code == 200
+    assert add("  SON ").status_code == 200  # the same tag: nothing new
+    people = db.get_story(story_id)["entities"]["person"]
+    assert [p for p in people if p.lower() == "son"] == ["son"]  # the spelling already there is kept
+    assert add("Sam", old="nobody").status_code == 404  # renaming a tag the story doesn't have
+    assert add("Son", old="SON").status_code == 200  # renaming works whatever the case
+    assert "Son" in db.get_story(story_id)["entities"]["person"]
+
+
+def test_errors_are_short_and_say_what_was_wrong(client):
+    huge = "x" * 150_000
+    resp = client.post("/api/stories/written", json={"text": huge})
+    assert resp.status_code == 422 and len(resp.content) < 1000  # the input isn't echoed back
+    assert resp.json()["detail"][0]["type"] == "string_too_long"
+    assert upload(client, name="noextension").json()["detail"].startswith("That file has no type")
+    assert client.get("/api/settings").json()["min_story_chars"] == 20  # the page asks for what the server needs
+
+
+def test_a_reused_id_inherits_nothing(client, data_dir):
+    from ghostwriter import embed
+    old = upload(client).json()["id"]
+    question = db.get_story(old)["questions"][0]["id"]
+    client.post("/api/stories/written", json={"text": "It was my cousin Maya, holding a lantern.", "answers_question_id": question})
+    with db.connect() as con:
+        con.execute("INSERT INTO embeddings (story_id, model, text_hash, vector) VALUES (?, 'm', 'h', x'00')", (old,))
+    files = [data_dir / db.get_story(old)["audio_original"]]
+    trash.remove_now(old)
+    assert not any(f.exists() for f in files)
+    new = client.post("/api/stories/written", json={"text": "A brand new story about the old covered bridge."}).json()["id"]
+    story = db.get_story(new)
+    assert story["questions"][0]["answer"] is None if story["questions"] else True
+    with db.connect() as con:
+        assert con.execute("SELECT count(*) FROM embeddings WHERE story_id = ?", (new,)).fetchone()[0] == 0
+        assert con.execute("SELECT count(*) FROM stories WHERE answers_question_id = ?", (question,)).fetchone()[0] == 0
+        assert con.execute("SELECT count(*) FROM stories_fts WHERE stories_fts MATCH 'fake transcript' AND rowid = ?",
+                           (old,)).fetchone()[0] == 0
+    assert embed  # (imported so the table exists)

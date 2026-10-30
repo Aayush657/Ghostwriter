@@ -58,7 +58,7 @@ def site(data_dir, monkeypatch, tmp_path):
         return Transcript("My grandmother cooked kadhi in a brass pot in Lucknow.", 0.5,
                           Quality(-0.3, 0.01, 1.4, 0.0, scripts=["LATIN"]))
 
-    def fake_analyse(transcript, answering=None):
+    def fake_analyse(transcript, answering=None, written=False):
         return StoryAnalysis(title="Grandmother's Kadhi", summary="Your grandmother cooked kadhi in Lucknow.",
                              people=["Nani (grandmother)"], places=["Lucknow"], eras=["1980s"], mood="nostalgic",
                              keepsakes=["brass pot"],

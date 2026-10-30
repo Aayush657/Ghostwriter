@@ -13,6 +13,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from fastapi import FastAPI, Request, Response
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -44,6 +45,15 @@ app = FastAPI(title="Ghostwriter", lifespan=lifespan)
 app.include_router(stories.router)
 app.include_router(seance.router)
 app.include_router(voice.router)
+
+
+@app.exception_handler(RequestValidationError)
+async def short_validation_errors(request: Request, exc: RequestValidationError) -> JSONResponse:
+    """What was wrong, without echoing the input back (a refused story can be 150 KB)."""
+    detail = [{"type": e["type"], "loc": e["loc"], "msg": str(e["msg"])[:200],
+               "ctx": {k: v for k, v in (e.get("ctx") or {}).items() if isinstance(v, (int, float))}}
+              for e in exc.errors()]
+    return JSONResponse({"detail": detail}, status_code=422)
 
 
 LOCAL_HOSTS = {"127.0.0.1", "localhost"}  # localhost too: people type it, and no website can claim it
@@ -126,7 +136,7 @@ def ui_settings() -> dict:
     """The defaults the page starts with (the visitor can still flip plain mode), and the shared lists."""
     return {"plain_mode_default": settings.plain_mode_default, "tts_enabled": settings.tts_enabled,
             "moods": list(MOODS), "undo_seconds": trash.UNDO_SECONDS,
-            "max_recording_minutes": settings.max_audio_minutes}
+            "max_recording_minutes": settings.max_audio_minutes, "min_story_chars": stories.MIN_STORY_CHARS}
 
 
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")

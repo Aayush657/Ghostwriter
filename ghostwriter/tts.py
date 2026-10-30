@@ -48,6 +48,10 @@ class TTSError(Exception):
     """The voice couldn't be made. The message is safe to show the user."""
 
 
+class NothingToSay(TTSError):
+    """The text has nothing to speak (only emojis or spaces): the request's fault, not the voice's."""
+
+
 EMOJI = re.compile("[\U0001F000-\U0001FAFF\u2600-\u27BF\uFE0F\u200D]")
 
 
@@ -113,7 +117,7 @@ def speak(text: str, ghostly: bool = True) -> Path:
         raise TTSError("The voice is turned off (GW_TTS_ENABLED=false in .env).")
     text = clean(text)[:MAX_CHARS]
     if not text:
-        raise TTSError("There is nothing to say.")
+        raise NothingToSay("There is nothing to say.")
     voice = settings.piper_voice_path
     if not voice.exists():
         raise TTSError(f"The voice model is missing from {voice}. Run scripts\\setup.ps1.")

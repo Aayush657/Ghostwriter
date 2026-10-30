@@ -56,3 +56,11 @@ def test_speak_route_returns_a_friendly_503_when_voice_is_off(data_dir, monkeypa
         resp = client.post("/api/speak", json={"text": "hello"})
     assert resp.status_code == 503
     assert "GW_TTS_ENABLED" in resp.json()["detail"]
+
+
+def test_nothing_to_say_is_the_requests_fault(data_dir, monkeypatch):
+    monkeypatch.setattr(settings, "tts_enabled", True)
+    monkeypatch.setattr(main.selfcheck, "run_checks", lambda: [])
+    with TestClient(main.app, base_url="http://127.0.0.1:8000") as client:
+        resp = client.post("/api/speak", json={"text": "\U0001F383 \U0001F47B   "})
+    assert resp.status_code == 400 and "nothing to say" in resp.json()["detail"]

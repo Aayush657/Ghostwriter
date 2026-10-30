@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from ghostwriter import tts
-from ghostwriter.tts import TTSError
+from ghostwriter.tts import NothingToSay, TTSError
 
 router = APIRouter(prefix="/api", tags=["voice"])
 
@@ -29,6 +29,8 @@ def speak(req: SpeakRequest) -> FileResponse:
         raise HTTPException(404, "There is no more to say.")
     try:
         path = tts.speak(parts[req.part] if parts else req.text, ghostly=not req.plain)
+    except NothingToSay as exc:
+        raise HTTPException(400, str(exc)) from None
     except TTSError as exc:
         raise HTTPException(503, str(exc)) from None
     return FileResponse(path, media_type="audio/wav", headers={"X-Parts": str(len(parts))})

@@ -53,6 +53,8 @@ const FIXES = {
 
 const BOUNDARY = /^[\s.,!?;:)\]"”]$/; // typing one of these ends a word
 const WORD_BEFORE = /([A-Za-z][A-Za-z']*)$/; // starts with a letter: an opening ' is a quote mark
+// Addresses, emails, paths and code are left exactly as typed: "http://teh.com", "a_teh", "v2teh".
+const CODE_LIKE = /:\/\/|www\.|[@/\\_]|[A-Za-z]\.[A-Za-z]|\d[A-Za-z]|[A-Za-z]\d/;
 
 const capital = (word) => word[0].toUpperCase() + word.slice(1);
 const isCapital = (ch) => ch === ch.toUpperCase() && ch !== ch.toLowerCase();
@@ -102,7 +104,7 @@ export function attachAutocorrect(box, { enabled = () => true, onFix = () => {} 
     const caret = box.selectionStart;
     const before = box.value.slice(0, caret - event.data.length);
     const typed = before.match(WORD_BEFORE)?.[1];
-    if (!typed || keep.has(typed.toLowerCase())) return;
+    if (!typed || keep.has(typed.toLowerCase()) || CODE_LIKE.test(before.match(/\S*$/)[0])) return;
     const start = before.length - typed.length;
     const fixed = fixFor(typed, before.slice(0, start));
     if (!fixed) return;

@@ -47,8 +47,9 @@ ol li { margin: 4px 0; }
 }
 .print:hover, .print:focus-visible { background: #b4520a; outline: 2px solid #b4520a; outline-offset: 2px; }
 @page { margin: 18mm 16mm; }
+.back { margin: 0 0 8px; font-size: 0.95rem; }
 @media print {
-  .print { display: none; }
+  .print, .back { display: none; }
   body { background: none; font-size: 12pt; }
   main { padding: 0; max-width: none; }
   a { color: inherit; text-decoration: none; }
@@ -122,6 +123,7 @@ def memory_book_html() -> str:
 </head>
 <body>
 <main>
+<p class="back"><a href="/">&larr; Back to Ghostwriter</a></p>
 <div class="cover">
 <h1>The Memory Book</h1>
 <p class="hand">{len(stories)} {"memory" if len(stories) == 1 else "memories"}, kept by the ghost on this computer.</p>

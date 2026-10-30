@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, BackgroundTasks, Form, HTTPException, Response, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Form, HTTPException, Request, Response, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field, StringConstraints
@@ -40,7 +40,8 @@ async def upload_story(
     ext = Path(file.filename or "").suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:
         allowed = ", ".join(sorted(ALLOWED_EXTENSIONS))
-        raise HTTPException(415, f"'{ext or 'That'}' files can't be used. Choose one of: {allowed}.")
+        what = f"'{ext}' files can't be used." if ext else "That file has no type (like .mp3 or .wav), so it can't be used."
+        raise HTTPException(415, f"{what} Choose one of: {allowed}.")
     _answerable_or_error(answers_question_id)
 
     # The stored name comes from a random id, then the story's id: never from the uploaded filename.
@@ -77,7 +78,8 @@ async def upload_story(
 
 
 # A written story: a few sentences at least, and no more than Gemma can read at once (about 3,500 words).
-StoryText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=20, max_length=20_000)]
+MIN_STORY_CHARS = 20  # the page asks for the same (GET /api/settings)
+StoryText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=MIN_STORY_CHARS, max_length=20_000)]
 
 
 class WrittenStory(BaseModel):
@@ -185,7 +187,8 @@ class TagEdit(BaseModel):
 def edit_tag(story_id: int, edit: TagEdit) -> dict:
     """Add, rename, merge or remove one of this story's tags (other stories are not touched)."""
     _idle_story_or_409(story_id)
-    db.rename_tag(story_id, edit.kind, edit.old, edit.new)
+    if not db.rename_tag(story_id, edit.kind, edit.old, edit.new):
+        raise HTTPException(404, "This story has no such tag. Reload the page and try again.")
     return db.get_story(story_id)
 
 
@@ -221,20 +224,20 @@ def visit_story(story_id: int) -> None:
 
 
 @router.post("/{story_id}/reaction")
-def story_reaction(story_id: int) -> StreamingResponse:
+def story_reaction(story_id: int, request: Request) -> StreamingResponse:
     """The Archivist's first words about a story: written live by Gemma once, then remembered."""
     story = _ready_story_or_409(story_id)
-    return stream(_write_once(story, "reaction", prompts.reaction_messages(story), temperature=0.8))
+    return stream(_write_once(story, "reaction", prompts.reaction_messages(story), temperature=0.8), request)
 
 
 @router.post("/{story_id}/retelling")
-def story_retelling(story_id: int, again: bool = False) -> StreamingResponse:
+def story_retelling(story_id: int, request: Request, again: bool = False) -> StreamingResponse:
     """The memory retold as a campfire ghost story. Stored apart: the original is never changed.
 
     `again=true` tells it anew; the old retelling is replaced only once the new one is complete.
     """
     story = _ready_story_or_409(story_id)
-    return stream(_write_once(story, "retelling", prompts.retelling_messages(story), temperature=0.7, again=again))
+    return stream(_write_once(story, "retelling", prompts.retelling_messages(story), temperature=0.7, again=again), request)
 
 
 def _write_once(story: dict, column: str, messages: list[dict], temperature: float,

@@ -122,10 +122,10 @@ def stream_chat(messages: list[dict], *, temperature: float = 0.7) -> Iterator[s
                 _log_speed(chunk)
 
 
-def _messages(transcript: str, answering: dict | None) -> list[dict]:
+def _messages(transcript: str, answering: dict | None, written: bool = False) -> list[dict]:
     return [
         {"role": "system", "content": prompts.analyse_system(answering)},
-        {"role": "user", "content": prompts.analyse_user(transcript, answering)},
+        {"role": "user", "content": prompts.analyse_user(transcript, answering, written)},
     ]
 
 
@@ -136,7 +136,7 @@ def _validated(reply: str, answering: dict | None) -> StoryAnalysis:
     return analysis
 
 
-def analyse_story(transcript: str, answering: dict | None = None) -> StoryAnalysis:
+def analyse_story(transcript: str, answering: dict | None = None, written: bool = False) -> StoryAnalysis:
     """Ask Gemma for a story's title, summary, entities and follow-up questions, as validated JSON.
 
     `answering` is the question this recording answers, with its story (db.get_story()["answers"]).
@@ -144,7 +144,7 @@ def analyse_story(transcript: str, answering: dict | None = None) -> StoryAnalys
     about "the transcript" instead of a memory, the words were too unclear: UnclearStory.
     """
     schema = StoryAnalysis.model_json_schema()
-    messages = _messages(transcript, answering)
+    messages = _messages(transcript, answering, written)
     reply = chat(messages, schema=schema, temperature=0)
     try:
         return _validated(reply, answering)

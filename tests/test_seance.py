@@ -146,3 +146,27 @@ def test_seance_prompt_includes_tags_and_excerpt():
     user = prompts.seance_messages("What did Nani cook?", [story], plain=False)[1]["content"]
     assert "[S3] Kadhi" in user and "Tags: Nani (grandmother)" in user
     assert "Nani made kadhi in a brass pot." in user
+
+
+def test_a_page_that_goes_away_stops_the_writing():
+    """Cancelling a question closes Gemma's stream (llm.stream_chat's `with`), so Ollama stops."""
+    import asyncio
+
+    from ghostwriter.api.sse import until_gone
+    closed = []
+
+    def gemma():
+        try:
+            for piece in ["one ", "two ", "three "]:
+                yield piece
+        finally:
+            closed.append(True)
+
+    class Gone:
+        async def is_disconnected(self):
+            return True
+
+    async def read():
+        return [item async for item in until_gone(Gone(), gemma())]
+
+    assert asyncio.run(read()) == [] and closed == [True]
