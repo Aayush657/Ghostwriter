@@ -67,7 +67,7 @@ Project page: [PLACEHOLDER: your .tech link]
 
 ## Code
 
-{% github Aayush657/ghostwriter %}
+{% github Aayush657/Ghostwriter %}
 
 MIT licensed. The README has one-command setup for Windows, and the repo includes four clearly
 fictional sample stories, so you can try the ghost without recording anything.
