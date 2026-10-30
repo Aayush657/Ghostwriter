@@ -159,7 +159,7 @@ const COPY = {
     patience: "Short stories usually take about a minute. You can leave this page; the Archivist keeps working.",
     keepWorking: "You can leave this page; the Archivist keeps working.",
     fog: "The words came to me as fog...",
-    fogText: "I could not make out a memory in this recording, so I wrote nothing down. You can:",
+    fogText: "I could not make out a memory in these words, so I wrote nothing down. You can:",
     fogWhy: "Why: ",
     fogEdit: "Write down what was said",
     fogPlaceholder: "Write the story the way it was told...",
@@ -354,7 +354,7 @@ const COPY = {
     estimate: (s) => s < 5 ? "Almost done." : `About ${s < 90 ? `${Math.round(s / 5) * 5} seconds` : `${Math.round(s / 60)} minutes`} left.`,
     patience: "Short stories usually take about a minute. You can leave this page; processing continues.",
     keepWorking: "You can leave this page; processing continues.",
-    fog: "This recording was too unclear to transcribe",
+    fog: "This story was too unclear to process",
     fogText: "No title, summary or questions were written. You can:",
     fogWhy: "Why: ",
     fogEdit: "Type the story instead",
@@ -733,7 +733,7 @@ function renderChips() {
   for (const s of topLevel().filter((s) => s.status === "ready")) {
     for (const kind of ["person", "place", "keepsake"]) {
       for (const raw of tagsOf(s)[kind] || []) {
-        const name = raw.replace(/\s*\(.*\)$/, "").trim(); // "Nani (grandmother)" -> "Nani"
+        const name = raw.replace(/\s*\(.*\)$/, "").trim(); // "Grandpa Joe (grandfather)" -> "Grandpa Joe"
         const seen = counts.get(name.toLowerCase());
         if (name.length >= 3) counts.set(name.toLowerCase(), { name, n: (seen?.n || 0) + 1 });
       }

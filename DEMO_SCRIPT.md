@@ -17,7 +17,7 @@ screen. Don't speed anything up without a caption.
 - [ ] Browser: full screen (F11), zoom 110-125% so the text is readable on a phone.
 - [ ] Screen recorder: OBS Studio (open source, fits the theme) or Windows' Snipping Tool video.
       **Capture system audio**, or the ghost's voice won't be in the video.
-- [ ] Room: lights off, one real diya or candle beside the laptop if you have one. A phone on a
+- [ ] Room: lights off, one real candle or a jack-o'-lantern beside the laptop if you have one. A phone on a
       stand for the room shots. Record your story somewhere quiet, close to the microphone.
 - [ ] Optional but worth everything: someone in your family, ready for the last shot (ask first).
 
@@ -27,16 +27,18 @@ screen. Don't speed anything up without a caption.
 |---|---|---|---|
 | 0:00-0:08 | **Room, phone camera.** Dark room, laptop glowing, a candle beside it. | The candle wall on screen. | VO: "The best stories in my family were never written down. So I built a ghost to keep them." |
 | 0:08-0:18 | **Close-up of the taskbar**, then the terminal. | Turn Wi-Fi off (or airplane mode) on camera. Run `.venv\Scripts\python.exe -m ghostwriter.selfcheck`: all green. | Caption: **Wi-Fi: off.** VO: "Everything you're about to see runs on this laptop. No internet, no cloud, no API key." |
-| 0:18-0:28 | **Screen.** Candle wall. | Hover a low-burning candle ("Not opened for 21 days"). | VO: "Every candle is a story. The ones I haven't opened are burning low." |
-| 0:28-0:42 | **Screen.** "Give the Archivist a story". | Pick the language you'll speak (e.g. Hinglish). Click *Record a story*; the clock and level meter run. Tell a 10-15 second story. Click *Stop and keep it*. The steps appear: Listening, Reading, Writing the note, with the time left. | Caption on the cut: **"About a minute later. Whisper and Gemma, both on the CPU."** |
-| 0:42-1:02 | **Screen.** The new story's page. | Title and summary of what you said. *The Archivist writes* is already there. Scroll to *Unfinished business*. | VO: "Gemma wrote it down, understood my Hinglish, and asked about the part I skipped." |
+| 0:18-0:28 | **Screen.** Candle wall. | Hover a low-burning candle (the scarecrow sample: "Not opened for 20 days"). | VO: "Every candle is a story. The ones I haven't opened are burning low." |
+| 0:28-0:42 | **Screen.** "Give the Archivist a story". | Click *Record a story* (English); the clock and level meter run. Tell a 10-15 second story. Click *Stop and keep it*. The steps appear: Listening, Reading, Writing the note, with the time left. | Caption on the cut: **"About a minute later. Whisper and Gemma, both on the CPU."** |
+| 0:42-1:02 | **Screen.** The new story's page. | Title and summary of what you said. *The Archivist writes* is already there. Scroll to *Unfinished business*. | VO: "Whisper wrote it down, Gemma understood it, and asked about the part I skipped." |
 | 1:02-1:22 | **Screen.** Seance. | Ask something your stories answer in other words (e.g. "Which of my relatives was a good cook?"): the answer writes itself in, with a numbered source. Then ask something you never told it: *"That memory was never given to me."* | VO: "It finds stories by meaning, and only answers from what I told it. When it doesn't know, it says so." |
 | 1:22-1:36 | **Screen.** | Click *Let the Archivist speak*: the ghost voice plays at once. Optional: *Retell it as a ghost story*, first lines. | (Let the voice speak. No VO.) |
 | 1:36-1:50 | **Room, phone camera.** | **The real moment:** someone hearing their own story read back by the ghost. | [PLACEHOLDER: what actually happened. Don't stage it; if it doesn't happen, cut this shot.] |
 | 1:50-2:00 | **End card.** | "Ghostwriter: the ghost that keeps your stories. Gemma 4, EmbeddingGemma, Whisper, Piper. Fully offline." github.com/Aayush657/Ghostwriter and theghostwriter.tech. | VO: "Tell it something true. It's listening." |
 
 Optional, if you have 10 more seconds: open the *Words lost in fog* candle (an unclear recording) to
-show that the ghost refuses to make a memory out of noise.
+show that the ghost refuses to make a memory out of noise, and that you can write down what was said
+instead. Or scroll to *Write a story down* and type "teh lantern dissapeared ": autocorrect fixes both
+words as you type. The retelling has a few emojis; the voice skips them.
 
 ## The 1:30 cut
 

@@ -17,24 +17,26 @@ better than anyone. When that voice goes quiet, the stories go with it.
 So I built **Ghostwriter**, the ghost that keeps your stories.
 
 Ghostwriter is home to **the Archivist**, a kind ghost who lives in your laptop. You tell it a story
-out loud, in Hindi, English, or the mix most of us actually speak, and it:
+out loud (or write it down, if there's no good microphone nearby), and it:
 
-- **writes it down**, word for word, and keeps your original recording;
+- **writes it down**, word for word, and keeps your original recording. No microphone, or a noisy
+  room? Write the story on a page of ruled paper instead, with spell check and an offline autocorrect;
 - **understands it**: gives it a title and a short summary, and notes who was there, where, when,
   and the objects, recipes and sayings worth keeping, using only what you actually said;
 - **refuses to make a memory out of noise**: if a recording comes out as gibberish, it says *"The
-  words came to me as fog..."* and offers to listen again in another language instead of inventing a
-  story;
+  words came to me as fog..."* and lets you write down what was said, instead of inventing a story;
 - **notices what you left out**, and asks: *who else was there? what did the kitchen smell like?*
   Answer out loud, and your answer joins the story it completes;
 - **holds a séance**: ask your archive anything, and the ghost finds the stories that mean the same
   thing (ask about "a good cook" and it finds the kadhi story), answers only from them, and numbers
   its sources;
 - **lights a candle for every story** under a moonlit sky. The story's mood picks the candle: a skull
-  with a green flame for the eerie ones, a jack-o'-lantern for the joyful, a clay diya for the loving.
+  with a green flame for the eerie ones, a jack-o'-lantern for the joyful, a clay oil lamp for the
+  loving.
   Stories you haven't opened in a while burn low. Open one, and its flame comes back;
-- **speaks** in a low, echoing voice, and on request **retells** any memory as a campfire
-  bhoot-kahani (always labelled as a retelling; the original is never touched).
+- **speaks** in a low, echoing voice, and on request **retells** any memory as a campfire ghost
+  story, with a few emojis to set the mood 🔥🌙 (always labelled as a retelling; the original is
+  never touched).
 
 The rule that makes it work is a story mechanic as much as a technical one: **the ghost can only
 remember what it was given.** Ask it about something you never told it, and instead of inventing an
@@ -78,7 +80,7 @@ fictional sample stories, so you can try the ghost without recording anything.
 
 ```
  Browser (plain HTML/CSS/JS from 127.0.0.1, fonts bundled)
-   |  record / upload                     ^  Server-Sent Events: words and citations, as written
+   |  record / upload / write             ^  Server-Sent Events: words and citations, as written
    v                                      |
  FastAPI ----------------------------------+
    |-- ffprobe / ffmpeg  check it's really audio; any recording -> 16 kHz mono WAV (original kept)
@@ -117,11 +119,11 @@ Memory accuracy is the whole product, so most of the work went into the transcri
 An early version took a noisy recording that Whisper heard as a jumble of Urdu, Chinese and Latin
 letters, and saved it as a memory called "Unclear Memory Fragment", with a summary that began "The
 transcript provided contains...". Now Whisper's own confidence is checked before Gemma sees anything:
-average log-probability, the share of unsure words, how sure it was of the language, the chance a
-stretch was not speech, repetition loops, and how many alphabets the text uses. Clear speech scores
+average log-probability, the share of unsure words, the chance a stretch was not speech, repetition
+loops, and whether the text came out in another alphabet. Clear speech scores
 about -0.3; that recording scored -0.67 with 29% unsure words and failed every weak sign at once. It
 is now marked *unclear*: no title, no summary, no questions, left out of the séance and the memory
-book, and its page offers three ways forward.
+book, and its page offers to let you write down what was said instead.
 
 ### Getting reliable, honest JSON out of a small model
 
@@ -137,9 +139,6 @@ isn't quite that, so there are four layers:
    only describe garbled words, the story is marked unclear instead of saved.
 4. Temperature 0 and a fixed seed, so re-reading the same words gives the same title and mood.
 
-It handled Hindi better than I expected. From a Devanagari transcript it wrote an English summary,
-listed "Nani (grandmother)" and "Mama (uncle)", and turned *अस्सी के दशक* into "1980s".
-
 ### Better questions, and answers that belong somewhere
 
 The ghost's follow-up questions used to ask things the story had already answered, or that nobody
@@ -147,7 +146,7 @@ could answer. Now the prompt asks for what only the storyteller would remember (
 how it smelled, what happened next), and Gemma checks its own questions in the same conversation,
 pointing to the words each one is about. Gemma was too eager to call questions unanswerable, so a
 question is dropped as "nobody knows" only if the sentence it points to really says so ("never told
-me", "मुझे नहीं पता").
+me", "never found out").
 
 An answer is no longer a separate story either: Gemma reads it with the original story and the
 question, it asks nothing new, and it appears inside the story under its question.
@@ -156,8 +155,8 @@ question, it asks nothing new, and it appears inside the story under its questio
 
 The séance is retrieval-augmented generation with a costume on:
 
-1. **Search by words and by meaning.** SQLite's FTS5 index with the `trigram` tokenizer works the same
-   on Devanagari and English. **EmbeddingGemma**, through the same Ollama, turns each story into a
+1. **Search by words and by meaning.** SQLite's FTS5 index (with the `trigram` tokenizer, so
+   "haunt" also finds "haunted") finds the words. **EmbeddingGemma**, through the same Ollama, turns each story into a
    768-number vector stored in SQLite. "Which of my relatives was a good cook?" shares no word with
    "Grandmother's Famous Kadhi in Lucknow" but scores 0.36 against it, while "What is the capital of
    France?" scores 0.17 at most. The two rankings are merged with reciprocal-rank fusion.
@@ -192,9 +191,10 @@ and the Archivist's notes are voiced ahead of time, so pressing play starts at o
 
 A harsh review of an earlier build found real problems: the noisy "memory", the meta-text, answers
 that floated loose, a raw `[S3]` flashing before it became a citation, a deleted story still hiding
-in the page. Each fix has a test now (134 in all). One of them drives the real page in Chrome with
+in the page. Each fix has a test now. One of them drives the real page in Chrome with
 Playwright: upload, rename, tags, answer a question, ask the séance, open the memory book, upload a
-text file pretending to be an MP3, delete and undo, record with Chrome's fake microphone, and switch
+text file pretending to be an MP3, write a story with typos and watch autocorrect fix them, delete
+and undo, record with Chrome's fake microphone, and switch
 to plain mode and check nothing spooky is left. Another samples every line of text at phone and
 desktop widths to check that no moon, cobweb or crystal ball ever covers it.
 
@@ -222,7 +222,9 @@ the CPU.
   right; a bigger Whisper size helps more, and costs time.
 - A truly noisy recording stays unclear. The ghost won't invent a memory, but it can't recover words
   that aren't there.
-- The ghost answers and speaks in English, even about Hindi stories.
+- It's English only. An earlier build listened in Hindi and Hinglish too, but the speech model that
+  runs at a usable speed on a CPU got too many Hindi words wrong, so I took them out rather than ship
+  something that mangles a storyteller's words.
 - It's Windows-first and single-user.
 
 ### Built with AI assistance
@@ -247,7 +249,7 @@ Because this project would be a bad idea in the cloud.
   wouldn't. "Open the memory book" exports everything as one self-contained HTML file, fonts included,
   that any browser can open years from now.
 - **I can swap the brains.** The models are one line each in a settings file. An older laptop can
-  run `gemma4:e2b`; better Hindi transcription is one word away (`large-v3-turbo`). When a better open
+  run `gemma4:e2b`; a bigger Whisper is one word away (`medium.en`). When a better open
   model ships, I change a line instead of a contract.
 
 The open approach was harder in specific ways, and I'd rather say so:
@@ -279,10 +281,10 @@ comes back when someone does.
 ## Prize Categories
 
 - **Best Use of Gemma:** two Gemma models, both running locally through Ollama, do all the
-  understanding. Gemma 4 e4b does structured extraction from Hindi and English transcripts (with
+  understanding. Gemma 4 e4b does structured extraction from spoken and written stories (with
   validation, repair and a self-check of its own questions), grounded séance answers with citations,
   the Archivist's voice and the haunted retellings. EmbeddingGemma gives every story a meaning vector,
-  so the séance finds stories by what they mean, in either language.
+  so the séance finds stories by what they mean, not just the words they share.
 - **Best Use of a .tech Domain:** the project page lives at [theghostwriter.tech](https://theghostwriter.tech).
 
 ## My Agent Session

@@ -27,6 +27,17 @@ def test_normalise_makes_16k_mono_wav(tmp_path):
 
 
 @needs_ffmpeg
+def test_whispers_copy_is_cleaned_up_and_the_original_kept(tmp_path):
+    src = tmp_path / "noisy.wav"
+    subprocess.run([settings.ffmpeg_bin, "-loglevel", "error", "-f", "lavfi", "-i",
+                    "anoisesrc=color=pink:amplitude=0.05:duration=2", str(src)], check=True)
+    before = src.read_bytes()
+    audio.normalise(src, tmp_path / "clean.wav")
+    assert src.read_bytes() == before  # the recording you gave is never changed
+    assert "afftdn" in audio.CLEAN_UP and "highpass" in audio.CLEAN_UP
+
+
+@needs_ffmpeg
 def test_garbage_file_gives_a_friendly_error(tmp_path):
     src = tmp_path / "not-audio.mp3"
     src.write_bytes(b"this is not audio")

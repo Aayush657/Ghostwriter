@@ -5,11 +5,12 @@ Each section is: what it does, how, and why this way.
 
 ## 1. The big picture
 
-You give the Archivist (the ghost who lives in Ghostwriter) a recording. A background job turns it
-into a stored, searchable story:
+You give the Archivist (the ghost who lives in Ghostwriter) a recording, or a story written down. A
+background job turns it into a stored, searchable story:
 
 ```
-original audio --ffprobe check--> saved --ffmpeg--> 16 kHz mono WAV --Whisper--> words
+original audio --ffprobe check--> saved --ffmpeg (+ light clean-up)--> 16 kHz WAV --Whisper--> words
+written story -------------------------------------------------------------------------> words
   --quality check--> Gemma 4: title, summary, people, places, eras, mood, keepsakes, questions
   --> SQLite (+ full-text index) --EmbeddingGemma--> a meaning vector for the Seance
 ```
@@ -108,9 +109,9 @@ says *"The Archivist isn't sure of some words, so it left them out."*
 
 Then two tidy-ups:
 
-- **Tags** (`tags.py`, tested): a place must have a name ("Jaipur", "Nani's house"), not just a kind
-  ("the corridor", "room 307"); a time must be a year, a decade or a stage of life. People are
-  **never** merged: "grandmother" and "Nani (grandmother)" may be different people, so only the
+- **Tags** (`tags.py`, tested): a place must have a name ("Pine Lake", "Grandma's house"), not just a
+  kind ("the hallway", "room 307"); a time must be a year, a decade or a stage of life. People are
+  **never** merged: "grandmother" and "Grandma Ruth (grandmother)" may be different people, so only the
   storyteller merges them, from the tag editor (which can also add tags and change the mood).
 - **Follow-up questions** must be things only the storyteller can answer from memory, preferring who
   else was there, how it looked, smelled or sounded, and what happened next. In the same
@@ -121,11 +122,11 @@ Then two tidy-ups:
 
 ## 6. Answers belong to their story
 
-"Unfinished business" are the Archivist's questions. Answering one records a new clip, but it is not
-a new memory: Gemma reads it **with the earlier story's title, summary and the question**, writes its
+"Unfinished business" are the Archivist's questions. Answering one (by voice, from a file, or in
+writing) adds words, but not a new memory: Gemma reads it **with the earlier story's title, summary and the question**, writes its
 summary as part of that memory, and asks **no new questions** (so the chain can't go on forever). The
 answer appears **inside the story, under its question**, as an "Added later" block with its own
-recording and words; it is never a separate candle. Its tags count for the story's filters, the
+words (and recording, if it was spoken); it is never a separate candle. Its tags count for the story's filters, the
 Seance reads it together with its story, and the memory book prints it under the question.
 
 ## 7. Search: keywords and meaning, fused
@@ -195,7 +196,7 @@ machine words ("memory banks"); the Seance speaks to "you", never "the speaker".
 
 Each story's **mood** picks its candle design and flame colour, all drawn in CSS on the same
 90 x 128 px stage so the wall lines up: joyful = jack-o'-lantern, gold; nostalgic = dripping pillar,
-amber; loving = clay diya, rose; poignant = twisted taper, blue; mysterious = iron lantern, violet;
+amber; loving = clay oil lamp, rose; poignant = twisted taper, blue; mysterious = iron lantern, violet;
 eerie = skull candle, green. One map in `app.js` drives the legend (which names shape and colour, and
 says why an entry is dim), the filter and the candles; a test checks it against the server's list.
 
@@ -203,7 +204,7 @@ A candle **burns low** when its story goes unopened: `--life` falls from 1 to 0 
 shrinks the flame to less than half its size and fades its glow. Opening the story relights it
 (`@property` makes the change animate). The wall has a search box (titles and summaries), a filter by
 person, place, era, keepsake or mood, a result count and **Clear filter**; the filter and search live
-in the address (`#/?about=place:Jaipur&q=kadhi`), so they survive a reload and the back button.
+in the address (`#/?about=place:Pine%20Lake&q=lantern`), so they survive a reload and the back button.
 
 **Suggested questions** count the people, places and keepsakes across the stories and offer the five
 most common. **Whispers** are one sentence of the storyteller's own words from a faded story, shown
@@ -225,7 +226,9 @@ pressing play on a note starts at once (measured: 0.1 s).
 The Archivist's note and the haunted retelling share one helper: replay what is stored, otherwise
 stream it from Gemma and store it at the end. The note is written during processing, so opening a
 story is instant. The retelling has its own column, so the original can never be overwritten by it;
-"Retell it again" replaces it only once the new one is complete.
+"Retell it again" replaces it only once the new one is complete. The retelling prompt asks for a few
+emojis (about one every two or three sentences, at the end of a sentence, never in place of a word),
+which makes it livelier to read; `tts.clean()` strips them, so the voice never reads them out.
 
 ## 14. The memory book
 

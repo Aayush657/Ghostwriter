@@ -291,6 +291,10 @@
         <figcaption>A recording it couldn't hear clearly is never turned into a made-up memory.</figcaption>
       </figure>
       <figure>
+        <img src="screenshots/writing.png" width="1280" height="800" loading="lazy" alt="Writing a story down on a page of ruled paper, with autocorrect fixing a typo">
+        <figcaption>No microphone? Write the story down; autocorrect fixes typos as you go.</figcaption>
+      </figure>
+      <figure>
         <img src="screenshots/plain.png" width="1280" height="800" loading="lazy" alt="Plain mode: simple cards and neutral words">
         <figcaption>Plain mode: the same app in simple words, with no effects.</figcaption>
       </figure>
@@ -301,16 +305,20 @@
   <p>
     The ghost lives on your laptop, not on a server, so this page can't run it for you. But here is
     what it makes: <a href="book.html">a memory book</a> exported by Ghostwriter from fictional sample
-    stories, told in English and in Hindi, including an answer added later to one of them. The titles,
-    summaries, people, places, unfinished business and the Archivist's notes were all written by Gemma 4
-    on a laptop. Your own archive exports the same way: one file that any browser can open, years from now.
+    stories (campfire tales, a Halloween blackout, a grandmother's scarf), with an answer added later and
+    a haunted retelling. The titles, summaries, people, places, unfinished business, the Archivist's notes
+    and the retelling were all written by Gemma 4 on a laptop. Your own archive exports the same way: one file that any browser can open, years from now.
   </p>
 
   <h2>What the ghost does</h2>
   <div class="grid">
     <div class="card">
       <h3>It listens</h3>
-      <p>Record in the browser or drop in a voice note, in Hindi, English or the mix most of us actually speak. Whisper writes down every word, guided by the names already in your archive, so Meera stays Meera.</p>
+      <p>Record in the browser or drop in a voice note. Whisper's English model writes down every word, guided by the names already in your archive, so once you correct "Wahkeena" it stays Wahkeena. It was picked by testing it against background noise, other voices and mumbled, rushed speech.</p>
+    </div>
+    <div class="card">
+      <h3>Or you write it down</h3>
+      <p>No microphone, or a noisy room? Write the story on a page of ruled paper, with spell check and an autocorrect that runs on your laptop ("teh" becomes "the" as you type). The ghost reads it exactly like a recording.</p>
     </div>
     <div class="card">
       <h3>It remembers</h3>
@@ -318,12 +326,12 @@
     </div>
     <div class="card">
       <h3>It won't invent a memory</h3>
-      <p>If a recording comes out as noise, the ghost says the words came to it as fog, writes nothing up, and offers to listen again in another language or let you fix the words.</p>
+      <p>If a recording comes out as noise, the ghost says the words came to it as fog, writes nothing up, and lets you write down what was said instead.</p>
     </div>
     <div class="card">
       <h3>It notices what you left out</h3>
-      <p>After every story the ghost asks about what you left out: who else was there, how it smelled, what happened next. Answer out loud, and your answer joins the story it completes.</p>
-      <p class="hand quote">&ldquo;You never told me where the brass pot went...&rdquo;</p>
+      <p>After every story the ghost asks about what you left out: who else was there, how it smelled, what happened next. Answer out loud or in writing, and your answer joins the story it completes.</p>
+      <p class="hand quote">&ldquo;You never told me who left the collar on the dock...&rdquo;</p>
     </div>
     <div class="card">
       <h3>It holds a s&eacute;ance</h3>
@@ -335,7 +343,7 @@
     </div>
     <div class="card">
       <h3>It speaks, and it retells</h3>
-      <p>The Archivist can read its answers aloud in a low, echoing voice, and retell any memory as a campfire bhoot-kahani: always labelled as a retelling, never replacing what you said.</p>
+      <p>The Archivist can read its answers aloud in a low, echoing voice, and retell any memory as a campfire ghost story, with a few emojis to set the mood &#x1F525;&#x1F319;: always labelled as a retelling, never replacing what you said.</p>
     </div>
   </div>
 
@@ -344,12 +352,12 @@
     <div class="card"><h3>Your voice stays home</h3><p>Recordings, transcripts and stories live in one folder on your disk. There is no cloud, no account and no analytics.</p></div>
     <div class="card"><h3>The lights can go out</h3><p>Every model runs locally, so it works with the internet switched off. The page doesn't even load fonts from the web.</p></div>
     <div class="card"><h3>No bill, no expiry</h3><p>No API keys and no subscription. Export the whole archive as one file that any browser can open, years from now.</p></div>
-    <div class="card"><h3>Swap the brains</h3><p>Model names are one line in a settings file. Use a smaller Gemma on an older laptop, or a larger Whisper for better Hindi.</p></div>
+    <div class="card"><h3>Swap the brains</h3><p>Model names are one line in a settings file. Use a smaller Gemma on an older laptop, or a larger Whisper to hear names better.</p></div>
   </div>
 
   <h2>How it works</h2>
   <ol class="pipeline" aria-label="Pipeline">
-    <li><strong>Your voice</strong>browser recording</li>
+    <li><strong>Your voice</strong>recorded, or written down</li>
     <li class="arrow" aria-hidden="true">&rarr;</li>
     <li><strong>ffmpeg</strong>16 kHz audio</li>
     <li class="arrow" aria-hidden="true">&rarr;</li>
@@ -367,8 +375,8 @@
   </ol>
   <p>
     Gemma runs through Ollama and streams its words to the page as they are written, so the answer
-    appears like ink from an invisible hand. Search combines SQLite's full-text index, which finds Hindi
-    and English alike, with EmbeddingGemma, which finds stories by meaning. When nothing in your stories
+    appears like ink from an invisible hand. Search combines SQLite's full-text index, which finds the
+    words, with EmbeddingGemma, which finds stories by meaning. When nothing in your stories
     matches a question, Gemma isn't asked at all.
   </p>
 

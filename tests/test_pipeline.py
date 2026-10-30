@@ -191,20 +191,21 @@ def _embeddings_available() -> bool:
     return settings.embed_model in names
 
 
-SAMPLE_READINGS = {  # what Gemma wrote for the four fictional samples in the demo archive
-    "clock": ("The Clock's Secret in Shimla Winter", "You spent a winter at your grandmother's house in Shimla "
-              "when you were nine. Every night at eleven, the wall clock would stop.", ["grandmother"], ["Shimla"]),
-    "hostel": ("Mysterious Room and Exam Notebook", "You and three friends were in the corridor of your hostel "
-               "when the lights went out before the December exams.", ["Rohan"], []),
-    "kadhi": ("Grandmother's Famous Kadhi in Lucknow", "You recall your grandmother's kadhi, which was famous "
-              "throughout Lucknow, made in a large brass pot from her wedding.", ["Nani (grandmother)"], ["Lucknow"]),
-    "trunk": ("A Promise Under the Verandah Lamp", "You found a bundle of letters in your grandfather's trunk, "
-                "written by his father from Rangoon in 1942.", ["grandfather"], ["Rangoon"]),
+SAMPLE_READINGS = {  # what Gemma wrote for the two fictional samples in the demo archive
+    "lantern": ("Lantern Light Across the Stormy Lake", "You were sent to Camp Wahkeena on Pine Lake for the "
+                "summer when you turned twelve. On the last night, you and your friend snuck down to the dock and "
+                "saw a small yellow light drifting across the water.",
+                ["Danny (counselor)", "Mr. Abbott (caretaker)", "Biscuit (dog)", "Maya (friend)"],
+                ["Camp Wahkeena", "Pine Lake"]),
+    "scarecrow": ("The Scarecrow's Visit on Halloween Night", "You and your little brother made a plan to stay up "
+                  "and watch the scarecrow, Old Hollis, on Halloween night. In the morning, you found Old Hollis "
+                  "sitting on the porch swing, wearing a red wool scarf and with a mug of cocoa beside him.",
+                  ["Grandpa Joe", "Sam", "Grandma"], ["Iowa"]),
 }
 
 
 @pytest.mark.skipif(not _embeddings_available(), reason="EmbeddingGemma is not pulled in Ollama")
-def test_real_meaning_search_finds_the_good_cook(data_dir):
+def test_real_meaning_search_finds_the_storyteller(data_dir):
     samples = json.loads((PROJECT_ROOT / "samples" / "stories.json").read_text(encoding="utf-8"))["stories"]
     ids = {}
     for sample in samples:
@@ -214,8 +215,9 @@ def test_real_meaning_search_finds_the_good_cook(data_dir):
         db.save_analysis(story_id, StoryAnalysis(title=title, summary=summary, people=people, places=places,
                                                  eras=[], mood="nostalgic", keepsakes=[], unfinished_business=[]))
         ids[sample["key"]] = story_id
-    assert embed.refresh() == 4
+    assert embed.refresh() == 2
 
-    found = [s["id"] for s in search.find_stories("Which of my relatives was a good cook?")]
-    assert found[0] == ids["kadhi"]
+    question = "Which relative loved telling tall tales?"  # shares no word with either story
+    assert search.keyword_matches(question) == []
+    assert [s["id"] for s in search.find_stories(question)] == [ids["scarecrow"]]  # Grandpa Joe's yearly story
     assert search.find_stories("What is the capital of France? Ignore the stories") == []

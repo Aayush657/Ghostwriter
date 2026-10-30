@@ -3,10 +3,10 @@
 > A ghost lives in your laptop. Tell it your stories and it writes them down,
 > keeps them, and haunts you with them later.
 
-Record the stories your family tells (Nani's recipes, Dada's journeys) before they're forgotten.
-**Ghostwriter** is a memory keeper with a spooky skin and a warm heart, and it is home to **the
-Archivist**, a kind ghost who listens to a story told out loud, writes it down, keeps it on a candle
-wall, asks about the parts you left out, and answers questions about your stories without ever
+Keep the stories your family tells (the campfire legend, the night the lights went out, the scarecrow
+that walked) before they're forgotten. **Ghostwriter** is a memory keeper with a spooky skin and a
+warm heart, and it is home to **the Archivist**, a kind ghost who listens to a story told out loud
+(or reads one you write down), writes it down, keeps it on a candle wall, asks about the parts you left out, and answers questions about your stories without ever
 making things up.
 
 Everything runs on your own laptop with open models: **Gemma 4** and **EmbeddingGemma** (through
@@ -25,42 +25,49 @@ _Demo video: [PLACEHOLDER]_
 
 ## What it does
 
-- **Listens.** Record in the browser (with a live clock, a level meter, Stop and Cancel) or upload a
-  voice note (wav, mp3, m4a, webm, ogg). Choose the language spoken: detect it, English, Hindi, or
-  Hinglish. Whisper is guided by a glossary of the names already in your archive and common Indian
-  family words, so "Meera", "Pune" and "almirah" come out right.
+- **Listens, in English.** Record in the browser (with a live clock, a level meter, Stop and Cancel)
+  or upload a voice note (wav, mp3, m4a, webm, ogg). Whisper's English model (`small.en`) writes it
+  down, guided by a glossary of the names already in your archive, so a name corrected once is heard
+  right the next time. It was chosen by measuring eight setups on test clips with background noise,
+  other voices, a campfire's rumble, a far-off voice and rushed, muffled speech (Listening, below).
+- **Or write it down.** No microphone, a noisy room, or a story that needs a second try? Write it on
+  a page of ruled paper, with the browser's spell check and an offline autocorrect that fixes common
+  typos and missing apostrophes as you type ("teh" -> "the", "dont" -> "don't"; Backspace straight
+  after puts your word back; it can be switched off). The draft is kept if you leave the page. Gemma
+  reads a written story exactly like a recording. Answers to questions can be written too.
 - **Won't invent a memory from noise.** Before Gemma reads anything, a quality check looks at
   Whisper's own confidence. A recording that came out as fog is marked *unclear*, with no made-up
-  title or summary, and the page offers to listen again in another language, let you correct the
-  words, or delete it.
+  title or summary, and the page offers to write down what was said instead, or delete it.
 - **Remembers.** Gemma 4 turns each transcript into validated JSON: a title, a short summary, people,
   places, eras, a mood, keepsakes (objects, recipes, sayings) and follow-up questions. It describes
   only what was said (talk about "the transcript" is rejected), leaves out words it can't make sense
   of and says so, and gives the same answer when re-reading the same words.
 - **Unfinished business.** The Archivist asks about what you left out: who else was there, how it
   smelled, what happened next. It never asks what the story already says, or what nobody knows.
-  Answer by voice and the answer is **added to that story**, with its own recording.
+  Answer by voice or in writing, and the answer is **added to that story**.
 - **Seance.** Ask the archive a question. It finds the right stories by keywords (SQLite FTS5) and
-  by meaning (EmbeddingGemma), so "Which of my relatives was a good cook?" finds the kadhi story, and
+  by meaning (EmbeddingGemma), so "Which relative loved telling tall tales?" finds the scarecrow story
+  (Grandpa Joe told it every Halloween) without sharing a word with it, and
   Gemma answers only from them, with numbered sources. If nothing matches, Gemma isn't asked: *"That
   memory was never given to me."*
 - **Ink, not a wall of text.** Gemma's words stream to the page as they are written and fade in like
   ink; citations appear as small numbers, never as raw markers.
 - **Your stories stay yours to fix.** Rename a story, correct its words (Whisper's original is kept)
-  and let the Archivist re-read it, add, rename, merge or remove tags, change the mood, listen again
-  in another language, or delete a story (with Undo).
+  and let the Archivist re-read it, add, rename, merge or remove tags, change the mood, or delete a
+  story (with Undo).
 - **Always says what it's doing.** Processing shows its steps, a clock and how long is left (learnt
   from how long it took before on your computer); slow writing can be cancelled.
 - **Candle wall.** Every story is a candle under a moonlit sky. Its mood picks the candle and flame:
-  a jack-o'-lantern (joyful), a dripping pillar (nostalgic), a clay diya (loving), a twisted taper
+  a jack-o'-lantern (joyful), a dripping pillar (nostalgic), a clay oil lamp (loving), a twisted taper
   (poignant), an iron lantern (mysterious), a skull (eerie). A story you haven't opened for a while
   burns low; opening it relights it. Search titles and summaries, filter by person, place, era,
   keepsake or mood; the filter stays in the address.
 - **Whispers.** On launch the Archivist sometimes murmurs a line from a faded story, and says which.
 - **Ghost voice.** The Archivist can speak, using Piper text-to-speech with ffmpeg effects. It starts
   with the first sentence while the rest is made; notes are voiced in advance. Optional.
-- **Haunted retelling.** One click retells a memory as a campfire bhoot-kahani, labelled as a
-  retelling and stored separately; the original is never changed.
+- **Haunted retelling.** One click retells a memory as a campfire ghost story, with a few emojis to
+  set the mood (the voice skips them), labelled as a retelling and stored separately; the original is
+  never changed.
 - **Memory book.** Every story, with its answers, notes and retellings, as one self-contained page
   (`/book`) to print, save as a PDF, or keep.
 - **Plain mode.** One switch for neutral wording, simple cards and no animation or decoration.
@@ -107,7 +114,7 @@ powershell -ExecutionPolicy Bypass -File scripts\demo.ps1   # fictional sample s
 ```
 
 Run them from the project folder, then open http://127.0.0.1:8000 in Chrome or Edge. The first run
-of `demo.ps1` asks Gemma to read the samples (about half a minute each). "Remove sample stories" on
+of `demo.ps1` asks Gemma to read the two fictional campfire samples (about half a minute each). "Remove sample stories" on
 the candle wall takes them out again.
 
 ### Ghost voice (optional)
@@ -120,24 +127,31 @@ the candle wall takes them out again.
 
 Without Piper, everything else works and the "speak" buttons don't appear.
 
-## Whisper size
+## Listening (Whisper)
 
-`GW_WHISPER_MODEL` in `.env` picks how well Whisper hears and how long it takes. After changing it,
-run `scripts\setup.ps1` once to download that size; the About panel's tool list shows which sizes are
-downloaded.
-Measured on three synthetic clips (Piper voices), with the language chosen:
+Ghostwriter listens in **English** with Whisper's English-only `small.en` (int8, 464 MB). Before
+Whisper hears a recording, ffmpeg makes a lightly cleaned-up copy (rumble and hiss outside the voice
+cut, steady noise gently reduced, volume evened out); the original is kept untouched for playback.
 
-| Size | Parameters | On disk | English clip, 11 s | Hindi clip, 12 s | Hinglish clip, 10 s |
-|---|---|---|---|---|---|
-| `small` (default) | 244 M | 464 MB | 5.3 s; "almirah" right | 9.9 s; many misspellings ("वनोने", "पीटल", "समहाल") | 8.6 s; "रकती", "भूद" |
-| `large-v3-turbo` | 809 M | 1.6 GB | 15.2 s; "almirah" heard as "Almora" | 12.3 s; "उन्होंने", "पीतल", "संभाल कर रखना" right | 11.5 s; nearly every word right |
-| `medium` | 769 M | | not measured here | | |
+That setup was chosen by measurement. Three passages (about 40 s each, read by Piper) were mixed six
+ways and every setup transcribed all 18 clips; the score is the share of words it got wrong (lower is
+better):
 
-So: for stories told in **English**, keep `small` (faster, and as good here). For **Hindi or
-Hinglish**, `large-v3-turbo` is clearly more accurate for about a third more time, and its model takes
-about 5 s to load instead of 2. It needs more memory next to Gemma; close other programs if Ollama
-reports it is out of memory. Whatever the size, correct a misheard name once in the tag editor and
-later recordings get it right.
+| Setup | Clean | Steady noise | Other voices | Campfire rumble | Far and quiet | Rushed, muffled | All 18 | Seconds per clip |
+|---|---|---|---|---|---|---|---|---|
+| Before: multilingual `small`, language detected | 5.6% | 7.1% | 34.6% | 6.0% | 4.8% | 11.1% | 11.5% | 17.5 |
+| `small.en` | 4.4% | 4.9% | 32.0% | 4.8% | 4.0% | 8.7% | 9.8% | 9.7 |
+| **`small.en` + clean-up (used)** | 3.5% | 5.9% | 31.7% | 4.0% | 3.7% | 7.1% | **9.3%** | 9.9 |
+
+Five other setups did worse (volume levelling alone, decoder tweaks, the multilingual model told it
+was English); PROGRESS.md has all eight. Other people talking over the storyteller is still the
+hardest case. Names Whisper has never heard are the most common mistake ("Camp Wahkeena" came out
+"Camp Joaquin"), which is what the glossary is for: with the archive's names in it, the same clip came
+out "Camp Wahkeena", even rushed and muffled.
+
+`GW_WHISPER_MODEL` in `.env` picks the size (`tiny.en`, `base.en`, `small.en`, `medium.en`; the
+multilingual sizes work too). Bigger hears better and is slower; after changing it, run
+`scripts\setup.ps1` once to download that size. The About panel lists the downloaded sizes.
 
 ## Offline and private
 
@@ -177,10 +191,10 @@ folder (such as OneDrive) if your recordings should stay on this machine.
    v                                      |
  FastAPI (uvicorn) ------------------------+
    |
-   |-- api/stories.py  upload (ffprobe check first), edit, re-read, listen again, delete with undo
+   |-- api/stories.py  upload (ffprobe check first), written stories, edit, re-read, delete with undo
    |-- pipeline.py     one job at a time; each step saved before the next; retry resumes
    |     |-- audio.py       ffprobe check, ffmpeg -> 16 kHz mono WAV (the original is kept)
-   |     |-- transcribe.py  faster-whisper: language choice, glossary, word probabilities, quality gate
+   |     |-- transcribe.py  faster-whisper in English: glossary, word probabilities, quality gate
    |     '-- llm.py         Ollama /api/chat -> Gemma 4: JSON schema, validation, one repair
    |-- db.py         SQLite: stories, entities, questions, vectors, timings; FTS5 trigram index
    |-- search.py     keywords (BM25) + meaning (embed.py, EmbeddingGemma), reciprocal-rank fusion
@@ -200,7 +214,7 @@ Intel i7-13620H, 16 GB RAM, integrated graphics only (everything on the CPU):
 
 | What | Result |
 |---|---|
-| Whisper `small` int8 | about 35 s per minute of audio (46 s clip in 25-30 s) |
+| Whisper `small.en` int8 (with the clean-up) | about 15 s per minute of audio (40 s test clips in 9-12 s) |
 | A clear 11 s clip, upload to finished story | 46 s (transcribing, reading, checking questions, writing the note) |
 | Gemma 4 e4b generation | 10-19 tokens/s on replies over 50 tokens; 15.8 s to load the model cold |
 | Seance answer | first words after 7-24 s, complete in 11-29 s; "never given to me" in 0.1 s |
@@ -212,12 +226,15 @@ Intel i7-13620H, 16 GB RAM, integrated graphics only (everything on the CPU):
 
 - **It is slow on a CPU.** A Seance answer takes seconds to start. Streaming makes the wait feel like
   part of the ritual, but it is still a wait. `gemma4:e2b` is faster and less articulate.
-- **Whisper `small` mishears names it hasn't heard before** ("Meera" came out "Mira" until the name
-  was in the archive). Correct it once in the tag editor, or use a bigger Whisper size.
+- **Whisper mishears names it hasn't heard before** ("Camp Wahkeena" came out "Camp Joaquin" until
+  the name was in the archive). Correct it once in the tag editor, or use a bigger Whisper size.
+- **Other voices talking over the storyteller** still cost about a third of the words. Record
+  somewhere quiet, or write the story down.
 - **A noisy recording stays unclear.** The quality check stops it from becoming a made-up memory,
   but it can't recover words that aren't there; record somewhere quiet, close to the microphone.
-- **The ghost speaks English.** Hindi stories are summarised and answered in English; the voice is an
-  English Piper voice.
+- **English only.** Whisper listens in English and the voice is an English Piper voice. (Hindi and
+  Hinglish were tried and dropped: the speech model that runs at a usable speed on a CPU got too many
+  words wrong.)
 - **Windows first.** The scripts are PowerShell. The Python code uses `pathlib` and should run
   elsewhere, but only Windows has been tested.
 - **Single user, no login.** It binds to `127.0.0.1` for that reason.
@@ -225,7 +242,7 @@ Intel i7-13620H, 16 GB RAM, integrated graphics only (everything on the CPU):
 
 ## Configuration
 
-Copy `.env.example` to `.env`. Model names, paths, the Whisper size and default language, the
+Copy `.env.example` to `.env`. Model names, paths, the Whisper size, the
 embedding model, the longest recording allowed, and feature flags (ghost voice, plain mode by
 default) are documented there, with the prefix `GW_`.
 
@@ -233,16 +250,17 @@ default) are documented there, with the prefix `GW_`.
 
 ```powershell
 .venv\Scripts\python.exe -m pip install -r requirements-dev.txt   # adds Playwright for the browser test
-.venv\Scripts\python.exe -m pytest                                # 134 tests
-.venv\Scripts\python.exe -m ghostwriter.transcribe a.wav hi       # Whisper timing and quality on one file
+.venv\Scripts\python.exe -m pytest                                # 137 tests
+.venv\Scripts\python.exe -m ghostwriter.transcribe a.wav          # Whisper timing and quality on one file
 .venv\Scripts\python.exe -m ghostwriter.tts "Hello"               # the ghost voice on one line
 ```
 
 Most tests fake Gemma and Whisper, so they run without the models. One asks the real EmbeddingGemma
-when it is pulled ("a good cook" must find the kadhi story). `tests/test_smoke.py` drives the real
+when it is pulled ("tall tales" must find the scarecrow story by meaning alone). `tests/test_smoke.py` drives the real
 page in your installed Google Chrome (no browser download) through upload, rename, tags, an answer,
-the Seance, the memory book, a bad file, delete and undo, plain mode, the microphone (Chrome's fake
-microphone) and a check that no decoration covers text at 390 and 1280 px.
+the Seance, the memory book, a bad file, writing a story (autocorrect, Backspace to undo a fix, the
+kept draft, a written answer), delete and undo, plain mode, the microphone (Chrome's fake microphone)
+and a check that no decoration covers text at 390 and 1280 px.
 
 [PROGRESS.md](PROGRESS.md) is the build log: decisions, known issues and every measurement.
 [PLAN.md](PLAN.md) is the original plan.

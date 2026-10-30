@@ -1,5 +1,5 @@
 """Audio handling with ffmpeg: check an upload really is audio, then turn it into the 16 kHz mono WAV
-that Whisper expects. Raw tool errors go to the server log; people see plain messages."""
+that Whisper expects, lightly cleaned up. Raw tool errors go to the server log; people see plain messages."""
 
 from __future__ import annotations
 
@@ -13,6 +13,10 @@ from ghostwriter.config import settings
 
 ALLOWED_EXTENSIONS = {".wav", ".mp3", ".m4a", ".webm", ".ogg"}
 MIN_SECONDS = 0.5
+# For Whisper's copy only (the original is kept for playback): cut rumble and hiss outside the voice,
+# gently reduce steady noise, and even out the volume. On the test clips in PROGRESS.md (Listening)
+# this took small.en from 9.8% to 9.3% of words wrong; levelling alone, or stronger settings, did worse.
+CLEAN_UP = "highpass=f=80,lowpass=f=7600,afftdn=nr=10:nf=-40,dynaudnorm=f=200:g=15:p=0.9"
 
 log = logging.getLogger(__name__)
 
@@ -58,7 +62,7 @@ def normalise(src: Path, dst: Path) -> float:
     The original file is never touched; it stays for playback.
     """
     cmd = [settings.ffmpeg_bin, "-y", "-hide_banner", "-loglevel", "error", "-i", str(src),
-           "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", str(dst)]
+           "-af", CLEAN_UP, "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", str(dst)]
     try:
         subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=600)
     except FileNotFoundError:
