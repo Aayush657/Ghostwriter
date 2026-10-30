@@ -32,8 +32,9 @@ _Demo video: [PLACEHOLDER]_
   other voices, a campfire's rumble, a far-off voice and rushed, muffled speech (Listening, below).
 - **Or write it down.** No microphone, a noisy room, or a story that needs a second try? Write it on
   a page of ruled paper, with the browser's spell check and an offline autocorrect that fixes common
-  typos and missing apostrophes as you type ("teh" -> "the", "dont" -> "don't"; Backspace straight
-  after puts your word back; it can be switched off). The draft is kept if you leave the page. Gemma
+  typos and missing apostrophes and capitalises each sentence and quoted speech as you type ("teh" ->
+  "the", "dont" -> "don't", 'he said "dad' -> 'he said "Dad'; Backspace straight after puts your
+  word back; it can be switched off). The draft is kept if you leave the page. Gemma
   reads a written story exactly like a recording. Answers to questions can be written too.
 - **Won't invent a memory from noise.** Before Gemma reads anything, a quality check looks at
   Whisper's own confidence. A recording that came out as fog is marked *unclear*, with no made-up
@@ -62,12 +63,17 @@ _Demo video: [PLACEHOLDER]_
   (poignant), an iron lantern (mysterious), a skull (eerie). A story you haven't opened for a while
   burns low; opening it relights it. Search titles and summaries, filter by person, place, era,
   keepsake or mood; the filter stays in the address.
+- **The Archivist writes back.** Every story gets a note from the ghost (90-130 words): it retells the
+  heart of the story in its own voice, dwells on the moment where it turns, and lets slip something of
+  its own ghostly ways (it has kept stories since the house was lit by oil lamps). It never solves a
+  mystery your story leaves open, and never adds a fact you didn't give it.
 - **Whispers.** On launch the Archivist sometimes murmurs a line from a faded story, and says which.
 - **Ghost voice.** The Archivist can speak, using Piper text-to-speech with ffmpeg effects. It starts
   with the first sentence while the rest is made; notes are voiced in advance. Optional.
-- **Haunted retelling.** One click retells a memory as a campfire ghost story, with a few emojis to
-  set the mood (the voice skips them), labelled as a retelling and stored separately; the original is
-  never changed.
+- **Haunted retelling.** One click retells a memory as a campfire ghost story of 300-450 words, told
+  to you, building slowly to your story's own twist: every event kept in order, every spoken line word
+  for word, only the atmosphere added, with three to five emojis to set the mood (the voice skips
+  them). It is labelled as a retelling and stored separately; the original is never changed.
 - **Memory book.** Every story, with its answers, notes and retellings, as one self-contained page
   (`/book`) to print, save as a PDF, or keep.
 - **Plain mode.** One switch for neutral wording, simple cards and no animation or decoration.
@@ -221,7 +227,8 @@ Intel i7-13620H, 16 GB RAM, integrated graphics only (everything on the CPU):
 | Seance answer | first words after 7-24 s, complete in 11-29 s; "never given to me" in 0.1 s |
 | Meaning search (EmbeddingGemma) | 60-80 ms per question |
 | Ghost voice | first sentence of a new text in 2.3 s; a note voiced in advance starts in 0.1 s |
-| Haunted retelling | about 30 s to write ~140 words |
+| Haunted retelling | 45-80 s to write 250-350 words (it appears word by word as it is written) |
+| The Archivist's note | 21-38 s for 100-125 words, written while the story is processed |
 
 ## Limitations
 
@@ -259,7 +266,7 @@ default) are documented there, with the prefix `GW_`.
 Most tests fake Gemma and Whisper, so they run without the models. One asks the real EmbeddingGemma
 when it is pulled ("tall tales" must find the scarecrow story by meaning alone). `tests/test_smoke.py` drives the real
 page in your installed Google Chrome (no browser download) through upload, rename, tags, an answer,
-the Seance, the memory book, a bad file, writing a story (autocorrect, Backspace to undo a fix, the
+the Seance, the memory book, a bad file, writing a story (autocorrect, sentence capitals, Backspace to undo a fix, the
 kept draft, a written answer), delete and undo, plain mode, the microphone (Chrome's fake microphone)
 and a check that no decoration covers text at 390 and 1280 px.
 

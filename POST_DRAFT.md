@@ -35,8 +35,10 @@ out loud (or write it down, if there's no good microphone nearby), and it:
   with a green flame for the eerie ones, a jack-o'-lantern for the joyful, a clay oil lamp for the
   loving.
   Stories you haven't opened in a while burn low. Open one, and its flame comes back;
+- **writes back**: every story gets a note from the ghost that retells its heart and lingers on the
+  moment it turns, without ever solving a mystery you left open;
 - **speaks** in a low, echoing voice, and on request **retells** any memory as a campfire ghost
-  story, with a few emojis to set the mood 🔥🌙 (always labelled as a retelling; the original is
+  story, building slowly to your own twist, with a few emojis to set the mood 🔥🌙 (always labelled as a retelling; the original is
   never touched).
 
 The rule that makes it work is a story mechanic as much as a technical one: **the ghost can only

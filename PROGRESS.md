@@ -13,6 +13,29 @@ _Last updated: Fri Oct 30, 2026_
 - **Remaining work is the user's**: record the demo, fill the personal placeholders, publish (see
   "Next actions").
 
+## Oct 30 (night): sentence capitals, a livelier Archivist, fuller notes and retellings
+
+The user wrote a short story with a twist and found the capitals inconsistent and the Archivist's
+response weak.
+
+- **Autocorrect** fixed "i" and "im" but not sentence starts, so text came out half capitalised. Now a
+  word that starts the text, a sentence, a line or quoted speech gets its capital (typed key by key in
+  Chrome: 'he said "dad, im scared. there is...' -> 'He said "Dad, I'm scared. There is...'). "Mr.",
+  initials, "e.g." and "..." don't end a sentence; capital-only changes show no notice. Bug fixed:
+  Backspace could undo an old fix if the cursor came back to it; now only straight after the fix.
+- **What the user heard was the note**, not a retelling (the log shows no retelling request): three
+  general sentences that missed the twist. The note is now 90-130 words, opens on something concrete,
+  retells the heart, dwells on the turn, never solves what the story leaves open, and ends with a
+  ghostly aside. Measured: 101-125 words in 21-38 s.
+- **Persona**: a history (stories kept since the house was lit by oil lamps, on unseen shelves), habits
+  (a draught, a guttering candle), curious and a little wry; no openings about the cold.
+- **Retelling**: brief + numbered checklist, temperature 0.9 -> 0.7. On the way: the looser prompt told
+  it as "I" (as if it happened to the ghost) and once reversed what the storyteller found; the
+  checklist version kept every event and spoken line, told to "you", 248-280 words with 5-6 emojis in
+  47-49 s. TTS limit 2,500 -> 3,500 characters so a whole retelling is spoken.
+- Notes in demo-data and the showcase rewritten with the new prompt (and voiced in advance); the
+  showcase retellings regenerated; `docs/book.html` and `story.png` rebuilt from them.
+
 ## Oct 30 (evening): English only, written stories, emoji retellings, campfire samples
 
 The user tested recording: English came out right word for word (summary and questions good); Hindi

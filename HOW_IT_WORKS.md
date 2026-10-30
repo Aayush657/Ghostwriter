@@ -67,7 +67,9 @@ Memory accuracy is the whole product, so most of the work goes into the words.
   with the text) with the browser's own spell check (red underlines, right-click suggestions) and an
   offline autocorrect (`autocorrect.js`): when you finish a word, a short list of unambiguous typos
   and missing apostrophes is fixed ("teh" -> "the", "dont" -> "don't", "halloween" -> "Halloween";
-  real words like "wont" or "its" are never touched). The fix goes through the browser's own editing
+  real words like "wont" or "its" are never touched), and a word that starts a sentence, a line or
+  quoted speech gets its capital, as a phone keyboard would ("Mr.", initials, "e.g." and "..." don't
+  end a sentence). The fix goes through the browser's own editing
   command, so Ctrl+Z undoes it, and Backspace straight after puts your word back and leaves it alone
   from then on. It can be switched off, and the draft is kept in the browser if you leave the page. A
   written story (`POST /api/stories/written`, 20 to 20,000 characters) starts with its words, so the
@@ -226,8 +228,11 @@ they fit both. Plain mode also shows each story as a simple card with a mood-col
 candle art, stops every animation, and hides the decoration; it never hides a feature (the
 Archivist's note becomes the "AI note").
 
-All prompts live in `prompts.py`. The persona is warm, old-fashioned and never cruel, and is forbidden
-machine words ("memory banks"); the Seance speaks to "you", never "the speaker".
+All prompts live in `prompts.py`. The persona has a history and habits: it has kept stories since the
+house was lit by oil lamps, on shelves only it can see; it is curious, a little wry and fond of a good
+scare, never cruel; it notices small things and the moment a story turns, and now and then lets slip
+its own ghostly ways (a draught, a guttering candle). It is forbidden machine words ("memory banks")
+and openings about the cold; the Seance speaks to "you", never "the speaker".
 
 ## 11. The candle wall
 
@@ -263,9 +268,18 @@ pressing play on a note starts at once (measured: 0.1 s).
 The Archivist's note and the haunted retelling share one helper: replay what is stored, otherwise
 stream it from Gemma and store it at the end. The note is written during processing, so opening a
 story is instant. The retelling has its own column, so the original can never be overwritten by it;
-"Retell it again" replaces it only once the new one is complete. The retelling prompt asks for a few
-emojis (about one every two or three sentences, at the end of a sentence, never in place of a word),
-which makes it livelier to read; `tts.clean()` strips them, so the voice never reads them out.
+"Retell it again" replaces it only once the new one is complete.
+
+- **The note** (90-130 words) begins on something concrete from the story, retells its heart, dwells on
+  the turn, and ends with what it stirred in the ghost. The first version (two or three sentences) was
+  generic and could miss a story's twist entirely.
+- **The retelling** is a short brief (tell it aloud around a fire: set the scene, build, let the turn
+  land, end on a chilling line) followed by a numbered checklist, because a 4B model keeps rules best
+  when they come last and are short: tell it to the storyteller as "you", never as "I"; never change
+  or contradict an event; keep spoken lines word for word; mood but no new events; 300-450 words;
+  three to five emojis, each at the end of a sentence. Measured on the way: a looser prompt at
+  temperature 0.9 had the ghost tell the story as if it happened to it, and once reversed the very
+  thing the storyteller found; with the checklist at 0.7 the retellings kept every event and line. `tts.clean()` strips the emojis, so the voice never reads them out.
 
 ## 14. The memory book
 
