@@ -1,54 +1,48 @@
-# Ghostwriter: demo video script (2:00, with a 1:30 cut)
+# Ghostwriter: demo video script (about 2:30)
 
-**The one rule:** every shot is real. The only cut is the processing wait, and the video says so on
-screen. Don't speed anything up without a caption.
+**The one rule:** every shot is real. The only cuts are waits (processing, writing), and the video says
+so on screen. Don't speed anything up without a caption.
 
 ## Before you record
 
-- [ ] Models already downloaded (`selfcheck` all green, including "Meaning search"). Nothing can be
-      fetched once Wi-Fi is off.
-- [ ] Start the archive you'll show: `scripts\demo.ps1` (the fictional samples) or `scripts\run.ps1`
-      (your real stories), from the project folder. Using the demo archive? Say on screen that the
-      samples are fictional.
-- [ ] Open http://127.0.0.1:8000 in Chrome a minute before recording: the page wakes the models
-      ("Waking the Archivist..." then "The Archivist is awake."), so nothing waits ~20 s on camera.
-- [ ] Practise the Seance questions once, so the stories they need exist and the answers are good.
-      A new recording always gives a fresh "The Archivist writes" note.
-- [ ] Browser: full screen (F11), zoom 110-125% so the text is readable on a phone.
-- [ ] Screen recorder: OBS Studio (open source, fits the theme) or Windows' Snipping Tool video.
-      **Capture system audio**, or the ghost's voice won't be in the video.
-- [ ] Room: lights off, one real candle or a jack-o'-lantern beside the laptop if you have one. A phone on a
-      stand for the room shots. Record your story somewhere quiet, close to the microphone.
-- [ ] Optional but worth everything: someone in your family, ready for the last shot (ask first).
+- [ ] Close everything else (Gemma and Whisper need the RAM). Turn on Do Not Disturb.
+- [ ] Start Ollama (Start menu > Ollama), then in the project folder:
+      `powershell -ExecutionPolicy Bypass -File scripts\demo.ps1`
+- [ ] Open http://127.0.0.1:8000 in Chrome a minute early. Wait for "The Archivist is awake."
+- [ ] Decide which stories are on the wall. The samples are fictional (the page says so); delete any
+      test stories you don't want on camera.
+- [ ] Prepare the slow parts ahead of time, so they play instantly on camera:
+  - open the lantern sample, press **Retell it as a ghost story**, wait for it to finish, then press
+    **Let the Archivist speak** once (the voice is made and kept);
+  - ask the two Seance questions below once.
+- [ ] Rehearse your story once: 15-25 seconds, in English, real, with a name and a place in it.
+- [ ] Chrome: full screen (F11), zoom 110-125% (Ctrl +) so text reads on a phone.
+- [ ] Recorder (OBS or Snipping Tool): capture **system audio**, or the Archivist's voice is lost.
+- [ ] Room: lights low, a real candle or a jack-o'-lantern beside the laptop. A phone on a stand for
+      the room shots. Quiet, close to the microphone for your story.
 
 ## The script
 
-| Time | Shot | What happens on screen | Voice-over (yours) / caption |
+| Time | Shot | On screen | Voice-over (yours) / caption |
 |---|---|---|---|
-| 0:00-0:08 | **Room, phone camera.** Dark room, laptop glowing, a candle beside it. | The candle wall on screen. | VO: "The best stories in my family were never written down. So I built a ghost to keep them." |
-| 0:08-0:18 | **Close-up of the taskbar**, then the terminal. | Turn Wi-Fi off (or airplane mode) on camera. Run `.venv\Scripts\python.exe -m ghostwriter.selfcheck`: all green. | Caption: **Wi-Fi: off.** VO: "Everything you're about to see runs on this laptop. No internet, no cloud, no API key." |
-| 0:18-0:28 | **Screen.** Candle wall. | Hover a low-burning candle (the scarecrow sample: "Not opened for 20 days"). | VO: "Every candle is a story. The ones I haven't opened are burning low." |
-| 0:28-0:42 | **Screen.** "Give the Archivist a story". | Click *Record a story* (English); the clock and level meter run. Tell a 10-15 second story. Click *Stop and keep it*. The steps appear: Listening, Reading, Writing the note, with the time left. | Caption on the cut: **"About a minute later. Whisper and Gemma, both on the CPU."** |
-| 0:42-1:02 | **Screen.** The new story's page. | Title and summary of what you said. *The Archivist writes* is already there. Scroll to *Unfinished business*. | VO: "Whisper wrote it down, Gemma understood it, and asked about the part I skipped." |
-| 1:02-1:22 | **Screen.** Seance. | Ask something your stories answer in other words (e.g. "Which of my relatives was a good cook?"): the answer writes itself in, with a numbered source. Then ask something you never told it: *"That memory was never given to me."* | VO: "It finds stories by meaning, and only answers from what I told it. When it doesn't know, it says so." |
-| 1:22-1:36 | **Screen.** | Click *Let the Archivist speak*: the ghost voice plays at once. Optional: *Retell it as a ghost story*, first lines. | (Let the voice speak. No VO.) |
-| 1:36-1:50 | **Room, phone camera.** | **The real moment:** someone hearing their own story read back by the ghost. | [PLACEHOLDER: what actually happened. Don't stage it; if it doesn't happen, cut this shot.] |
-| 1:50-2:00 | **End card.** | "Ghostwriter: the ghost that keeps your stories. Gemma 4, EmbeddingGemma, Whisper, Piper. Fully offline." github.com/Aayush657/Ghostwriter and theghostwriter.tech. | VO: "Tell it something true. It's listening." |
+| 0:00-0:10 | **Room (phone).** Dark room, laptop glowing, candle. | The candle wall. | VO: "The best stories in my family were never written down. So I built a ghost to keep them." |
+| 0:10-0:20 | **Screen.** Taskbar, then the About panel. | Turn Wi-Fi off. Open **About**: every local tool says "working". | Caption: **Wi-Fi: off.** VO: "Everything you're about to see runs on this laptop. No internet, no cloud, no account." |
+| 0:20-0:32 | **Screen.** Candle wall. | Hover the scarecrow candle ("Not opened for ... days"), then the mood legend. | VO: "Every story is a candle. Its mood picks the candle, and the ones I haven't opened in a while burn low." |
+| 0:32-0:48 | **Screen.** "Give the Archivist a story". | **Record a story**, tell your 15-25 s story (the clock and level meter run), **Stop and keep it**. The steps appear. | Caption on the cut: **"About a minute later. Whisper and Gemma, both on the CPU."** |
+| 0:48-1:08 | **Screen.** Your new story. | The title, **The Archivist writes**, press **Let the Archivist speak** for a sentence or two, then the summary, the tags and **Unfinished business**. | VO: "It wrote my story down, noted who and where, and asked about the part I skipped." |
+| 1:08-1:20 | **Screen.** "Write a story down". | Type: `teh lantern dissapeared. maya said "dont tell." ` and watch it fix itself. | VO: "No microphone? Write it instead. Even the autocorrect runs on the laptop." |
+| 1:20-1:45 | **Screen.** Seance. | Ask **"Which relative loved telling tall tales?"**: the answer writes itself in, with a numbered source. Then ask **"What is the capital of France?"**: *"That memory was never given to me."* | VO: "It finds stories by meaning, and it only answers from what I told it. When it doesn't know, it says so." |
+| 1:45-2:05 | **Screen.** The lantern sample. | Scroll to **A haunted retelling** (prepared earlier), press **Let the Archivist speak**. | (Let the voice speak. No VO.) |
+| 2:05-2:15 | **Screen.** | **Open the memory book**, scroll a little. | VO: "And everything exports to one page that any browser can open, years from now." |
+| 2:15-2:25 | **Room (phone).** Optional. | **The real moment:** someone hearing their own story. | [Only if it really happens. Don't stage it; if it doesn't, cut this shot.] |
+| 2:25-2:35 | **End card.** | "Ghostwriter: the ghost that keeps your stories" · theghostwriter.tech · github.com/Aayush657/Ghostwriter · "Gemma 4, EmbeddingGemma, Whisper and Piper. Fully offline." | VO: "Tell it something true. It's listening." |
 
-Optional, if you have 10 more seconds: open the *Words lost in fog* candle (an unclear recording) to
-show that the ghost refuses to make a memory out of noise, and that you can write down what was said
-instead. Or scroll to *Write a story down* and type "teh lantern dissapeared ": autocorrect fixes both
-words as you type. The retelling has a few emojis; the voice skips them.
-
-## The 1:30 cut
-
-Drop the low-burning-candle shot (keep 3 s of the wall) and the retelling, and shorten the Seance
-to one meaning question and the "never given to me" answer.
+If you need it shorter (about 1:45): drop the memory book shot and the France question, and keep 5 s
+of the retelling.
 
 ## After recording
 
-- [ ] Upload (YouTube unlisted, or anywhere DEV can embed), then put the link in `POST_DRAFT.md`
-      (Demo) and `docs/index.html` (the demo box).
-- [ ] The screenshots for the post are already in `docs/screenshots/` (taken from fictional stories).
-      Swap in your own if you prefer.
+- [ ] Edit (Clipchamp is built into Windows 11): cut the waits, add the two captions and the end card.
+- [ ] Export 1080p MP4, upload to YouTube (Unlisted is fine; DEV can embed it), copy the link.
+- [ ] Put the link in `POST_DRAFT.md` (Demo), `docs/index.html` (the demo box) and `README.md`.
 - [ ] Turn Wi-Fi back on.
