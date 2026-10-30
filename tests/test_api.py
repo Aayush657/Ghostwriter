@@ -324,3 +324,39 @@ def test_other_websites_cannot_change_the_archive(client):
     assert client.post(f"/api/stories/{story_id}/visit", headers={"Sec-Fetch-Site": "same-origin"}).status_code == 204
     assert client.post(f"/api/stories/{story_id}/visit",
                        headers={"Host": "localhost:8000", "Origin": "http://localhost:8000"}).status_code == 204
+
+
+def test_a_question_takes_one_answer_at_a_time(client, data_dir):
+    story_id = upload(client).json()["id"]
+    question = db.get_story(story_id)["questions"][0]["id"]
+    answer = {"text": "It was my cousin Maya, holding a lantern.", "answers_question_id": question}
+    first = client.post("/api/stories/written", json=answer).json()["id"]
+    second = client.post("/api/stories/written", json={**answer, "text": "Someone else entirely, I now think."})
+    assert second.status_code == 409 and "already has an answer" in second.json()["detail"]
+    assert upload(client, answers_question_id=question).status_code == 409  # a recorded answer too
+    assert list((data_dir / "audio").glob("incoming-*")) == []  # and its file isn't left behind
+    assert db.get_story(story_id)["questions"][0]["answer"]["id"] == first  # the first answer stays
+
+    # Removing the answer frees the question; undoing that removal is refused once there's a new one.
+    assert client.delete(f"/api/stories/{first}").status_code == 204
+    assert client.post("/api/stories/written", json=answer).status_code == 201
+    assert client.post(f"/api/stories/{first}/restore").status_code == 409
+
+
+@pytest.mark.skipif(not has_ffprobe, reason="ffprobe is not installed")
+def test_a_browser_recording_plays_with_a_duration(client, data_dir, tmp_path):
+    import subprocess
+    live = tmp_path / "recording.webm"  # written like MediaRecorder: no duration, no cues
+    subprocess.run([settings.ffmpeg_bin, "-loglevel", "error", "-f", "lavfi", "-i", "sine=frequency=330:duration=2",
+                    "-c:a", "libopus", "-live", "1", "-f", "webm", str(live)], check=True)
+    duration = lambda path: subprocess.run([settings.ffprobe, "-v", "error", "-show_entries", "format=duration",  # noqa: E731
+                                           "-of", "csv=p=0", str(path)], capture_output=True, text=True).stdout.strip()
+    assert duration(live) == "N/A"
+    story_id = upload(client, name="recording.webm", data=live.read_bytes()).json()["id"]
+    resp = client.get(f"/api/stories/{story_id}/audio")
+    assert resp.status_code == 200 and resp.headers["content-type"] == "audio/webm"
+    served = tmp_path / "served.webm"
+    served.write_bytes(resp.content)
+    assert abs(float(duration(served)) - 2.0) < 0.2
+    original = data_dir / db.get_story(story_id)["audio_original"]
+    assert original.read_bytes() == live.read_bytes()  # the recording as given is untouched

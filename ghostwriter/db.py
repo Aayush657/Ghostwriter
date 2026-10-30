@@ -174,10 +174,19 @@ def _upgrade_search_index(con: sqlite3.Connection) -> None:
     con.execute("INSERT INTO stories_fts(stories_fts) VALUES ('rebuild')")
 
 
+class AlreadyAnswered(Exception):
+    """The question already has an answer; it must be removed before another is given."""
+
+
 def create_story(answers_question_id: int | None = None, is_sample: bool = False, written: bool = False) -> int:
     with connect() as con:
-        cur = con.execute("INSERT INTO stories (answers_question_id, is_sample, written) VALUES (?, ?, ?)",
-                          (answers_question_id, int(is_sample), int(written)))
+        # One statement, so two answers sent at the same moment can't both get in (WAL refuses the stale one).
+        cur = con.execute(
+            "INSERT INTO stories (answers_question_id, is_sample, written) SELECT ?, ?, ? WHERE ? IS NULL OR NOT EXISTS "
+            f"(SELECT 1 FROM stories WHERE answers_question_id = ? AND {LIVE})",
+            (answers_question_id, int(is_sample), int(written), answers_question_id, answers_question_id))
+        if cur.rowcount == 0:
+            raise AlreadyAnswered
         return cur.lastrowid
 
 
@@ -336,6 +345,13 @@ def rename_tag(story_id: int, kind: str, old: str, new: str) -> None:
                         (new, story_id, kind, old))
         con.execute("UPDATE stories SET tags = (SELECT group_concat(value, ' · ') FROM entities "
                     "WHERE story_id = ?) WHERE id = ?", (story_id, story_id))
+
+
+def live_answer(question_id: int) -> int | None:
+    """The id of the answer a question has now, if any."""
+    with connect() as con:
+        row = con.execute(f"SELECT id FROM stories WHERE answers_question_id = ? AND {LIVE}", (question_id,)).fetchone()
+        return row["id"] if row else None
 
 
 def question_exists(question_id: int) -> bool:

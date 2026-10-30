@@ -13,6 +13,8 @@ from ghostwriter.config import settings
 
 ALLOWED_EXTENSIONS = {".wav", ".mp3", ".m4a", ".webm", ".ogg"}
 MIN_SECONDS = 0.5
+PLAYBACK_TYPES = {".wav": "audio/wav", ".mp3": "audio/mpeg", ".m4a": "audio/mp4", ".webm": "audio/webm",
+                  ".ogg": "audio/ogg"}  # not video/webm, which is what a guess by extension gives
 # For Whisper's copy only (the original is kept for playback): cut rumble and hiss outside the voice,
 # gently reduce steady noise, and even out the volume. On the test clips in PROGRESS.md (Listening)
 # this took small.en from 9.8% to 9.3% of words wrong; levelling alone, or stronger settings, did worse.
@@ -54,6 +56,30 @@ def probe(path: Path) -> float | None:
         raise AudioError(f"That recording is longer than {settings.max_audio_minutes} minutes. "
                          "Split it into shorter stories.")
     return seconds
+
+
+def playback_copy(original: Path) -> Path:
+    return original.with_name(original.stem.replace("_original", "_play") + original.suffix)
+
+
+def playable(original: Path) -> Path:
+    """The file to play. Browser recordings (webm) carry no duration, so players show 0:00 and can't
+    seek; ffmpeg copies the sound into a new file (no re-encoding) that has both. The original stays
+    exactly as it was given. Made once, on save or on the first play; the original if ffmpeg fails."""
+    if original.suffix.lower() != ".webm":
+        return original
+    copy = playback_copy(original)
+    if not copy.exists():
+        part = copy.with_name(f"{copy.stem}.part{copy.suffix}")
+        try:
+            subprocess.run([settings.ffmpeg_bin, "-y", "-loglevel", "error", "-i", str(original), "-c", "copy",
+                            str(part)], check=True, capture_output=True, timeout=120)
+            part.replace(copy)
+        except (OSError, subprocess.SubprocessError) as exc:
+            log.warning("could not make a seekable copy of %s: %s", original.name, exc)
+            part.unlink(missing_ok=True)
+            return original
+    return copy
 
 
 def normalise(src: Path, dst: Path) -> float:

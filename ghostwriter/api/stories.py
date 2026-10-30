@@ -41,8 +41,7 @@ async def upload_story(
     if ext not in ALLOWED_EXTENSIONS:
         allowed = ", ".join(sorted(ALLOWED_EXTENSIONS))
         raise HTTPException(415, f"'{ext or 'That'}' files can't be used. Choose one of: {allowed}.")
-    if answers_question_id is not None and not db.question_exists(answers_question_id):
-        raise HTTPException(404, "That question doesn't exist.")
+    _answerable_or_error(answers_question_id)
 
     # The stored name comes from a random id, then the story's id: never from the uploaded filename.
     incoming = settings.data_dir / "audio" / f"incoming-{uuid.uuid4().hex}{ext}"
@@ -64,9 +63,14 @@ async def upload_story(
         incoming.unlink(missing_ok=True)
         raise
 
-    story_id = db.create_story(answers_question_id)
+    try:
+        story_id = db.create_story(answers_question_id)
+    except db.AlreadyAnswered:
+        incoming.unlink(missing_ok=True)
+        raise HTTPException(409, ALREADY_ANSWERED) from None
     relative = f"audio/{story_id}_original{ext}"
     incoming.replace(settings.data_dir / relative)
+    await run_in_threadpool(audio.playable, settings.data_dir / relative)  # a recording that can be scrubbed
     db.update_story(story_id, audio_original=relative, duration_s=duration)
     background.add_task(pipeline.process_story, story_id)
     return {"id": story_id}
@@ -84,9 +88,11 @@ class WrittenStory(BaseModel):
 @router.post("/written", status_code=201)
 def write_story(story: WrittenStory, background: BackgroundTasks) -> dict:
     """A story (or an answer) typed instead of recorded: Gemma reads it like a transcript, minus the audio steps."""
-    if story.answers_question_id is not None and not db.question_exists(story.answers_question_id):
-        raise HTTPException(404, "That question doesn't exist.")
-    story_id = db.create_story(story.answers_question_id, written=True)
+    _answerable_or_error(story.answers_question_id)
+    try:
+        story_id = db.create_story(story.answers_question_id, written=True)
+    except db.AlreadyAnswered:
+        raise HTTPException(409, ALREADY_ANSWERED) from None
     db.update_story(story_id, transcript=story.text, language="en")
     background.add_task(pipeline.process_story, story_id)
     return {"id": story_id}
@@ -158,6 +164,9 @@ def delete_story(story_id: int) -> Response:
 @router.post("/{story_id}/restore")
 def restore_story(story_id: int) -> dict:
     """Undo a delete, if it hasn't been carried out yet."""
+    story = db.get_story(story_id, include_deleted=True)
+    if story and story["answers_question_id"] and db.live_answer(story["answers_question_id"]):
+        raise HTTPException(409, "That question has been answered again since. Remove the new answer first.")
     if not trash.restore(story_id):
         raise HTTPException(410, "Too late: that memory has already been laid to rest.")
     return db.get_story(story_id)
@@ -187,7 +196,8 @@ def story_audio(story_id: int) -> FileResponse:
     path = settings.data_dir / (story["audio_original"] or "")
     if not story["audio_original"] or not path.is_file():
         raise HTTPException(404, "This story's recording is missing.")
-    return FileResponse(path)
+    path = audio.playable(path)
+    return FileResponse(path, media_type=audio.PLAYBACK_TYPES.get(path.suffix.lower()))
 
 
 @router.post("/{story_id}/retry", status_code=202)
@@ -246,6 +256,19 @@ def _write_once(story: dict, column: str, messages: list[dict], temperature: flo
     db.update_story(story["id"], **{column: text})
     threading.Thread(target=tts.prepare, args=(text,), daemon=True).start()  # voice it before it's asked for
     yield sse("done", {})
+
+
+ALREADY_ANSWERED = "That question already has an answer. Remove it first if you want to give another."
+
+
+def _answerable_or_error(question_id: int | None) -> None:
+    """A question that exists and has no answer yet (checked again, safely, when the answer is saved)."""
+    if question_id is None:
+        return
+    if not db.question_exists(question_id):
+        raise HTTPException(404, "That question doesn't exist.")
+    if db.live_answer(question_id):
+        raise HTTPException(409, ALREADY_ANSWERED)
 
 
 def _idle_story_or_409(story_id: int) -> dict:

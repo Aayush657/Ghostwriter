@@ -1224,12 +1224,15 @@ function questionItem(q) {
         form.append(el("p", { className: "error", role: "alert", textContent: voice().tooShort }));
         return box.focus();
       }
+      const button = form.querySelector("button[type=submit]");
+      button.disabled = true; // one answer per click, however fast the clicks
       try {
         await sendWritten(box.value.trim(), q.id);
         form.remove();
         refresh(true);
       } catch (err) {
         form.append(el("p", { className: "error", role: "alert", textContent: voice().refused + err.message }));
+        button.disabled = false;
       }
     };
     status.replaceChildren(form);

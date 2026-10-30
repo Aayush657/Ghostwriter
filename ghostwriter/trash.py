@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 import threading
 
-from ghostwriter import db, tts
+from ghostwriter import audio, db, tts
 from ghostwriter.config import settings
 
 log = logging.getLogger(__name__)
@@ -41,6 +41,8 @@ def restore(story_id: int) -> bool:
 
 def _files(story: dict) -> list:
     files = [settings.data_dir / p for p in (story["audio_original"], story["audio_wav"]) if p]
+    if story["audio_original"]:
+        files.append(audio.playback_copy(settings.data_dir / story["audio_original"]))
     return files + [path for text in (story["reaction"], story["retelling"]) if text for path in tts.cache_paths(text)]
 
 
