@@ -265,12 +265,12 @@ refuses to put real stories in `docs/`):
 $env:GW_DATA_DIR = "demo-data"; .venv\Scripts\python.exe -m ghostwriter.export docs\book.html
 ```
 
-1. In `docs/index.html`, replace `YOUR_GITHUB_REPO_URL` (twice) and the demo-video box (`TODO(you)`).
+1. In `docs/index.html`, replace the demo-video box (`TODO(you)`).
 2. Push the repo to GitHub, then **Settings > Pages > Deploy from a branch > `main` / `/docs`**.
 3. Claim the free .tech domain at hacktoberfest.com/my/promos (free for the first year; it renews at a
    cost, so check the auto-renew setting).
 4. In **Settings > Pages > Custom domain**, enter the domain (GitHub adds `docs/CNAME`). At the
-   domain's DNS, point `www` (CNAME) to `<your-username>.github.io` and the bare domain (A records) to
+   domain's DNS, point `www` (CNAME) to `aayush657.github.io` and the bare domain (A records) to
    GitHub Pages' addresses `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`.
    Then tick **Enforce HTTPS**.
 
