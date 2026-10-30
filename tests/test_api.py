@@ -25,7 +25,7 @@ def client(data_dir, analysis, monkeypatch):
     monkeypatch.setattr(pipeline, "process_story", fake_process)
     monkeypatch.setattr(main.selfcheck, "run_checks", lambda: [])
     monkeypatch.setattr(main.embed, "refresh_quietly", lambda: None)
-    with TestClient(main.app) as c:
+    with TestClient(main.app, base_url="http://127.0.0.1:8000") as c:
         yield c
 
 
@@ -306,3 +306,21 @@ def test_health_shows_no_personal_paths(client, monkeypatch):
 def test_settings_share_the_mood_list(client):
     assert client.get("/api/settings").json()["moods"] == ["joyful", "nostalgic", "loving", "poignant",
                                                            "mysterious", "eerie"]
+
+
+def test_other_websites_cannot_change_the_archive(client):
+    """CSRF and DNS rebinding: only this page, on this computer, may change anything."""
+    story_id = upload(client).json()["id"]
+    db.update_story(story_id, title="Kept")
+    hostile = {"Origin": "http://evil.example"}
+    assert client.post(f"/api/stories/{story_id}/reread", headers=hostile).status_code == 403
+    assert client.post(f"/api/stories/{story_id}/visit", headers={"Origin": "http://localhost:8000"}).status_code == 403
+    assert client.post(f"/api/stories/{story_id}/visit", headers={"Sec-Fetch-Site": "cross-site"}).status_code == 403
+    assert client.delete(f"/api/stories/{story_id}", headers={"Origin": "null"}).status_code == 403
+    assert db.get_story(story_id)["title"] == "Kept"  # nothing changed
+    assert client.get("/api/stories", headers={"Host": "evil.example:8000"}).status_code == 403  # DNS rebinding
+    # The page itself: same origin, or a same-origin fetch without Origin; localhost works too.
+    assert client.post(f"/api/stories/{story_id}/visit", headers={"Origin": "http://127.0.0.1:8000"}).status_code == 204
+    assert client.post(f"/api/stories/{story_id}/visit", headers={"Sec-Fetch-Site": "same-origin"}).status_code == 204
+    assert client.post(f"/api/stories/{story_id}/visit",
+                       headers={"Host": "localhost:8000", "Origin": "http://localhost:8000"}).status_code == 204

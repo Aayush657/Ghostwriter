@@ -50,7 +50,7 @@ def test_real_stories_never_go_to_the_public_website(data_dir, tmp_path, monkeyp
 def test_book_route_serves_html(data_dir, monkeypatch):
     add_story("The Clock That Listened", "tick")
     monkeypatch.setattr(main.selfcheck, "run_checks", lambda: [])
-    with TestClient(main.app) as client:
+    with TestClient(main.app, base_url="http://127.0.0.1:8000") as client:
         resp = client.get("/api/book")
     assert resp.status_code == 200
     assert resp.headers["content-type"].startswith("text/html")

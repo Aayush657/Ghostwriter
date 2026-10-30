@@ -46,6 +46,27 @@ app.include_router(seance.router)
 app.include_router(voice.router)
 
 
+LOCAL_HOSTS = {"127.0.0.1", "localhost"}  # localhost too: people type it, and no website can claim it
+SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
+
+
+@app.middleware("http")
+async def only_this_page(request: Request, call_next):
+    """Refuse other websites. A Host that isn't this computer means DNS rebinding; a state-changing
+    request from another origin (or a cross-site Sec-Fetch-Site) means a page elsewhere is trying to
+    change the archive. Requests without either header (curl, tests) carry no browser and may pass."""
+    host = request.headers.get("host", "")
+    if host.rsplit(":", 1)[0] not in LOCAL_HOSTS:
+        return JSONResponse({"detail": "This archive only answers this computer."}, status_code=403)
+    if request.method not in SAFE_METHODS:
+        origin = request.headers.get("origin")
+        fetch_site = request.headers.get("sec-fetch-site")
+        if (origin is not None and origin != f"http://{host}") or \
+                (origin is None and fetch_site not in (None, "same-origin", "none")):
+            return JSONResponse({"detail": "Only this page can change the archive."}, status_code=403)
+    return await call_next(request)
+
+
 @app.middleware("http")
 async def always_fresh_ui(request: Request, call_next):
     """Make browsers re-check UI files every time, so an updated page never shows stale code."""

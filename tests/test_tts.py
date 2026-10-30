@@ -52,7 +52,7 @@ def test_real_voice_is_made_once_then_cached(data_dir):
 def test_speak_route_returns_a_friendly_503_when_voice_is_off(data_dir, monkeypatch):
     monkeypatch.setattr(settings, "tts_enabled", False)
     monkeypatch.setattr(main.selfcheck, "run_checks", lambda: [])
-    with TestClient(main.app) as client:
+    with TestClient(main.app, base_url="http://127.0.0.1:8000") as client:
         resp = client.post("/api/speak", json={"text": "hello"})
     assert resp.status_code == 503
     assert "GW_TTS_ENABLED" in resp.json()["detail"]
