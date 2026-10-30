@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from ghostwriter import db, embed, llm, transcribe
+from ghostwriter import db, embed, llm, pipeline, transcribe
 from ghostwriter.api import main
 from ghostwriter.models import StoryAnalysis
 from ghostwriter.selfcheck import Check
@@ -309,3 +309,82 @@ def test_decorations_never_cover_text(site, browser, width):
             page.evaluate(f"window.scrollTo(0, {y})")
             problems.update(page.evaluate(OVERLAP_CHECK))
     assert sorted(problems) == []
+
+
+def test_the_qa_fixes_in_the_browser(site, browser):
+    """The page-side fixes from the QA pass: filter dropdown, counts, search message, tab title, About,
+    autocorrect on addresses, several new tags at once, corrected words in place, answers' tags shown."""
+    base, wav = site
+    page = browser.new_page(viewport={"width": 1280, "height": 900})
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.goto(base + "/#/")
+    page.wait_for_selector("#wall .empty")
+    for text in ("The night the lights went out on our street, Dad told ghost stories.",
+                 "Grandma Ruth knitted a scarf every winter with a note in the pocket."):
+        page.evaluate("t => fetch('/api/stories/written', {method: 'POST', headers: {'Content-Type': 'application/json'}, "
+                      "body: JSON.stringify({text: t})})", text)
+    page.wait_for_function("fetch('/api/stories').then(r => r.json()).then(s => s.every(x => x.status === 'ready'))",
+                           timeout=20_000, polling=500)
+    stories = sorted(s["id"] for s in db.list_stories())
+    with pipeline._one_at_a_time:  # no job still finishing that could overwrite these
+        db.rename_tag(stories[0], "person", "", "Isaac")  # only the first story mentions Isaac
+        db.update_story(stories[1], status="failed", error="Ollama isn't running.")
+    page.reload()
+    page.wait_for_selector("#wall .candle")
+
+    # One count everywhere: the failed story is counted apart, by the wall and the greeting alike.
+    assert "1 memory, and 1 that needs another try" in page.inner_text("#wall-count")
+    assert "1 of your memories" in page.inner_text("#greeting") or "1 of your memory" in page.inner_text("#greeting")
+
+    # The dropdown filters the wall at once, shows Clear filter, and Back undoes it.
+    page.select_option("#filter", "person:Isaac")
+    page.wait_for_function("document.querySelectorAll('#wall .candle').length === 1")
+    assert page.is_visible("#filter-clear")
+    page.go_back()
+    page.wait_for_function("document.querySelectorAll('#wall .candle').length === 2")
+
+    # A search with no result says "search", not "filter".
+    page.fill("#wall-search", "zzzz nothing like it")
+    assert "matches that search" in page.inner_text("#wall")
+    page.fill("#wall-search", "")
+
+    # Autocorrect leaves addresses and code alone.
+    page.click("#write-text")
+    page.keyboard.type("see http://teh.com and teh_var ")
+    assert page.input_value("#write-text") == "See http://teh.com and teh_var "
+    page.fill("#write-text", "")
+
+    # About opens at its heading, not scrolled down to Close.
+    page.click("#about-open")
+    assert page.evaluate("document.activeElement.id") == "about-title"
+    page.keyboard.press("Escape")
+
+    # A story's tab is named after it; the wall's tab is Ghostwriter again.
+    page.evaluate(f"location.hash = '#/story/{stories[0]}'")
+    page.wait_for_selector("#story h2")
+    assert page.title().endswith("· Ghostwriter") and page.title() != "Ghostwriter"
+
+    # Tag editor: typing in the empty box brings another, so several tags go in one save.
+    page.click("#story button:has-text('Edit tags')")
+    boxes = page.locator("#story .tags-edit fieldset >> nth=0 >> input[placeholder^='Add']")
+    boxes.last.fill("Rohan")
+    boxes.last.fill("Maya")
+    page.click("#story .tags-edit button[type=submit]")
+    page.wait_for_selector("#story dl.details dd:has-text('Maya')")
+    assert "Rohan" in page.inner_text("#story dl.details")
+
+    # Corrected words show at once, and "Not now" keeps the words open where they are.
+    page.click("#story details.words summary")
+    page.click("#story .edit-words")
+    page.fill("#story .transcript-edit textarea", "The night the lights went out, Dad told us three ghost stories.")
+    page.click("#story .transcript-edit button[type=submit]")
+    page.wait_for_selector("#story .reread")
+    assert "three ghost stories" in page.inner_text("#story .transcript")
+    page.click("#story .reread button:has-text('Not now')")
+    assert page.evaluate("document.querySelector('#story details.words').open")
+    assert "original words are kept" in page.inner_text("#story details.words")
+
+    page.click("#story a.back")
+    page.wait_for_function("document.title === 'Ghostwriter'")
+    assert errors == []

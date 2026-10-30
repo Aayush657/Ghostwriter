@@ -13,6 +13,28 @@ _Last updated: Fri Oct 30, 2026_
 - **Remaining work is the user's**: record the demo, fill the personal placeholders, publish (see
   "Next actions").
 
+## Oct 30/31: fixes from the full QA pass (18 items)
+
+P0: `only_this_page` middleware refuses a Host other than 127.0.0.1/localhost (DNS rebinding) and any
+state-changing request whose Origin isn't the page's own, or with Sec-Fetch-Site cross-site/same-site
+(CSRF); no headers at all (curl, tests) passes. P1: the filter dropdown redraws the wall (compared with
+what was drawn, not the dropdown it just changed); one live answer per question (single INSERT ... WHERE
+NOT EXISTS, 409, restore guarded, button locked); webm recordings play from an ffmpeg-remuxed copy with
+a duration (`audio/{id}_play.webm`, made on save or first play; original untouched; served as
+audio/webm). P2: autocorrect skips URLs/emails/paths/code; written stories never called recordings
+(page wording, aria label, `analyse_user(written=...)`, note/retelling source label); corrected words
+shown in place, "Not now" no longer redraws; no-extension upload message; failed/unclear stories
+counted apart on the wall and in the greeting; tags case-insensitive (existing spelling kept), unknown
+old tag 404; typing in an "Add" tag box adds another; wall search includes answers; answers' tags
+shown on the story ("from an answer"); one length rule (20 characters, from /api/settings); /api/speak
+400 for nothing to say; 422s without the echoed input; streams closed when the page goes away (closes
+Ollama's stream); notes and retellings may not contradict or add objects, food or smells, and no
+emojis (reverses the earlier emoji request); tab titles; About focuses its heading; "No memory matches
+that search"; a back link on /book (hidden in print). Item 18: ids are reused (no AUTOINCREMENT), but a
+test shows nothing attaches to a reused id (cascades, FTS trigger, answers, audio incl. the play copy,
+voice files by text, page caches cleared on delete), so no table rebuild. 146 tests pass, including a
+new browser test of the page-side fixes.
+
 ## Oct 30 (late): a clearer, female Archivist voice
 
 The old voice (northern_english_male, rubberband pitch 0.84, lowpass 5.5 kHz, three echoes with long
