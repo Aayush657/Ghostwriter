@@ -115,12 +115,39 @@ def test_an_answer_is_read_with_its_story_and_asks_nothing_new(monkeypatch, anal
     assert llm.unanswered_questions("We gave it to the temple.", result, answering) == []  # nothing to check
 
 
+def check(about, answered=False, unknown=False):
+    return {"about": about, "answered": answered, "unknown": unknown}
+
+
 def test_questions_the_story_answers_or_cannot_are_dropped(monkeypatch, analysis):
-    calls = fake_replies(monkeypatch, ['{"drop": [false, true]}'])
-    kept = llm.unanswered_questions("Dadi lit a brass lamp on the terrace.", analysis)
-    assert kept == ["What happened to the brass lamp?"]
+    story = "Dadi lit a brass lamp on the terrace. Who lit it the next year, nobody knows."
+    reply = json.dumps({"checks": [check("a brass lamp"), check("Who lit it the next year", unknown=True)]})
+    calls = fake_replies(monkeypatch, [reply])
+    two = analysis.model_copy(update={"unfinished_business": ["What did the lamp look like?", "Who lit it the next year?"]})
+    assert llm.unanswered_questions(story, two) == ["What did the lamp look like?"]
     assert calls[0][0][-2]["role"] == "assistant"  # same conversation, so Ollama reuses what it read
     assert "never found out" in calls[0][0][-1]["content"]
+
+    fake_replies(monkeypatch, [json.dumps({"checks": [check("brass lamp on the terrace", answered=True), check("")]})])
+    assert llm.unanswered_questions(story, two) == ["Who lit it the next year?"]
+
+
+def test_nobody_knows_counts_only_when_the_story_says_so(monkeypatch, analysis):
+    story = ("My cousin Meera and I buried a brass key under the mango tree in Pune in 2009. Meera always believed "
+             "the key opened the locked almirah in our grandfather's room. We never found the lock it opened.")
+    questions = ["What did the almirah look like?", "What happened after you buried the key?", "Where is the lock?"]
+    reply = json.dumps({"checks": [check("the locked almirah in our grandfather's room", unknown=True),
+                                   check("buried a brass key under the mango tree", unknown=True),
+                                   check("We never found the lock it opened", unknown=True)]})
+    fake_replies(monkeypatch, [reply])
+    kept = llm.unanswered_questions(story, analysis.model_copy(update={"unfinished_business": questions}))
+    assert kept == questions[:2]  # Gemma called them unknown too, but their sentences don't say so
+
+
+@pytest.mark.parametrize("sentence", ["My grandmother never told me who made it.", "ये मुझे नहीं पता.",
+                                      "Kisne banaya, pata nahi.", "Nobody knows where it went."])
+def test_ways_of_saying_nobody_knows(sentence):
+    assert llm.says_unknown(f"We drank tea. {sentence}", sentence.split()[-2])
 
 
 def test_question_rules_prefer_senses_and_people():
@@ -129,7 +156,7 @@ def test_question_rules_prefer_senses_and_people():
 
 
 def test_a_failed_question_check_keeps_every_question(monkeypatch, analysis):
-    fake_replies(monkeypatch, ['{"drop": [true]}'])  # wrong length
+    fake_replies(monkeypatch, [json.dumps({"checks": [check("", answered=True)]})])  # wrong length
     assert llm.unanswered_questions("a story", analysis) == analysis.unfinished_business
     fake_replies(monkeypatch, ["not json"])
     assert llm.unanswered_questions("a story", analysis) == analysis.unfinished_business

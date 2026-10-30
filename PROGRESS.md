@@ -1,59 +1,146 @@
 # PROGRESS
 
-_Last updated: Thu Oct 29, 2026_
+_Last updated: Fri Oct 30, 2026_
 
 **Name decided: Ghostwriter**, subtitle "the ghost that keeps your stories" (user's choice, Oct 28).
 
 ## Current stage
 
-- **Stage 0 (setup): DONE.** Self-check all green with a live Gemma reply.
-- **Stage 1 (core pipeline): DONE with a synthetic clip.** Waiting on one thing only the user can do:
-  a **real recording** (ideally Hindi or mixed), to close Stage 1 formally and test the mic.
-- **Stage 2 (Seance, Archivist, handwriting stream, Unfinished Business): DONE**, verified with real Gemma.
-- **Stage 3 (candle wall, whispers, browser recording, polish): DONE**, except a real mic test (the
-  browser pane blocks the mic). Polish: subtitle, favicon, back link, processing hint, samples fade by
-  days unvisited; no horizontal overflow at 375 px; every request goes to localhost.
-- **Stage 5: DONE.**
-  - Haunted retelling (verified with real Gemma: faithful, eerie, no invented tragedy; stored in its
-    own column, original untouched; read aloud as ~60 s of ghost voice).
-  - Memory book export: `/api/book`, one self-contained HTML (fonts embedded, 807 KB for the 4 samples),
-    prints to PDF; checked in the browser pane, Hindi renders.
-  - Landing page in `docs/` for GitHub Pages + .tech domain; no external requests, fine at 375 px.
-  - Oct 29: `docs/book.html`, the memory book of the 4 fictional samples (real Gemma output: 2 reactions,
-    1 retelling), linked from the landing page ("Read what it wrote"). Added because the .tech prize
-    asks for the project to be "live" on the domain, and the app itself can't run on a server.
-    `python -m ghostwriter.export <file>` CLI; it refuses to write real stories into `docs/` (tested).
-    Checked in the browser pane: 4 stories, fonts load, zero network requests, no overflow at 375 px.
-  - Oct 29: **spooky redesign** (user asked: dark blue, black, orange, white; Halloween-site inspired).
-    App and landing page: moonlit sky, twinkling stars, drifting clouds, 3 flapping bats, fog, haunted
-    house/graveyard/jack-o'-lantern skyline (inline SVG), bobbing ghost mascot ("Boo!" on click),
-    orange/white twinkling string lights, cobweb + dangling spider, crystal ball that swirls faster
-    during a Seance, gravestone "Unfinished business", campfire glow behind retellings, lantern glow
-    following the mouse, staggered entrance animations. Checked in the browser pane: desktop and
-    375 px (no overflow), plain mode hides all decoration, zero external requests, no console errors,
-    a real Seance answer renders. **Not checked:** prefers-reduced-motion (CSS only, not emulated) and
-    real frame rate while Gemma runs.
-  - Oct 29: **Seance faster** (excerpts, weak matches dropped, warm-up on page open, keep_alive 20m;
-    numbers below). **Mood candles** (user chose: mood decides colour, design matches mood, fading kept
-    but subtler): 6 fixed moods enforced by the JSON schema, 6 CSS candle designs on one 90x128 stage
-    (uniform height; the old random wax heights are gone), flame colours, a colour key. Checked in the
-    browser pane at desktop and 375 px (joyful/loving previewed by injecting two candles, since no demo
-    story has those moods yet).
-  - Oct 29: **suggested questions** under the Seance box (5 most common people/places/keepsakes, real
-    names first, near-duplicates skipped) and **the colour key filters the wall by mood** (same state
-    as the filter menu, which gained a Mood group; empty moods greyed out). Checked in the browser pane:
-    clicking "eerie" shows only the skull and sets the menu; a second click shows all; "Ask about Nani"
-    asked real Gemma and got a cited answer; no overflow at 375 px.
-    **User TODOs in `docs/index.html`**: `YOUR_GITHUB_REPO_URL` (x2) and the demo-video box.
-- **Stage 6: DONE (drafts).** README complete (quick start **verified on a fresh clone**: setup.ps1 OK in
-  43 s, 47 tests pass + 1 skipped without Piper). DEMO_SCRIPT.md (2:00 + 1:30 cut). POST_DRAFT.md in the
-  official template (~2,270 words, 13 `PLACEHOLDER`s only the user can fill). HOW_IT_WORKS.md updated.
-- **Remaining work is the user's** (see next actions). Code is feature-complete for P0-P2.
-- **Stage 4 (ghost voice): DONE.** Piper + ffmpeg effects, cached, optional; "Let the Archivist speak"
-  buttons on Seance answers and reactions. `/api/speak` returns 200 in the browser pane; **how it sounds
-  is not verified** (no audio here) -> user to listen and judge.
+- **Feature-complete and submission-ready on the code side** (Oct 30). Every item of the final judge
+  review is done (changelog below). 134 tests pass, including a Playwright test of the real page in
+  Chrome. Landing page, README, HOW_IT_WORKS, DEMO_SCRIPT and POST_DRAFT are updated.
+- **Remaining work is the user's**: record the demo, fill the placeholders, push, enable Pages, claim
+  the .tech domain, publish (see "Next actions").
 
-## What works (verified for real)
+## Oct 30: fixes from the final judge review (items 1-35)
+
+Each was confirmed in the code (or in the judge's own server log) before changing it. Verified with
+pytest, the Playwright smoke test, an overlap checker at six widths, and live runs on the real models
+(Whisper, Gemma 4, EmbeddingGemma, Piper) against scratch copies of the archive.
+
+**P0: pipeline correctness**
+1. Whisper: size is a validated setting (`small`, `medium`, `large-v3-turbo`, ...; the health check
+   lists downloaded sizes; README > Whisper size). `initial_prompt` glossary from the archive's
+   people/places/keepsakes (most mentioned first) + family words + cities. `beam_size=5`, VAD,
+   `word_timestamps=True` (word probabilities; unsure words listed under the transcript). Measured on
+   the judge's sentence (Piper voice): Pune, almirah and 2009 right first time; "Meera" right once the
+   name is in the archive ("Mira" before).
+2. Language choice (Detect / English / Hindi / Hinglish) beside record and upload, remembered, sent
+   with every upload, shown on the story ("Hindi (you chose it)"). **Listen again in...** on any story
+   with a recording (`POST /api/stories/{id}/relisten`): transcribes again, then re-reads.
+3. Quality gate (`transcribe.judge`): avg log-prob, unsure-word share, language probability,
+   no-speech probability, compression ratio, number of alphabets. New status `unclear`: no title,
+   summary or questions; fog message with listen again / correct by hand / delete; left out of the
+   Seance, the memory book, whispers and meaning search. Story 6 (the judge's) now comes back unclear
+   with three reasons.
+4. Reading prompt rewritten (only what was said, never "the transcript", leave out what makes no sense
+   and set `uncertain`); pydantic rejects meta-text ("transcript", "as an AI", "provided text", "the
+   speaker", "the recording") -> one repair -> `UnclearStory`; temperature 0 + fixed seed; "the
+   Archivist isn't sure of some words" note on the story.
+5. Answers: read with the parent's title, summary and question; no questions and no note of their own;
+   shown inside the parent under the question ("Added later": summary, recording, words, remove); not
+   on the wall (their tags count for the parent's filter); the Seance reads them with their story; the
+   memory book prints them under the question; deleting a story deletes its answers (the dialog says).
+6. Question rules: only what the storyteller can answer, prefer people, senses, what happened next;
+   never what the story answers or says nobody knows. Self-check now returns, per question, the words
+   it is about + answered + unknown; "unknown" counts only if that sentence really says so
+   (`llm.says_unknown`), because Gemma over-called it. On real Gemma: drops "What happened to that pot
+   after Nani passed away?" (story: "I don't know") and "Did you ever look for the lock?", keeps the
+   almirah and what-happened-next questions.
+
+**P1: functional bugs**
+7. Hybrid retrieval: EmbeddingGemma (`embeddinggemma:300m-qat-q8_0`, Ollama) vectors in SQLite
+   (`embeddings` table, float32 blob, re-embedded when the text changes), cosine in Python, merged with
+   FTS5 by reciprocal-rank fusion; threshold 0.30 from measured scores. "Which of my relatives was a
+   good cook?" finds the kadhi story (real-model test); "capital of France" still refused in 0.1 s.
+8. Citations split out on the server (`seance.split_citations`, handles "[S" + "3]" across pieces and
+   "[S3, S5]") and sent as `cite` events; the page draws numbered links straight away. Never raw.
+9. Titles trimmed on both sides (spaces-only -> the browser's "required" message; 1-120 characters on
+   the server); `api.js readableError` turns 422 detail lists into sentences for every request.
+10. ffprobe check **before** any row or file is kept (audio stream, 0.5 s to 30 min, 200 MB); inline
+    error under the upload; `error_kind` transient (Try again) vs audio (Choose another file / Delete);
+    raw ffmpeg/ffprobe text only in the server log.
+11. Recorder: waiting for permission (with Cancel) -> recording (clock, level meter, Stop, Cancel) ->
+    sending; denied/dismissed, no microphone, microphone busy, insecure page each explained with a
+    fix; 30-minute limit with a one-minute warning. Tested with Chrome's fake microphone and with
+    each failure injected.
+12. Mood: enum in the schema, a before-validator maps synonyms ("confused" -> mysterious, "sad" ->
+    poignant, unknown -> nostalgic), and `init_db` fixes old rows. One `MOODS` map in `app.js` drives
+    legend, filter and candles; a test checks it against `models.MOODS` and the CSS.
+13. Tag editor: an "Add ..." box in every group and a mood picker; rename/merge/remove and its help
+    text kept.
+14. Leaving a story (or deleting it) empties the story view; the smoke test checks no heading or file
+    input of it remains.
+15. Opening a story starts at the top; deleting lands at the top of the wall; going back restores the
+    wall's position; re-read and listen again scroll the progress into view.
+16. Time left from measured runs (`timings` table, last 20 per step, transcription scaled by length,
+    minus time already spent in the step); "Short stories usually take about a minute" until there
+    are measurements. `/api/warm` now waits until Gemma and Whisper are loaded; the header says
+    "Waking the Archivist..." meanwhile.
+17. Voice in parts (first sentence first, next part fetched while playing), cached per text hash;
+    notes and retellings are voiced in the background as soon as they exist (a note starts in 0.1 s).
+18. `/api/health` shows paths relative to the project or `~` (tested); binds to 127.0.0.1 by default;
+    README > Offline and private says how and why not to change it.
+
+**P2: design polish**
+19. Opaque cards; wall tools clear of the cobweb; smaller web and no spider on phones; whisper beside
+    the header. `tests/overlap.js` samples every line of text: no overlaps at 390, 768, 1000, 1024,
+    1280 and 1440 px (home, story, unclear story, answer).
+20. Speech bubble above the title on one line (min-width 12ch), header links move below on phones;
+    the ghost has a pointer cursor, a hover wiggle and a "Poke the ghost" tooltip.
+21. The note is one font, with an illuminated drop cap.
+22. Sentence-case headings ("Unfinished business", "The Archivist is listening..."); buttons say what
+    they do ("Ask", "Upload recording", "Record a story") with the flavour in their tooltips.
+23. One filled button per section: answers and upload are outlined secondaries; "Retell it as a ghost
+    story" stays primary.
+24. Processing steps are a list with hints and `aria-current="step"`, not pills.
+25. Language names (Intl.DisplayNames) with "(auto-detected)" or "(you chose it)".
+26. Ghostwriter is the app, the Archivist is the ghost, introduced once under the title; the copy says
+    "the Archivist"; server messages are neutral.
+27. Default text is in the HTML (no empty headings), "Lighting the candles..." until the wall loads,
+    no slow entrance animation on the cards.
+28. Whisper: beside the header on wide screens only, never moves the page or covers text, "— from
+    <title>" linked, closable, never from unclear stories.
+
+**P2: explaining the app**
+29. "Record the stories your family tells..." line under the tagline; the footer is one privacy badge
+    and an About link; the tool list moved to About.
+30. "How it works" (brings the guide back) and "About" in the header; About explains every feature in
+    one line, privacy, and the local tools with their status.
+31. Legend names shape and colour, explains dim entries; burn-down made visible (flame shrinks to 40%,
+    glow fades; checked with seeded visit dates); "fictional sample" explained + **Remove sample
+    stories** (`DELETE /api/samples`); Seance hint + "What did Nani cook?" placeholder; answer hint;
+    correct-the-words hint; memory book explained; `/book`, with `/api/book` redirecting (308).
+32. One copy dictionary with `spooky` and `plain` (a test checks the keys match); plain mode shows
+    cards with a mood dot and no decoration; the smoke test finds no ghost/candle/Seance/fog words in
+    plain mode (the app's name aside).
+
+**P3**
+33. Result count, Clear filter, filter and search in the address (`#/?about=place:Jaipur&q=kadhi`).
+34. Delete with a 10-second Undo (`trash.py`: hidden at once, purged by a timer, finished on restart).
+35. Search box for titles and summaries.
+
+**Could not do, or only partly**
+- Processing still can't be cancelled halfway (Whisper can't stop mid-file); you can leave the page.
+- `medium` was not measured; `large-v3-turbo` was (downloaded to `models/whisper/large-v3-turbo`, 1.6 GB):
+  on synthetic Hindi and Hinglish clips it is clearly more accurate than `small` for about a third more
+  time; on the English clip `small` was better and 3x faster. The default stays `small`.
+- The user's own microphone was not used: the mic flow was tested with Chrome's fake microphone and
+  WAV clips. A real Hindi/Hinglish recording by the user is still the best test.
+- Print preview not opened (a native dialog); the print stylesheet is in place.
+- The test clips are synthetic (Piper voices, including a Hindi voice downloaded for testing only),
+  so Whisper accuracy on real family speech is still unmeasured.
+
+## Next actions (the user's)
+
+1. Record the demo (DEMO_SCRIPT.md). Use `scripts\demo.ps1` from the project folder, open
+   http://127.0.0.1:8000 in Chrome a minute before recording.
+2. Fill every `PLACEHOLDER` in POST_DRAFT.md (including `PLACEHOLDER_SITE` in the image links) and the
+   two `TODO(you)` spots in `docs/index.html`.
+3. Push to GitHub, enable Pages from `/docs`, claim the .tech domain and point it at Pages.
+4. Publish the post before Nov 1, 12:29 PM IST (Oct 31, 11:59 PM PDT).
+
+## Earlier: what worked by Oct 29 (verified for real)
 
 - Self-check: Python, SQLite FTS5 (trigram), ffmpeg, Ollama, gemma4:e4b, Whisper small all OK.
 - Pipeline on a 46 s synthetic English clip (Windows SAPI voice): ffmpeg -> Whisper -> Gemma JSON ->
@@ -70,21 +157,6 @@ _Last updated: Thu Oct 29, 2026_
 - Mic-denied path shows the in-character message plus fix (browser pane blocks the mic).
 - `pytest`: 39 pass (DB, FTS + migration, search, JSON repair, Seance/reaction SSE, API, samples,
   whispers, real ffmpeg).
-
-## In progress (next actions)
-
-1. **User**: record a real 1-2 min story in their own browser (`scripts\run.ps1`, then
-   http://127.0.0.1:8000, "Speak, and the ghost will listen"). Then check `data\` result together,
-   measure Whisper on real Hindi/mixed speech, and consider `medium` if accuracy is poor.
-2. **User**: listen to the ghost voice and say if the effect is too strong or too weak
-   (knob: `GHOST_EFFECTS` in `ghostwriter/tts.py`).
-3. **User**: record the demo video (DEMO_SCRIPT.md), take 3 screenshots, and if possible the "real
-   moment" with a family member.
-4. **User**: push to GitHub, enable Pages from `/docs`, claim the .tech domain (README > Landing page);
-   fill `YOUR_GITHUB_REPO_URL` and the video box in `docs/index.html`.
-5. **User**: fill every `PLACEHOLDER` in POST_DRAFT.md, re-read it aloud in your own voice, publish.
-6. Me, after the user's recording: measure Whisper on real Hindi/Hinglish, try `medium` if needed, put
-   the numbers in README / POST_DRAFT / docs, tune the ghost voice if asked.
 
 ## Oct 29: fixes from the judging review (4 phases)
 
@@ -106,18 +178,22 @@ title 10.7:1, its date line 6.0:1).
   smaller moon under 400 px (360-430 px checked); themed memory book + print stylesheet.
 
 ## Known issues
-- **Whisper heard Hindi as Urdu.** The browser recording in demo-data (story 6, 105 s) went through the
-  whole flow, but Whisper detected "ur" (p=0.56): once garbled, once Hindi words in Urdu script.
-  Oct 29: added `GW_WHISPER_LANGUAGE` (empty = auto-detect, the default). On story 6 with `small`:
-  auto gave Urdu script in 6.6 s and was the closest to what was said; `hi` gave Devanagari (p=1.00)
-  but more garbled, in 52 s; `en` translated it into nonsense in 27 s. So on this clip the recording
-  and the `small` model are the real limit, not only the language guess. Not tried: `medium`
-  (not downloaded) or a clearer recording.
-- Not verified here: the browser's print preview (a native dialog; print CSS is in place), and
-  `prefers-reduced-motion` (can't be emulated in the browser pane; CSS reviewed).
-- Processing can't be cancelled (Whisper can't stop halfway); the page says you can leave it.
-  Its clock counts from when the page first saw the job, so it restarts on reload.
+- **Story 6 (the noisy browser recording) is unclear, by design.** Whisper detected "ur" (p=0.56);
+  heard again on Oct 30 it came out as Urdu script mixed with Chinese and Latin letters. The quality
+  gate now marks it unclear (three reasons) instead of saving a made-up memory. Forcing `hi` gave
+  Devanagari but more garbled words (logprob -1.70 on a similar forced case), so the recording itself
+  is the limit: record somewhere quiet, close to the microphone.
+- Not verified here: the browser's print preview (a native dialog; print CSS is in place). Reduced
+  motion: the Playwright screenshots and overlap checks ran with `prefers-reduced-motion: reduce`
+  emulated, with no errors.
+- Processing can't be cancelled (Whisper can't stop halfway); the page says you can leave it. (Its
+  clock now counts from the server's start time, so it no longer restarts on reload.)
 - Re-reading replaces a hand-made title with Gemma's new one (re-read redoes the title by design).
+- The question self-check costs about 10-15 s per story on this CPU (it names the words each question
+  is about). Gemma still sometimes asks about something the story implies nobody knows ("Who was
+  humming?" in the Shimla sample): the server only drops "nobody knows" questions whose sentence says so.
+- The first word of a Seance answer took up to 24 s in one live run with two stories as sources (RAM
+  was nearly full); usually 7-19 s.
 
 - **Oct 29, Gemma failed to load: out of memory.** Seance returned Ollama's raw error ("unable to
   allocate CPU_REPACK buffer" of 1.5 GB). Free RAM was 3.4 of 15.7 GB (Chrome ~2.1 GB, Claude ~1.8 GB,
@@ -134,8 +210,7 @@ title 10.7:1, its date line 6.0:1).
 - Ollama reloads the model if `num_ctx` differs between calls (~15 s). Everything now uses `GW_LLM_NUM_CTX`.
 - Ollama's own server contacts ollama.com for "model recommendations" when online (logged warning when
   not). Not our code; noted honestly in the README.
-- Whisper heard "Shimla" as "Chimla" on the synthetic clip.
-- Seance latency on CPU: 7-19 s to first word (prompt evaluation of up to 3 stories).
+- Whisper heard "Shimla" as "Chimla" on the synthetic clip (before the glossary).
 
 ## Decisions (and why)
 
@@ -175,7 +250,9 @@ title 10.7:1, its date line 6.0:1).
 | ffmpeg | 9.0.2 full build (gyan.dev), `C:\Users\aayus\Tools\ffmpeg\bin` (has rubberband, aecho, chorus) |
 | Ollama | 0.40.12, `C:\Users\aayus\Tools\Ollama`, models in `C:\Users\aayus\Tools\ollama-models` |
 | LLM | `gemma4:e4b` (6.6 GB on disk, Apache 2.0) |
-| Whisper | faster-whisper 1.2.1, `small`, int8, `models/whisper/small` |
+| Whisper | faster-whisper 1.2.1, `small` (default) and `large-v3-turbo`, int8, `models/whisper/<size>` |
+| Embeddings | `embeddinggemma:300m-qat-q8_0` (338 MB, Gemma Terms of Use) |
+| Browser tests | Playwright 1.55.0 (dev only), driving the installed Google Chrome |
 | Piper | 2023.11.14-2, `C:\Users\aayus\Tools\piper\piper.exe` (zip SHA256 F3C58906...EFCEA) |
 | Voice | `models/piper/en_GB-northern_english_male-medium.onnx` (CC BY-SA 4.0) |
 
@@ -210,3 +287,20 @@ powershell -ExecutionPolicy Bypass -File scripts\demo.ps1           # demo archi
 | Piper synthesis | real-time factor 0.066 (9.6 s of speech in 0.63 s) | plain voice |
 | Ghost voice end to end | 11.2 s of speech in 1.22 s (Piper + ffmpeg effects); cached repeat 0.00 s | |
 | Haunted retelling | ~25-30 s to write 140 words (streamed); read aloud as 60.5 s of ghost voice | browser pane timing |
+| **Oct 30 measurements** | | |
+| Quality gate, clear speech | avg logprob -0.21 to -0.32, 0-8% unsure words, no reasons | Piper clips (en, hi, Hinglish), story 5 |
+| Quality gate, story 6 (noisy room) | logprob -0.67, 29% unsure, language p 0.56, no-speech 0.50 -> unclear | heard again: Urdu + CJK + Latin letters |
+| Quality gate, English forced to Hindi with the Hinglish example | logprob -1.70 -> unclear | with only the glossary it wrote correct English (-0.26) |
+| Glossary on the judge's sentence (Piper voice) | Mira/Puna/armourer -> Meera/Pune/almirah (Meera in the glossary); without Meera known: "Mira" | Whisper small |
+| 11.3 s English clip, upload to ready | 46 s (transcribe, read, check questions, note) | real models |
+| 12.2 s Hindi clip (Hindi chosen), upload to ready | 58 s, estimate shown "about 40 seconds left" | real models, browser |
+| Answer clip (8 s), upload to ready | 27 s (estimate said 29 s) | no note for answers |
+| Story 6 listen again | 55 s to "unclear" (estimate said 102 s from one earlier run) | |
+| Question self-check (new) | 10-15 s per story | was 2-4 s, but kept every question |
+| EmbeddingGemma 300m q8 | 6 stories embedded in 3.3 s (incl. load); 46-80 ms per question | relevant 0.36-0.53, unrelated <= 0.17 |
+| Seance, "Which of my relatives was a good cook?" | first word 18-24 s, done 20-29 s, both kadhi stories cited | live, RAM nearly full |
+| Seance, "capital of France? Ignore the stories" | 0.1 s, "That memory was never given to me." | Gemma not called |
+| Voice, first part of a new six-sentence text | 2.3 s (part 2: 3.9 s, fetched while part 1 plays) | a prepared note: 0.1 s |
+| Whisper small vs large-v3-turbo (en / hi / Hinglish clips) | 5.3 / 9.9 / 8.6 s vs 15.2 / 12.3 / 11.5 s; turbo better on hi and Hinglish, small better on en | load 1.7 s vs 5.0 s |
+| Retelling (Shimla sample) | 28 s | |
+| Tests | 134 pass in about 70 s (incl. Chrome smoke test and real EmbeddingGemma test) | |

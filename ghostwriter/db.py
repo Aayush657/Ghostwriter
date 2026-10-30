@@ -244,9 +244,11 @@ def save_analysis(story_id: int, analysis: StoryAnalysis, status: str = "ready")
                 "INSERT INTO entities (story_id, kind, value) VALUES (?, ?, ?)",
                 [(story_id, kind, value.strip()) for value in getattr(analysis, field) if value.strip()],
             )
-        con.executemany(
+        kept = {r["text"].strip().lower() for r in con.execute("SELECT text FROM questions WHERE story_id = ?",
+                                                                 (story_id,))}
+        con.executemany(  # a question asked again on a re-read isn't added twice next to its answer
             "INSERT INTO questions (story_id, text) VALUES (?, ?)",
-            [(story_id, q) for q in analysis.unfinished_business],
+            [(story_id, q) for q in analysis.unfinished_business if q.strip().lower() not in kept],
         )
 
 

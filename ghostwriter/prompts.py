@@ -44,10 +44,14 @@ def analyse_system(answering: dict | None = None) -> str:
     return ANALYSE_SYSTEM.format(questions=ANSWER_QUESTIONS if answering else STORY_QUESTIONS)
 
 
-CHECK_QUESTIONS = """Now check your questions against the storyteller's words. For each question, in \
-order, answer true if it should be dropped: the words already answer it (even in other words), or the \
-storyteller says it is unknown or never found out, or only someone else could answer it. Otherwise \
-answer false. Reply with JSON only: {"drop": [true or false for each question]}."""
+CHECK_QUESTIONS = """Now check each of your questions against the storyteller's words, in order. For each one:
+- about: the few words from the story the question is about (at most 12 words), or "" if none;
+- answered: true only if the story already gives the answer itself. A story that mentions the clock
+  does not say what the clock looked like; a story that says "we never found the key" does answer
+  "did you find the key?".
+- unknown: true if the storyteller says nobody knows the answer, they never found out, were never
+  told, or don't know.
+Reply with JSON only."""
 
 
 def analyse_user(transcript: str, answering: dict | None = None) -> str:

@@ -66,3 +66,16 @@ def test_update_story_rejects_unknown_columns(data_dir):
 
     with pytest.raises(ValueError):
         db.update_story(db.create_story(), id=99)
+
+
+def test_rereading_keeps_answered_questions_without_doubling_them(data_dir, analysis):
+    story_id = db.create_story()
+    db.save_analysis(story_id, analysis)
+    answered = db.get_story(story_id)["questions"][0]
+    db.create_story(answers_question_id=answered["id"])
+
+    db.save_analysis(story_id, analysis)  # Gemma asks the same questions again
+
+    texts = [q["text"] for q in db.get_story(story_id)["questions"]]
+    assert texts == analysis.unfinished_business  # the answered one kept once, the other renewed
+    assert db.get_story(story_id)["questions"][0]["answered_by"]

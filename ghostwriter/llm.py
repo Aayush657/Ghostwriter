@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from collections.abc import Iterator
 from contextlib import contextmanager
 
@@ -13,6 +14,7 @@ from pydantic import ValidationError
 from ghostwriter import prompts, tags
 from ghostwriter.config import settings
 from ghostwriter.models import META_TEXT, StoryAnalysis
+from ghostwriter.whispers import SENTENCE_END
 
 log = logging.getLogger(__name__)
 
@@ -159,16 +161,35 @@ def analyse_story(transcript: str, answering: dict | None = None) -> StoryAnalys
         raise LLMError("Gemma couldn't make sense of this story. Try again.") from exc
 
 
-DROP_SCHEMA = {"type": "object", "properties": {"drop": {"type": "array", "items": {"type": "boolean"}}},
-               "required": ["drop"]}
+CHECK_SCHEMA = {"type": "object", "properties": {"checks": {"type": "array", "items": {
+    "type": "object", "properties": {"about": {"type": "string", "maxLength": 80}, "answered": {"type": "boolean"},
+                                     "unknown": {"type": "boolean"}},
+    "required": ["about", "answered", "unknown"]}}}, "required": ["checks"]}
+
+# Ways a storyteller says nobody knows (English, Hindi, Hinglish).
+NOT_KNOWN = re.compile(
+    r"never (found|knew|learn|told|discover|saw|figured|heard|came to know)|(do|did|does)n'?t know|not know|"
+    r"nobody (knows|ever)|no one (knows|ever)|still wonder|a mystery|नहीं पता|पता नहीं|मालूम नहीं|नहीं मालूम|"
+    r"कोई नहीं जानता|nahi+n? pata|pata nahi+n?|malum nahi", re.IGNORECASE)
+
+
+def says_unknown(transcript: str, about: str) -> bool:
+    """Does the sentence `about` points to really say nobody knows? Gemma judges "unknown" too broadly
+    on its own (it called "What did the almirah look like?" unknown because the lock was never found)."""
+    words = set(about.lower().split())
+    if not words:
+        return False
+    sentence = max(SENTENCE_END.split(transcript), key=lambda s: len(words & set(s.lower().split())))
+    return bool(NOT_KNOWN.search(sentence))
 
 
 def unanswered_questions(transcript: str, analysis: StoryAnalysis, answering: dict | None = None) -> list[str]:
     """Drop follow-up questions the story already answers ("What kind of car?" when it says "a Fiat"),
-    or that it says nobody can answer ("What did the key open?" when "we never found the lock").
+    or that it says nobody can answer ("Who made the tea?" when "grandmother never told me who made it").
 
-    Gemma checks its own questions in the same conversation, so Ollama reuses the words it has
-    already read and the check costs a few seconds. If the check fails, every question is kept.
+    Gemma checks its own questions in the same conversation, so Ollama reuses the words it has already
+    read, and names the words each question is about; "nobody knows" counts only when those words'
+    sentence says so. If the check fails, every question is kept.
     """
     questions = analysis.unfinished_business
     if not questions:
@@ -179,7 +200,8 @@ def unanswered_questions(transcript: str, analysis: StoryAnalysis, answering: di
         {"role": "user", "content": prompts.CHECK_QUESTIONS},
     ]
     try:
-        drop = json.loads(chat(messages, schema=DROP_SCHEMA, temperature=0))["drop"]
+        checks = json.loads(chat(messages, schema=CHECK_SCHEMA, temperature=0))["checks"]
+        drop = [c["answered"] or (c["unknown"] and says_unknown(transcript, c["about"])) for c in checks]
     except (LLMError, ValueError, KeyError, TypeError) as exc:
         log.warning("question check skipped: %s", exc)
         return questions

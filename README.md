@@ -3,54 +3,70 @@
 > A ghost lives in your laptop. Tell it your stories and it writes them down,
 > keeps them, and haunts you with them later.
 
-Ghostwriter is a memory keeper with a spooky skin and a warm heart. You tell it a story out loud: a
-family recipe, a strange night in the hostel, a letter nobody can explain. A resident ghost, **the
-Archivist**, writes it down, keeps it on a candle wall, asks about the parts you left out, and
-answers questions about your stories without ever making things up.
+Record the stories your family tells (Nani's recipes, Dada's journeys) before they're forgotten.
+**Ghostwriter** is a memory keeper with a spooky skin and a warm heart, and it is home to **the
+Archivist**, a kind ghost who listens to a story told out loud, writes it down, keeps it on a candle
+wall, asks about the parts you left out, and answers questions about your stories without ever
+making things up.
 
-Everything runs on your own laptop with open models: **Gemma 4** (through Ollama), **Whisper**
-(through faster-whisper) and **Piper**. Turn the Wi-Fi off and it still works.
+Everything runs on your own laptop with open models: **Gemma 4** and **EmbeddingGemma** (through
+Ollama), **Whisper** (through faster-whisper) and **Piper**. Turn the Wi-Fi off and it still works.
 
 Built for the DEV **Hacktoberfest Open-Source AI Challenge, Week 4: "Ghost in the Machine"**.
 
-<!-- TODO(you): add screenshots or a GIF here, e.g. docs/screenshots/candle-wall.png -->
-_Screenshots and a demo video: [PLACEHOLDER]_
+![The candle wall: each story is a candle whose shape and flame colour show its mood](docs/screenshots/candle-wall.png)
+
+| A story, with an answer added later | The Seance answers only from your stories | Unclear words are never made into a memory |
+|---|---|---|
+| ![A story page](docs/screenshots/story.png) | ![A Seance answer with numbered sources](docs/screenshots/seance.png) | ![The fog view](docs/screenshots/unclear.png) |
+
+_Demo video: [PLACEHOLDER]_
 
 ## What it does
 
-- **Listens.** Record in the browser or upload a voice note (wav, mp3, m4a, webm, ogg). Whisper
-  transcribes it with automatic language detection: Hindi, English, or the mix in between.
-- **Remembers.** Gemma 4 turns each transcript into validated JSON: a title, a 2-3 sentence summary,
-  people, places, eras, mood, keepsakes (objects, recipes, sayings), and 2-4 follow-up questions.
-  Places must be named and times must be a year, decade or stage of life (checked after Gemma, too),
-  and the Archivist writes its note about the story while it is being processed.
-- **Unfinished business.** After each story the ghost raises the gaps it noticed, after checking that
-  the transcript doesn't already answer them. Answer by voice and the answer is kept as a linked
-  follow-up story.
-- **Seance.** Ask the archive a question. It searches your stories (SQLite FTS5), and Gemma answers
-  only from what it found, with small numbered citations and the sources listed once. If nothing
-  matches, Gemma isn't asked: *"That memory was never given to me."* Buttons under the question box
-  suggest what to ask, made from the names, places and keepsakes that come up most in your stories.
-- **Ink, not a wall of text.** Gemma's words stream to the page as they are generated and fade in like
-  ink. Long text is set in a readable serif; the handwriting face is kept for short accents.
-- **Your stories stay yours to fix.** Rename a story, correct the transcript (Whisper's original is
-  kept) and let the ghost re-read it, rename, merge or remove tags, or delete a story completely.
-- **Always says what it's doing.** Slow steps show the stage and a clock; Seance answers, notes and
-  retellings can be cancelled.
-- **Candle wall.** Every story is a candle on a wall strung with orange and white lights, under a
-  moonlit sky with bats, fog and a haunted house (decoration only; plain mode hides it, and it holds
-  still for reduced motion). Each story's mood picks its candle and flame colour: a dripping pillar,
-  a twisted taper, a lantern, a skull, a jack-o'-lantern or a clay diya. Flames dim a little when a
-  story goes unvisited, and relight when you open it. Filter by person, place or era.
-- **Whispers.** On launch the ghost sometimes murmurs a line from one of your most faded stories.
-- **Ghost voice.** The Archivist can speak, using Piper text-to-speech with ffmpeg effects (lower
-  pitch, an echoing room, a faint chorus). Optional.
-- **Haunted retelling.** One click retells a memory as a campfire bhoot-kahani; "Retell it again"
-  replaces it after asking. It is labelled as a retelling and stored separately; the original is
-  never changed.
-- **Memory book.** Export every story as one self-contained HTML file to print, save as PDF, or keep.
-- **Plain mode.** One switch for literal wording, no animation and no decoration. Nothing is hidden:
-  the Archivist's note becomes the "AI note".
+- **Listens.** Record in the browser (with a live clock, a level meter, Stop and Cancel) or upload a
+  voice note (wav, mp3, m4a, webm, ogg). Choose the language spoken: detect it, English, Hindi, or
+  Hinglish. Whisper is guided by a glossary of the names already in your archive and common Indian
+  family words, so "Meera", "Pune" and "almirah" come out right.
+- **Won't invent a memory from noise.** Before Gemma reads anything, a quality check looks at
+  Whisper's own confidence. A recording that came out as fog is marked *unclear*, with no made-up
+  title or summary, and the page offers to listen again in another language, let you correct the
+  words, or delete it.
+- **Remembers.** Gemma 4 turns each transcript into validated JSON: a title, a short summary, people,
+  places, eras, a mood, keepsakes (objects, recipes, sayings) and follow-up questions. It describes
+  only what was said (talk about "the transcript" is rejected), leaves out words it can't make sense
+  of and says so, and gives the same answer when re-reading the same words.
+- **Unfinished business.** The Archivist asks about what you left out: who else was there, how it
+  smelled, what happened next. It never asks what the story already says, or what nobody knows.
+  Answer by voice and the answer is **added to that story**, with its own recording.
+- **Seance.** Ask the archive a question. It finds the right stories by keywords (SQLite FTS5) and
+  by meaning (EmbeddingGemma), so "Which of my relatives was a good cook?" finds the kadhi story, and
+  Gemma answers only from them, with numbered sources. If nothing matches, Gemma isn't asked: *"That
+  memory was never given to me."*
+- **Ink, not a wall of text.** Gemma's words stream to the page as they are written and fade in like
+  ink; citations appear as small numbers, never as raw markers.
+- **Your stories stay yours to fix.** Rename a story, correct its words (Whisper's original is kept)
+  and let the Archivist re-read it, add, rename, merge or remove tags, change the mood, listen again
+  in another language, or delete a story (with Undo).
+- **Always says what it's doing.** Processing shows its steps, a clock and how long is left (learnt
+  from how long it took before on your computer); slow writing can be cancelled.
+- **Candle wall.** Every story is a candle under a moonlit sky. Its mood picks the candle and flame:
+  a jack-o'-lantern (joyful), a dripping pillar (nostalgic), a clay diya (loving), a twisted taper
+  (poignant), an iron lantern (mysterious), a skull (eerie). A story you haven't opened for a while
+  burns low; opening it relights it. Search titles and summaries, filter by person, place, era,
+  keepsake or mood; the filter stays in the address.
+- **Whispers.** On launch the Archivist sometimes murmurs a line from a faded story, and says which.
+- **Ghost voice.** The Archivist can speak, using Piper text-to-speech with ffmpeg effects. It starts
+  with the first sentence while the rest is made; notes are voiced in advance. Optional.
+- **Haunted retelling.** One click retells a memory as a campfire bhoot-kahani, labelled as a
+  retelling and stored separately; the original is never changed.
+- **Memory book.** Every story, with its answers, notes and retellings, as one self-contained page
+  (`/book`) to print, save as a PDF, or keep.
+- **Plain mode.** One switch for neutral wording, simple cards and no animation or decoration.
+  Nothing is hidden: the Archivist's note becomes the "AI note".
+- **Explains itself.** A "How it works" guide (which comes back from the header), an About panel that
+  says what each feature does and which local tools are working, and a short hint under every
+  feature.
 
 It does **not** clone anyone's voice. To hear the storyteller, you play back their original
 recording.
@@ -63,12 +79,14 @@ You need Python 3.11+ (python.org), ffmpeg and Ollama.
 winget install --id Gyan.FFmpeg -e
 winget install --id Ollama.Ollama -e
 ollama pull gemma4:e4b
+ollama pull embeddinggemma:300m-qat-q8_0
 powershell -ExecutionPolicy Bypass -File scripts\setup.ps1
 ```
 
 `setup.ps1` creates `.venv`, installs the pinned packages, downloads the Whisper weights and the
 Piper voice, and runs the self-check. It is the only step that needs the internet, apart from the
-installs and the model pull above.
+installs and the model pulls above. The embedding model is optional: without it the Seance searches
+by keywords only.
 
 If winget's download fails (it did on the development machine with `0x80072eff`), run
 `winget show --id <id> -e`, download the installer URL it lists with `curl.exe`, compare the SHA256
@@ -84,11 +102,12 @@ Check everything (with Wi-Fi off, if you like):
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\run.ps1    # your real archive, in data\
-powershell -ExecutionPolicy Bypass -File scripts\demo.ps1   # 4 fictional sample stories, in demo-data\
+powershell -ExecutionPolicy Bypass -File scripts\demo.ps1   # fictional sample stories, in demo-data\
 ```
 
-Open http://127.0.0.1:8000. The server listens on `127.0.0.1` only, so nothing else on your network
-can reach it. The first run of `demo.ps1` asks Gemma to analyse the samples (about half a minute each).
+Run them from the project folder, then open http://127.0.0.1:8000 in Chrome or Edge. The first run
+of `demo.ps1` asks Gemma to read the samples (about half a minute each). "Remove sample stories" on
+the candle wall takes them out again.
 
 ### Ghost voice (optional)
 
@@ -100,13 +119,38 @@ can reach it. The first run of `demo.ps1` asks Gemma to analyse the samples (abo
 
 Without Piper, everything else works and the "speak" buttons don't appear.
 
+## Whisper size
+
+`GW_WHISPER_MODEL` in `.env` picks how well Whisper hears and how long it takes. After changing it,
+run `scripts\setup.ps1` once to download that size; the About panel's tool list shows which sizes are
+downloaded.
+Measured on three synthetic clips (Piper voices), with the language chosen:
+
+| Size | Parameters | On disk | English clip, 11 s | Hindi clip, 12 s | Hinglish clip, 10 s |
+|---|---|---|---|---|---|
+| `small` (default) | 244 M | 464 MB | 5.3 s; "almirah" right | 9.9 s; many misspellings ("वनोने", "पीटल", "समहाल") | 8.6 s; "रकती", "भूद" |
+| `large-v3-turbo` | 809 M | 1.6 GB | 15.2 s; "almirah" heard as "Almora" | 12.3 s; "उन्होंने", "पीतल", "संभाल कर रखना" right | 11.5 s; nearly every word right |
+| `medium` | 769 M | | not measured here | | |
+
+So: for stories told in **English**, keep `small` (faster, and as good here). For **Hindi or
+Hinglish**, `large-v3-turbo` is clearly more accurate for about a third more time, and its model takes
+about 5 s to load instead of 2. It needs more memory next to Gemma; close other programs if Ollama
+reports it is out of memory. Whatever the size, correct a misheard name once in the tag editor and
+later recordings get it right.
+
 ## Offline and private
 
 - Ghostwriter makes no requests outside `127.0.0.1`. Fonts, scripts and styles are bundled; there are
   no CDNs, analytics, accounts or external APIs. (In the browser's network panel, every request goes
   to the local server.)
-- Gemma runs in Ollama on this machine. Whisper and Piper load their weights from disk.
-- The self-check reports which local services are up, at startup, in the page, and on the command line.
+- Gemma and EmbeddingGemma run in Ollama on this machine. Whisper and Piper load their weights from
+  disk.
+- The server listens on **`127.0.0.1` only**, so nothing else on your network can reach it. To open
+  it from another device you would change `--host 127.0.0.1` in `scripts\run.ps1` to `0.0.0.0`; don't,
+  unless you trust everyone on that network: there is no login, and every story would be readable
+  and deletable by them.
+- The health check (About panel, `/api/health`) shows paths relative to the project or to `~`, so it
+  never shows your Windows user name.
 - Honest note: the **Ollama** server program itself, when online, asks ollama.com for model
   recommendations and logs a warning when it can't. That is Ollama's behaviour, not Ghostwriter's, and
   it doesn't affect anything with the network off.
@@ -115,11 +159,11 @@ Without Piper, everything else works and the "speak" buttons don't appear.
 
 | What | Where |
 |---|---|
-| Stories, transcripts, tags, questions (SQLite) | `data\ghostwriter.db` |
+| Stories, transcripts, tags, questions, search vectors (SQLite) | `data\ghostwriter.db` |
 | Original and normalised recordings | `data\audio\` |
 | Cached ghost-voice audio | `data\tts\` |
 | Whisper and Piper weights | `models\whisper\<size>\`, `models\piper\` |
-| Gemma weights | Ollama's model folder (`%USERPROFILE%\.ollama\models`, or wherever `OLLAMA_MODELS` points) |
+| Gemma and EmbeddingGemma weights | Ollama's model folder (`%USERPROFILE%\.ollama\models`, or wherever `OLLAMA_MODELS` points) |
 
 `data\`, `demo-data\` and `models\` are git-ignored. Avoid keeping the project inside a cloud-synced
 folder (such as OneDrive) if your recordings should stay on this machine.
@@ -128,18 +172,20 @@ folder (such as OneDrive) if your recordings should stay on this machine.
 
 ```
  Browser  (plain HTML/CSS/JS from 127.0.0.1, fonts bundled)
-   |  record / upload                     ^  Server-Sent Events: tokens become "ghost handwriting"
+   |  record / upload                     ^  Server-Sent Events: tokens and citations, as written
    v                                      |
  FastAPI (uvicorn) ------------------------+
    |
-   |-- pipeline.py   one job at a time; each step saved before the next; retry resumes
-   |     |-- audio.py       ffmpeg -> 16 kHz mono WAV (the original is kept for playback)
-   |     |-- transcribe.py  faster-whisper, CPU int8, language auto-detected
-   |     '-- llm.py         Ollama /api/chat -> Gemma 4, JSON schema + validation + one repair
-   |-- db.py         SQLite: stories, entities, questions; FTS5 trigram index (Hindi + English)
-   |-- search.py     BM25 retrieval for the Seance
+   |-- api/stories.py  upload (ffprobe check first), edit, re-read, listen again, delete with undo
+   |-- pipeline.py     one job at a time; each step saved before the next; retry resumes
+   |     |-- audio.py       ffprobe check, ffmpeg -> 16 kHz mono WAV (the original is kept)
+   |     |-- transcribe.py  faster-whisper: language choice, glossary, word probabilities, quality gate
+   |     '-- llm.py         Ollama /api/chat -> Gemma 4: JSON schema, validation, one repair
+   |-- db.py         SQLite: stories, entities, questions, vectors, timings; FTS5 trigram index
+   |-- search.py     keywords (BM25) + meaning (embed.py, EmbeddingGemma), reciprocal-rank fusion
    |-- prompts.py    every prompt and the Archivist's persona, in one place
-   |-- tts.py        Piper -> ffmpeg ghost effects -> cached WAV
+   |-- tts.py        Piper -> ffmpeg ghost effects -> cached WAV parts
+   |-- trash.py      delete with a 10-second undo
    |-- whispers.py   lines from the most faded stories
    |-- export.py     the self-contained memory book
    '-- selfcheck.py  which local services are available
@@ -154,27 +200,21 @@ Intel i7-13620H, 16 GB RAM, integrated graphics only (everything on the CPU):
 | What | Result |
 |---|---|
 | Whisper `small` int8 | about 35 s per minute of audio (46 s clip in 25-30 s) |
-| Gemma 4 e4b generation | 11-14 tokens/s; 15.8 s to load the model cold |
-| Analysing one story (JSON) | 27-36 s |
-| Seance answer | first words after 7-19 s, complete in 11-26 s (0.7 s to first word when the same stories were asked about again, thanks to Ollama's prompt cache) |
-| Ghost voice | 11.2 s of speech made in 1.2 s; cached repeats are instant |
+| A clear 11 s clip, upload to finished story | 46 s (transcribing, reading, checking questions, writing the note) |
+| Gemma 4 e4b generation | 10-19 tokens/s on replies over 50 tokens; 15.8 s to load the model cold |
+| Seance answer | first words after 7-24 s, complete in 11-29 s; "never given to me" in 0.1 s |
+| Meaning search (EmbeddingGemma) | 46-80 ms per question; 6 stories embedded in 3.3 s |
+| Ghost voice | first sentence of a new text in 2.3 s; a note voiced in advance starts in 0.1 s |
 | Haunted retelling | about 30 s to write ~140 words |
-
-<!-- TODO(you): add Whisper timing and accuracy on your own Hindi/Hinglish recording. -->
 
 ## Limitations
 
 - **It is slow on a CPU.** A Seance answer takes seconds to start. Streaming makes the wait feel like
   part of the ritual, but it is still a wait. `gemma4:e2b` is faster and less articulate.
-- **Search is keyword-based** (FTS5), not semantic. "Dessert" won't find a story that only says
-  "kheer". Tags written by Gemma (names, places, objects) catch many cross-language cases, but not all.
-- **Whisper `small` mishears names** (a test clip turned "Shimla" into "Chimla"). `medium` is more
-  accurate and slower; it is one line in `.env`.
-- **Whisper sometimes guesses the wrong language,** e.g. Hindi written in Urdu script, on a noisy
-  recording. `GW_WHISPER_LANGUAGE=hi` in `.env` forces Hindi (Devanagari, English words included);
-  on the noisy test clip it did not make the words more accurate, and it was slower.
-- **Gemma's follow-up questions are sometimes slightly off**, e.g. asking about a song the
-  grandmother "mentioned" when the storyteller only heard humming.
+- **Whisper `small` mishears names it hasn't heard before** ("Meera" came out "Mira" until the name
+  was in the archive). Correct it once in the tag editor, or use a bigger Whisper size.
+- **A noisy recording stays unclear.** The quality check stops it from becoming a made-up memory,
+  but it can't recover words that aren't there; record somewhere quiet, close to the microphone.
 - **The ghost speaks English.** Hindi stories are summarised and answered in English; the voice is an
   English Piper voice.
 - **Windows first.** The scripts are PowerShell. The Python code uses `pathlib` and should run
@@ -184,33 +224,42 @@ Intel i7-13620H, 16 GB RAM, integrated graphics only (everything on the CPU):
 
 ## Configuration
 
-Copy `.env.example` to `.env`. Model names, paths, the Whisper language (auto-detected unless you
-set `GW_WHISPER_LANGUAGE`, e.g. `hi`) and feature flags (ghost voice, plain mode by default) are
-documented there, with the prefix `GW_`.
+Copy `.env.example` to `.env`. Model names, paths, the Whisper size and default language, the
+embedding model, the longest recording allowed, and feature flags (ghost voice, plain mode by
+default) are documented there, with the prefix `GW_`.
 
 ## Development
 
 ```powershell
-.venv\Scripts\python.exe -m pytest                        # 72 tests; Gemma and Whisper are faked
-.venv\Scripts\python.exe -m ghostwriter.transcribe a.wav  # Whisper timing on one file
-.venv\Scripts\python.exe -m ghostwriter.tts "Hello"       # the ghost voice on one line
+.venv\Scripts\python.exe -m pip install -r requirements-dev.txt   # adds Playwright for the browser test
+.venv\Scripts\python.exe -m pytest                                # 134 tests
+.venv\Scripts\python.exe -m ghostwriter.transcribe a.wav hi       # Whisper timing and quality on one file
+.venv\Scripts\python.exe -m ghostwriter.tts "Hello"               # the ghost voice on one line
 ```
+
+Most tests fake Gemma and Whisper, so they run without the models. One asks the real EmbeddingGemma
+when it is pulled ("a good cook" must find the kadhi story). `tests/test_smoke.py` drives the real
+page in your installed Google Chrome (no browser download) through upload, rename, tags, an answer,
+the Seance, the memory book, a bad file, delete and undo, plain mode, the microphone (Chrome's fake
+microphone) and a check that no decoration covers text at 390 and 1280 px.
 
 [PROGRESS.md](PROGRESS.md) is the build log: decisions, known issues and every measurement.
 [PLAN.md](PLAN.md) is the original plan.
 
 ## Memory book export
 
-"Open the memory book" on the candle wall (or `/api/book`) gives every finished story as one
-self-contained HTML page: fonts embedded, nothing fetched from anywhere. Print it, save it as PDF, or
-keep the file; it opens in any browser without Ghostwriter. Recordings stay in `data\audio\`.
-From the command line: `.venv\Scripts\python.exe -m ghostwriter.export memory-book.html`.
+"Open the memory book" on the candle wall (or http://127.0.0.1:8000/book) gives every finished story
+as one self-contained HTML page: fonts embedded, nothing fetched from anywhere, answers under their
+questions. Print it, save it as PDF, or keep the file; it opens in any browser without Ghostwriter.
+Recordings stay in `data\audio\`. From the command line:
+`.venv\Scripts\python.exe -m ghostwriter.export memory-book.html`.
 
 ## Landing page (.tech)
 
 `docs/` is a small static site (no build step, fonts bundled) for the project's .tech domain.
-`docs/book.html` is a real memory book made from the four fictional samples, so visitors can read
-the ghost's output. To remake it (the exporter refuses to put real stories in `docs/`):
+`docs/book.html` is a real memory book made from fictional sample stories, so visitors can read the
+ghost's output, and `docs/screenshots/` holds the screenshots above. To remake the book (the exporter
+refuses to put real stories in `docs/`):
 
 ```powershell
 $env:GW_DATA_DIR = "demo-data"; .venv\Scripts\python.exe -m ghostwriter.export docs\book.html
@@ -232,6 +281,7 @@ Every model, library, font and tool this project relies on:
 | Piece | By | Licence |
 |---|---|---|
 | Gemma 4 (`gemma4:e4b`) | Google DeepMind | Apache 2.0 (checked with `ollama show gemma4:e4b --license`) |
+| EmbeddingGemma (`embeddinggemma:300m-qat-q8_0`) | Google DeepMind | Gemma Terms of Use (checked with `ollama show --license`) |
 | Ollama | Ollama | MIT |
 | Whisper model weights | OpenAI (CTranslate2 conversion by SYSTRAN) | MIT |
 | faster-whisper | SYSTRAN | MIT |
@@ -241,7 +291,7 @@ Every model, library, font and tool this project relies on:
 | espeak-ng (bundled inside Piper, for phonemes) | espeak-ng contributors | GPL-3.0 |
 | ONNX Runtime (inside Piper and faster-whisper) | Microsoft | MIT |
 | Voice `en_GB-northern_english_male-medium` | Piper voices (rhasspy/piper-voices), trained on [OpenSLR 83](http://www.openslr.org/83/) | CC BY-SA 4.0 |
-| FFmpeg (gyan.dev full build, run as a separate program) | FFmpeg developers | GPL-3.0 |
+| FFmpeg and ffprobe (gyan.dev full build, run as separate programs) | FFmpeg developers | GPL-3.0 |
 | SQLite with FTS5 | SQLite developers | Public domain |
 | FastAPI | Sebastián Ramírez | MIT |
 | Uvicorn | Encode | BSD-3-Clause |
@@ -249,10 +299,12 @@ Every model, library, font and tool this project relies on:
 | pydantic, pydantic-settings | Pydantic | MIT |
 | python-multipart | Andrew Dunham, Marcelo Trylesinski | Apache 2.0 |
 | pytest | pytest-dev | MIT |
+| Playwright for Python (tests only) | Microsoft | Apache 2.0 |
 | Caveat font | The Caveat Project Authors | SIL Open Font License 1.1 |
 | IM Fell English font | Igino Marini | SIL Open Font License 1.1 |
 
-The four sample stories in `samples/` are fictional and were written for this project.
+The sample stories in `samples/` and the screenshots' extra stories are fictional and were written
+for this project.
 
 Built with AI assistance: I worked with Claude Code (Anthropic) as a pair programmer throughout.
 

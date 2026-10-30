@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Ghostwriter: the ghost that keeps your stories</title>
-  <meta name="description" content="Tell a memory out loud. A ghost in your laptop writes it down, keeps it, and haunts you with it later. Fully offline, built on Gemma 4 and Whisper.">
+  <meta name="description" content="Tell a memory out loud. A ghost in your laptop writes it down, keeps it, and haunts you with it later. Fully offline, built on Gemma 4, EmbeddingGemma and Whisper.">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <style>
     /* Everything is in this folder: fonts are bundled (SIL OFL, see fonts/), nothing loads from elsewhere. */
@@ -14,7 +14,7 @@
     /* A moonlit night: dark blue, black, pumpkin orange and white. */
     :root {
       color-scheme: dark;
-      --bg: #03050b; --panel: rgba(8, 17, 42, 0.94); --line: rgba(130, 160, 230, 0.18);
+      --bg: #03050b; --panel: #08112a; /* opaque: the moon never shows through text */ --line: rgba(130, 160, 230, 0.18);
       --text: #f4f6fb; --muted: #a9b6d6; --ink: #ffffff; --orange: #ff7a18; --orange-soft: #ffa24a;
       --glow: rgba(255, 122, 24, 0.55);
       scrollbar-color: var(--orange) var(--bg);
@@ -22,7 +22,7 @@
     * { box-sizing: border-box; }
     ::selection { background: var(--orange); color: var(--bg); }
     body {
-      margin: 0; color: var(--text); overflow-x: hidden;
+      position: relative; margin: 0; color: var(--text); overflow-x: hidden;
       background: linear-gradient(180deg, #10224f 0%, #0a1633 30%, #050b1c 70%, var(--bg) 100%) fixed var(--bg);
       font: 17px/1.65 Georgia, "Times New Roman", serif;
     }
@@ -83,6 +83,11 @@
     .card:hover { transform: translateY(-4px); border-color: rgba(255, 122, 24, 0.45); box-shadow: 0 0 30px rgba(255, 122, 24, 0.15), 0 14px 40px rgba(0, 0, 0, 0.45); }
     .card p { margin: 0; color: #d4dbec; }
     .quote { font-size: 1.35rem; margin: 10px 0 0; }
+    .shots { display: grid; gap: 16px; }
+    .shots figure { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 10px; }
+    .shots img { display: block; width: 100%; height: auto; border-radius: 8px; }
+    .shots figcaption { color: var(--muted); font-size: 0.92rem; margin: 8px 4px 2px; }
+    .shots .pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
 
     .todo {
       border: 2px dashed var(--muted); border-radius: 8px; padding: 32px; text-align: center; color: var(--muted);
@@ -106,7 +111,9 @@
     footer { margin-top: 72px; padding: 24px 16px 230px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.9rem; }
 
     /* ---------- the night outside (decoration only) ---------- */
-    .scene { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+    /* The night scrolls with the page: the moon stays up by the title and the graveyard lies below the
+       footer, so neither ever passes behind the text. */
+    .scene { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
     .stars {
       position: absolute; inset: 0 0 30% 0; opacity: 0.7; background-size: 240px 240px;
       background-image: radial-gradient(1px 1px at 20px 30px, #fff, transparent), radial-gradient(1px 1px at 90px 120px, #dfe8ff, transparent),
@@ -129,8 +136,8 @@
     .bat.b1 { top: 12vh; }
     .bat.b2 { top: 22vh; width: 26px; animation-duration: 29s; animation-delay: -9s; }
     .bat.b3 { top: 7vh; width: 22px; animation-duration: 37s; animation-delay: -21s; }
-    .horizon { position: absolute; left: 0; right: 0; bottom: 0; height: 45vh; background: radial-gradient(ellipse 70% 80% at 60% 100%, rgba(70, 105, 200, 0.42), rgba(40, 65, 140, 0.15) 50%, transparent 75%); }
-    .skyline { position: absolute; left: 0; bottom: 0; width: 100%; height: clamp(120px, 22vh, 220px); }
+    .horizon { position: absolute; left: 0; right: 0; bottom: 0; height: 420px; background: radial-gradient(ellipse 70% 80% at 60% 100%, rgba(70, 105, 200, 0.42), rgba(40, 65, 140, 0.15) 50%, transparent 75%); }
+    .skyline { position: absolute; left: 0; bottom: 0; width: 100%; height: 200px; }
     .skyline .land { fill: #02040a; }
     .skyline .trees { fill: none; stroke: #02040a; stroke-width: 3.5; stroke-linecap: round; }
     .skyline .trees .trunk { stroke-width: 8; }
@@ -142,11 +149,11 @@
     .skyline .jack .stem { fill: #02040a; }
     .skyline .jack { filter: drop-shadow(0 0 8px rgba(255, 122, 24, 0.85)); animation: flicker 2.2s infinite; }
     .fog {
-      position: absolute; left: 0; bottom: 0; width: 200%; height: 34vh; background-size: 50% 100%; animation: roll 48s linear infinite;
+      position: absolute; left: 0; bottom: 0; width: 200%; height: 300px; background-size: 50% 100%; animation: roll 48s linear infinite;
       background-image: radial-gradient(ellipse 22% 60% at 25% 85%, rgba(200, 215, 255, 0.11), transparent 70%),
         radial-gradient(ellipse 18% 45% at 70% 95%, rgba(200, 215, 255, 0.09), transparent 70%);
     }
-    .fog.f2 { height: 24vh; opacity: 0.8; animation-duration: 70s; animation-direction: reverse; }
+    .fog.f2 { height: 210px; opacity: 0.8; animation-duration: 70s; animation-direction: reverse; }
 
     @keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
     @keyframes bob { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-9px) rotate(2deg); } }
@@ -241,9 +248,9 @@
     <h1>Ghostwriter</h1>
     <p class="subtitle">The ghost that keeps your stories.</p>
     <p class="pitch">
-      Tell it a memory out loud: your grandmother's kitchen, a strange night in the hostel, the letter
-      nobody in the family can explain. A ghost living in your laptop writes it down, keeps it, and haunts
-      you with it later.
+      Record the stories your family tells before they're forgotten: your grandmother's kitchen, a
+      strange night in the hostel, the letter nobody can explain. The Archivist, a kind ghost living in
+      your laptop, writes each one down, keeps it, and haunts you with it later. Nothing leaves the laptop.
     </p>
     <p class="hand whisper">&ldquo;That memory was never given to me.&rdquo;</p>
     <div class="candles" aria-hidden="true">
@@ -264,33 +271,64 @@
        <div class="video"><iframe src="https://www.youtube-nocookie.com/embed/VIDEO_ID" title="Ghostwriter demo" allowfullscreen></iframe></div> -->
   <div class="todo">Demo video goes here.</div>
 
+  <h2 id="look">Have a look inside</h2>
+  <div class="shots">
+    <figure>
+      <img src="screenshots/candle-wall.png" width="1280" height="800" loading="lazy"
+           alt="The candle wall: each story is a candle whose shape and flame colour show its mood; one unopened story burns low">
+      <figcaption>The candle wall. Each story's mood picks its candle; a story you haven't opened for a while burns low.</figcaption>
+    </figure>
+    <div class="pair">
+      <figure>
+        <img src="screenshots/story.png" width="1280" height="1600" loading="lazy" alt="A story page with the Archivist's note, tags, and an answer added later under its question">
+        <figcaption>A story, with the Archivist's note and an answer added later under its question.</figcaption>
+      </figure>
+      <figure>
+        <img src="screenshots/seance.png" width="1280" height="800" loading="lazy" alt="A séance answer with numbered sources">
+        <figcaption>The séance answers only from your stories, and numbers the ones it used.</figcaption>
+      </figure>
+      <figure>
+        <img src="screenshots/unclear.png" width="1280" height="800" loading="lazy" alt="An unclear recording: the words came to me as fog">
+        <figcaption>A recording it couldn't hear clearly is never turned into a made-up memory.</figcaption>
+      </figure>
+      <figure>
+        <img src="screenshots/plain.png" width="1280" height="800" loading="lazy" alt="Plain mode: simple cards and neutral words">
+        <figcaption>Plain mode: the same app in simple words, with no effects.</figcaption>
+      </figure>
+    </div>
+  </div>
+
   <h2 id="book">Read what the ghost wrote</h2>
   <p>
     The ghost lives on your laptop, not on a server, so this page can't run it for you. But here is
-    what it makes: <a href="book.html">a memory book</a> exported by Ghostwriter from its four fictional
-    sample stories, two told in English and two in Hindi. The titles, summaries, people, places,
-    unfinished business, the Archivist's notes and one haunted retelling were all written by Gemma 4 on
-    a laptop. Your own archive exports the same way: one file that any browser can open, years from now.
+    what it makes: <a href="book.html">a memory book</a> exported by Ghostwriter from fictional sample
+    stories, told in English and in Hindi, including an answer added later to one of them. The titles,
+    summaries, people, places, unfinished business and the Archivist's notes were all written by Gemma 4
+    on a laptop. Your own archive exports the same way: one file that any browser can open, years from now.
   </p>
 
   <h2>What the ghost does</h2>
   <div class="grid">
     <div class="card">
       <h3>It listens</h3>
-      <p>Record in the browser or drop in a voice note. Whisper writes down every word, in Hindi, in English, or in the mix most of us actually speak.</p>
+      <p>Record in the browser or drop in a voice note, in Hindi, English or the mix most of us actually speak. Whisper writes down every word, guided by the names already in your archive, so Meera stays Meera.</p>
     </div>
     <div class="card">
       <h3>It remembers</h3>
-      <p>Gemma 4 gives each story a title and a short summary, and notes who was there, where and when, and the objects, recipes and sayings worth keeping.</p>
+      <p>Gemma 4 gives each story a title and a short summary, and notes who was there, where and when, and the objects, recipes and sayings worth keeping. It writes only what you said.</p>
+    </div>
+    <div class="card">
+      <h3>It won't invent a memory</h3>
+      <p>If a recording comes out as noise, the ghost says the words came to it as fog, writes nothing up, and offers to listen again in another language or let you fix the words.</p>
     </div>
     <div class="card">
       <h3>It notices what you left out</h3>
-      <p>After every story the ghost raises its unfinished business. Answer out loud, and your answer is kept beside the story it completes.</p>
+      <p>After every story the ghost asks about what you left out: who else was there, how it smelled, what happened next. Answer out loud, and your answer joins the story it completes.</p>
       <p class="hand quote">&ldquo;You never told me where the brass pot went...&rdquo;</p>
     </div>
     <div class="card">
       <h3>It holds a s&eacute;ance</h3>
-      <p>Ask the archive anything. The ghost answers only from what you told it, cites the story it drew on, and admits what it was never told rather than make something up.</p>
+      <p>Ask the archive anything. EmbeddingGemma finds the stories that mean the same thing (a "good cook" finds the kadhi story), and the ghost answers only from them, cites them, and admits what it was never told.</p>
     </div>
     <div class="card">
       <h3>It lights a candle for each memory</h3>
@@ -318,9 +356,11 @@
     <li class="arrow" aria-hidden="true">&rarr;</li>
     <li><strong>Whisper</strong>transcript</li>
     <li class="arrow" aria-hidden="true">&rarr;</li>
+    <li><strong>Quality check</strong>fog is not a memory</li>
+    <li class="arrow" aria-hidden="true">&rarr;</li>
     <li><strong>Gemma 4</strong>validated JSON</li>
     <li class="arrow" aria-hidden="true">&rarr;</li>
-    <li><strong>SQLite FTS5</strong>searchable archive</li>
+    <li><strong>SQLite + EmbeddingGemma</strong>words and meanings</li>
     <li class="arrow" aria-hidden="true">&rarr;</li>
     <li><strong>S&eacute;ance</strong>grounded answers</li>
     <li class="arrow" aria-hidden="true">&rarr;</li>
@@ -328,23 +368,26 @@
   </ol>
   <p>
     Gemma runs through Ollama and streams its words to the page as they are written, so the answer
-    appears like ink from an invisible hand. Search is SQLite's built-in full-text index, which finds
-    Hindi and English alike. When nothing in your stories matches a question, Gemma isn't asked at all.
+    appears like ink from an invisible hand. Search combines SQLite's full-text index, which finds Hindi
+    and English alike, with EmbeddingGemma, which finds stories by meaning. When nothing in your stories
+    matches a question, Gemma isn't asked at all.
   </p>
 
   <h2>Real numbers, ordinary laptop</h2>
   <p>Measured on an Intel i7-13620H with 16 GB of RAM and no graphics card doing the work:</p>
   <table>
     <tr><th>Writing down a recording (Whisper small)</th><td>about 35 seconds per minute of audio</td></tr>
-    <tr><th>Understanding a story (Gemma 4 e4b)</th><td>about 30 seconds</td></tr>
-    <tr><th>Gemma's writing speed</th><td>11 to 14 tokens (pieces of words) a second</td></tr>
-    <tr><th>A s&eacute;ance answer</th><td>first words in 7 to 19 seconds</td></tr>
-    <tr><th>The ghost's voice</th><td>11 seconds of speech made in 1.2 seconds</td></tr>
+    <tr><th>An 11-second story, from upload to finished page</th><td>46 seconds</td></tr>
+    <tr><th>Gemma's writing speed</th><td>10 to 19 tokens (pieces of words) a second</td></tr>
+    <tr><th>A s&eacute;ance answer</th><td>first words in 7 to 24 seconds</td></tr>
+    <tr><th>Finding stories by meaning (EmbeddingGemma)</th><td>under a tenth of a second</td></tr>
+    <tr><th>The ghost's voice</th><td>starts at once for a note it has already voiced; 2.3 seconds for something new</td></tr>
   </table>
 
   <h2>Built on open work</h2>
   <table>
     <tr><th>Gemma 4 (e4b)</th><td>Google DeepMind, Apache 2.0</td></tr>
+    <tr><th>EmbeddingGemma (300m, q8)</th><td>Google DeepMind, Gemma Terms of Use</td></tr>
     <tr><th>Whisper, via faster-whisper</th><td>OpenAI and SYSTRAN, MIT</td></tr>
     <tr><th>Ollama</th><td>MIT</td></tr>
     <tr><th>Piper text-to-speech</th><td>Rhasspy, MIT (with espeak-ng, GPL-3.0)</td></tr>
@@ -356,6 +399,7 @@
   <h2>Run it yourself</h2>
   <p>Windows, Python 3.11, ffmpeg and Ollama. The full steps are in the README.</p>
   <pre><code>ollama pull gemma4:e4b
+ollama pull embeddinggemma:300m-qat-q8_0
 powershell -ExecutionPolicy Bypass -File scripts\setup.ps1
 powershell -ExecutionPolicy Bypass -File scripts\demo.ps1</code></pre>
   <!-- TODO(you): replace YOUR_GITHUB_REPO_URL with the public repository link. -->
