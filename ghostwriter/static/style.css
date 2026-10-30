@@ -46,7 +46,7 @@ body {
 
 header, main, .site-footer { position: relative; z-index: 1; max-width: 880px; margin: 0 auto; padding: 0 16px; }
 header { padding-top: 52px; } /* room above the title for the ghost's speech bubble */
-.site-footer { padding-bottom: 210px; } /* room to see the graveyard at the bottom */
+.site-footer { padding-bottom: max(210px, 16vw); } /* room to see the whole graveyard at the bottom */
 
 h1, h2, h3 { font-family: "IM Fell English", Georgia, serif; font-weight: normal; }
 h1 { margin: 0; font-size: clamp(2.6rem, 8vw, 3.8rem); line-height: 1; letter-spacing: 0.02em; }
@@ -325,12 +325,24 @@ sup.cite a:hover, sup.cite a:focus-visible { text-decoration: underline; }
 .filter { display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: center; color: var(--muted); font-size: 0.9rem; }
 .filter select { padding: 3px 12px; max-width: 100%; }
 .book-row, .samples-row { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; margin: 14px 0 0; }
+/* The memory book: a small leather-bound volume with a lit spine. */
+.book-row { align-items: center; gap: 10px 18px; margin-top: 24px; }
+.book-link {
+  display: inline-flex; align-items: center; gap: 12px; padding: 10px 24px 10px 20px;
+  font-family: "IM Fell English", Georgia, serif; font-size: 1.3rem; line-height: 1.2; color: #ffe2b8; text-decoration: none;
+  background: linear-gradient(135deg, #3d1f0c, #1a0c04); border: 1px solid rgba(255, 162, 74, 0.7); border-radius: 4px 14px 14px 4px;
+  box-shadow: inset 7px 0 0 #6b3412, 0 0 16px rgba(255, 122, 24, 0.25);
+  transition: transform 0.15s, box-shadow 0.2s, color 0.2s;
+}
+.book-link:hover, .book-link:focus-visible { color: var(--ink); box-shadow: inset 7px 0 0 var(--orange), 0 0 28px var(--glow); transform: translateY(-1px) rotate(-1deg); }
+.book-link svg { flex: none; width: 30px; height: 24px; fill: none; stroke: var(--orange-soft); stroke-width: 1.6; stroke-linejoin: round; }
+.book-row .meta { flex: 1 1 260px; margin: 0; }
 .legend-wrap { margin-top: 14px; }
 .legend-wrap .meta { margin: 4px 0; }
 
 /* A cobweb in the corner, and its spider going up and down on a thread. */
 .web { position: absolute; top: 0; right: 0; width: 150px; height: 190px; overflow: hidden; pointer-events: none; }
-.web svg { position: absolute; top: 0; right: 0; width: 130px; height: 130px; fill: none; stroke: rgba(235, 240, 255, 0.28); stroke-width: 0.8; }
+.web > svg { position: absolute; top: 0; right: 0; width: 130px; height: 130px; fill: none; stroke: rgba(235, 240, 255, 0.28); stroke-width: 0.8; }
 .spider { position: absolute; top: 34px; right: 44px; width: 26px; animation: dangle 7s ease-in-out infinite; }
 .spider::before { content: ""; position: absolute; bottom: 70%; left: 50%; width: 1px; height: 200px; background: rgba(235, 240, 255, 0.4); }
 .spider svg { display: block; width: 100%; fill: #05070e; filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.5)); }
@@ -715,7 +727,9 @@ section:has(> .retelling)::after {
   position: absolute; left: 0; right: 0; bottom: 0; height: 45vh;
   background: radial-gradient(ellipse 70% 80% at 60% 100%, rgba(70, 105, 200, 0.42), rgba(40, 65, 140, 0.15) 50%, transparent 75%);
 }
-.skyline { position: absolute; left: 0; bottom: 0; width: 100%; height: clamp(120px, 22vh, 220px); }
+/* The whole house stays in view: overflow: visible draws the roofs above the box on wide screens,
+   and the 33vw cap keeps it from running off the right edge on phones. */
+.skyline { position: absolute; left: 0; bottom: 0; width: 100%; height: clamp(120px, min(22vh, 33vw), 220px); overflow: visible; }
 .skyline .land { fill: #02040a; }
 .skyline .trees { fill: none; stroke: #02040a; stroke-width: 3.5; stroke-linecap: round; }
 .skyline .trees .trunk { stroke-width: 8; }
@@ -820,6 +834,7 @@ body.plain .candle .meta { flex-basis: 100%; text-align: left; padding-left: 18p
 body.plain .wall { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
 body.plain .reaction .ghost-text::first-letter { float: none; font: inherit; color: inherit; text-shadow: none; margin: 0; }
 body.plain .fog-box h3 { font-family: Georgia, serif; }
+body.plain .book-link { font-family: Georgia, serif; font-size: 1.05rem; background: transparent; box-shadow: none; border-radius: 999px; transform: none; }
 /* No movement, no string lights, no glow: everything still works, it just stops performing. */
 body.plain *, body.plain *::before, body.plain *::after { animation: none !important; transition: none !important; }
 body.plain .ofrenda { padding-top: 8px; }

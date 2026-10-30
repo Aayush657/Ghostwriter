@@ -108,7 +108,7 @@
     pre { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; overflow-x: auto; font-size: 0.9rem; }
     code { font-family: Consolas, "Courier New", monospace; }
 
-    footer { margin-top: 72px; padding: 24px 16px 230px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.9rem; }
+    footer { margin-top: 72px; padding: 24px 16px max(230px, 17vw); border-top: 1px solid var(--line); color: var(--muted); font-size: 0.9rem; }
 
     /* ---------- the night outside (decoration only) ---------- */
     /* The night scrolls with the page: the moon stays up by the title and the graveyard lies below the
@@ -137,7 +137,7 @@
     .bat.b2 { top: 22vh; width: 26px; animation-duration: 29s; animation-delay: -9s; }
     .bat.b3 { top: 7vh; width: 22px; animation-duration: 37s; animation-delay: -21s; }
     .horizon { position: absolute; left: 0; right: 0; bottom: 0; height: 420px; background: radial-gradient(ellipse 70% 80% at 60% 100%, rgba(70, 105, 200, 0.42), rgba(40, 65, 140, 0.15) 50%, transparent 75%); }
-    .skyline { position: absolute; left: 0; bottom: 0; width: 100%; height: 200px; }
+    .skyline { position: absolute; left: 0; bottom: 0; width: 100%; height: clamp(120px, 33vw, 200px); overflow: visible; } /* the whole house in view: roofs rise above the box on wide screens, 33vw keeps it on phones */
     .skyline .land { fill: #02040a; }
     .skyline .trees { fill: none; stroke: #02040a; stroke-width: 3.5; stroke-linecap: round; }
     .skyline .trees .trunk { stroke-width: 8; }
