@@ -30,7 +30,7 @@ log = logging.getLogger(__name__)
 GHOST_EFFECTS = ("rubberband=pitch=0.84,lowpass=f=5500,"
                  "aecho=0.8:0.85:55|110|190:0.35|0.22|0.12,"
                  "chorus=0.6:0.9:45:0.3:0.3:1.5,volume=2.4")  # measured peak -2 dB: loud, no clipping
-MAX_CHARS = 2500  # about two and a half minutes of speech; fits a whole retelling
+MAX_CHARS = 3500  # about three and a half minutes of speech; fits a whole retelling (300-450 words)
 PART_CHARS = 280  # later parts gather sentences up to about this length
 
 

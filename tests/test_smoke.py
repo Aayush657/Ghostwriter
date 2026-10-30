@@ -188,19 +188,20 @@ def test_every_main_flow_in_the_browser(site, browser, tmp_path):
     assert "isn't a recording" in page.inner_text("#upload-status")
     assert story_count(page) == 1
 
-    # Write a story: autocorrect fixes typos as you type and Backspace undoes a fix, the draft survives
-    # a reload, and the story is read without a listening step. Then a question is answered in writing.
+    # Write a story: autocorrect fixes typos and capitalises sentences and quoted speech as you type,
+    # Backspace undoes a fix, the draft survives a reload, and the story is read without a listening
+    # step. Then a question is answered in writing.
     page.click("#write-text")
     page.keyboard.type("teh lantern dissapeared ")
-    assert page.input_value("#write-text") == "the lantern disappeared "
+    assert page.input_value("#write-text") == "The lantern disappeared "
     assert "dissapeared" in page.inner_text("#write-fixed")
     page.keyboard.type("i ")
     page.keyboard.press("Backspace")  # put the writer's own "i" back
-    assert page.input_value("#write-text") == "the lantern disappeared i"
-    page.keyboard.type(" swear it was real, and nobody believed me at camp that summer.")
-    written = "the lantern disappeared i swear it was real, and nobody believed me at camp that summer."
+    assert page.input_value("#write-text") == "The lantern disappeared i"
+    page.keyboard.type(' swear it was real. maya said "dont tell." ')
+    written = 'The lantern disappeared i swear it was real. Maya said "Don\'t tell." '
     assert page.input_value("#write-text") == written
-    assert page.inner_text("#write-count").startswith("16 words")
+    assert page.inner_text("#write-count").startswith("12 words")
     page.reload()
     page.wait_for_selector("#wall .candle")
     assert page.input_value("#write-text") == written  # the draft was kept

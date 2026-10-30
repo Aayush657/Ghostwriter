@@ -224,7 +224,7 @@ def story_retelling(story_id: int, again: bool = False) -> StreamingResponse:
     `again=true` tells it anew; the old retelling is replaced only once the new one is complete.
     """
     story = _ready_story_or_409(story_id)
-    return stream(_write_once(story, "retelling", prompts.retelling_messages(story), temperature=0.9, again=again))
+    return stream(_write_once(story, "retelling", prompts.retelling_messages(story), temperature=0.7, again=again))
 
 
 def _write_once(story: dict, column: str, messages: list[dict], temperature: float,

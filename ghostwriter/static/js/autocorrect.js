@@ -1,7 +1,7 @@
 // Autocorrect for the "write a story" boxes, fully offline. The browser's own spell check underlines
-// unknown words (right-click for suggestions); this fixes common typos and missing apostrophes as
-// you type, the way a phone keyboard does. Backspace straight after a fix puts your word back, and
-// Ctrl+Z undoes it too.
+// unknown words (right-click for suggestions); this fixes common typos and missing apostrophes and
+// capitalises the start of each sentence as you type, the way a phone keyboard does. Backspace
+// straight after a fix puts your word back, and Ctrl+Z undoes it too.
 
 // Typos people make all the time, and words a phone would fix. Only unambiguous ones: never a real
 // word ("wont", "were", "its", "ill" and "lets" are left alone).
@@ -52,15 +52,33 @@ const FIXES = {
 };
 
 const BOUNDARY = /^[\s.,!?;:)\]"”]$/; // typing one of these ends a word
-const WORD_BEFORE = /([A-Za-z']+)$/;
+const WORD_BEFORE = /([A-Za-z][A-Za-z']*)$/; // starts with a letter: an opening ' is a quote mark
 
+const capital = (word) => word[0].toUpperCase() + word.slice(1);
+const isCapital = (ch) => ch === ch.toUpperCase() && ch !== ch.toLowerCase();
 // Keep the capital the writer typed ("Teh" becomes "The"); fixes that are capitalised anyway stay so.
-const matchCase = (typed, fix) => (typed[0] === typed[0].toUpperCase() && typed[0] !== typed[0].toLowerCase()
-  ? fix[0].toUpperCase() + fix.slice(1) : fix);
+const matchCase = (typed, fix) => (isCapital(typed[0]) ? capital(fix) : fix);
 
-export function fixFor(word) {
+// A sentence starts at the beginning, on a new line, after . ! or ? (not "..." or "Mr."), and where
+// quoted speech opens: "dad, I'm scared." Phones capitalise these; so does this.
+const OPENING = /["“‘(\[]+$/;
+const SENTENCE_END = /(^|[^.])[.!?]["”’')\]]*\s+$/;
+const ABBREVIATION = /\b(mr|mrs|ms|dr|st|jr|sr|mt|ft|vs|etc|e\.g|i\.e|[a-hj-z])\.\s+$/i; // initials too, not "I."
+
+export function startsSentence(textBefore) {
+  const quoted = OPENING.test(textBefore);
+  const text = textBefore.replace(OPENING, "");
+  if (!text.trim() || /\n\s*$/.test(text)) return true;
+  if (quoted && /[\s,:;—-]$/.test(text)) return true;
+  return SENTENCE_END.test(text) && !ABBREVIATION.test(text);
+}
+
+// The word as it should be written here, or null if it is fine as typed.
+export function fixFor(word, textBefore = "x ") {
   const fix = FIXES[word.toLowerCase()];
-  return fix && fix !== word ? matchCase(word, fix) : null;
+  let fixed = fix && fix !== word ? matchCase(word, fix) : word;
+  if (!isCapital(fixed[0]) && startsSentence(textBefore)) fixed = capital(fixed);
+  return fixed === word ? null : fixed;
 }
 
 // Replace text the way typing does, so Ctrl+Z can undo it; falls back where execCommand is gone.
@@ -85,20 +103,24 @@ export function attachAutocorrect(box, { enabled = () => true, onFix = () => {} 
     const before = box.value.slice(0, caret - event.data.length);
     const typed = before.match(WORD_BEFORE)?.[1];
     if (!typed || keep.has(typed.toLowerCase())) return;
-    const fixed = fixFor(typed);
-    if (!fixed) return;
     const start = before.length - typed.length;
+    const fixed = fixFor(typed, before.slice(0, start));
+    if (!fixed) return;
     busy = true;
     replace(box, start, start + typed.length, fixed);
     const after = start + fixed.length + event.data.length;
     box.setSelectionRange(after, after);
     busy = false;
     last = { start, typed, fixed, after };
-    onFix(typed, fixed);
+    if (fixed.toLowerCase() !== typed.toLowerCase()) onFix(typed, fixed); // a sentence's capital needs no notice
   });
 
   box.addEventListener("keydown", (event) => {
-    if (event.key !== "Backspace" || !last) return;
+    if (event.key !== "Backspace") {
+      if (!["Shift", "Control", "Alt", "Meta", "CapsLock"].includes(event.key)) last = null; // only straight after
+      return;
+    }
+    if (!last) return;
     const { start, typed, fixed, after } = last;
     last = null;
     if (box.selectionStart !== after || box.selectionEnd !== after || box.value.slice(start, start + fixed.length) !== fixed) return;
