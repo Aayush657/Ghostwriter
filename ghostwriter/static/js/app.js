@@ -721,10 +721,13 @@ function renderWall() {
   syncLegend();
 }
 
+let wallRoute = null; // the filter and search the wall was last drawn for
+
 function setWallFilter(about, q, push = true) {
   const address = wallAddress(about, q);
   if (push) location.hash = address; // the hashchange re-renders
-  else { history.replaceState(null, "", address); renderWall(); }
+  else { history.replaceState(null, "", address); wallRoute = `${about}
+${q}`; renderWall(); }
 }
 
 // Suggested questions: the people, places and keepsakes that come up most often across the stories.
@@ -1435,7 +1438,10 @@ async function refresh(force = false) {
       if (!leftByDeleting) document.querySelector(`.candle[href="#/story/${left}"]`)?.focus({ preventScroll: true });
       leftByDeleting = false;
     }
-    if (currentFilter() !== r.about || $("#wall-search").value !== r.q) {
+    if (`${r.about}
+${r.q}` !== wallRoute) { // the dropdown has already changed, so compare with what was drawn
+      wallRoute = `${r.about}
+${r.q}`;
       $("#filter").value = r.about;
       $("#wall-search").value = r.q;
       renderWall();
