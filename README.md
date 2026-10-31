@@ -21,7 +21,7 @@ Project page: **[theghostwriter.tech](https://theghostwriter.tech)**.
 |---|---|---|
 | ![A story page](docs/screenshots/story.png) | ![A Seance answer with numbered sources](docs/screenshots/seance.png) | ![The fog view](docs/screenshots/unclear.png) |
 
-_Demo video: [PLACEHOLDER]_
+**Demo video:** [https://youtu.be/PruqnPZd_hM](https://youtu.be/PruqnPZd_hM)
 
 ## What it does
 
@@ -74,8 +74,7 @@ _Demo video: [PLACEHOLDER]_
   is made; notes and retellings are voiced in advance. Optional.
 - **Haunted retelling.** One click retells a memory as a campfire ghost story of 300-450 words, told
   to you, building slowly to your story's own twist: every event kept in order, every spoken line word
-  for word, only the atmosphere added, with three to five emojis to set the mood (the voice skips
-  them). It is labelled as a retelling and stored separately; the original is never changed.
+  for word, only the atmosphere added. It is labelled as a retelling and stored separately; the original is never changed.
 - **Memory book.** Every story, with its answers, notes and retellings, as one self-contained page
   (`/book`) to print, save as a PDF, or keep.
 - **Plain mode.** One switch for neutral wording, simple cards and no animation or decoration.
@@ -294,11 +293,10 @@ refuses to put real stories in `docs/`):
 $env:GW_DATA_DIR = "demo-data"; .venv\Scripts\python.exe -m ghostwriter.export docs\book.html
 ```
 
-1. In `docs/index.html`, replace the demo-video box (`TODO(you)`).
-2. Push the repo to GitHub, then **Settings > Pages > Deploy from a branch > `main` / `/docs`**.
-3. Claim the free .tech domain at hacktoberfest.com/my/promos (free for the first year; it renews at a
+1. Push the repo to GitHub, then **Settings > Pages > Deploy from a branch > `main` / `/docs`**.
+2. Claim the free .tech domain at hacktoberfest.com/my/promos (free for the first year; it renews at a
    cost, so check the auto-renew setting).
-4. In **Settings > Pages > Custom domain**, enter the domain (GitHub adds `docs/CNAME`). At the
+3. In **Settings > Pages > Custom domain**, enter the domain (GitHub adds `docs/CNAME`). At the
    domain's DNS, point `www` (CNAME) to `aayush657.github.io` and the bare domain (A records) to
    GitHub Pages' addresses `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`.
    Then tick **Enforce HTTPS**.

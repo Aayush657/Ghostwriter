@@ -12,8 +12,6 @@ In most families I know, the best stories have never been written down. They liv
 voice: a grandparent after dinner, an uncle at a wedding, the friend who tells the hostel ghost story
 better than anyone. When that voice goes quiet, the stories go with it.
 
-[PLACEHOLDER: one or two true sentences about whose stories made you want to build this.]
-
 So I built **Ghostwriter**, the ghost that keeps your stories.
 
 Ghostwriter is home to **the Archivist**, a kind ghost who lives in your laptop. You tell it a story
@@ -38,8 +36,8 @@ out loud (or write it down, if there's no good microphone nearby), and it:
 - **writes back**: every story gets a note from the ghost that retells its heart and lingers on the
   moment it turns, without ever solving a mystery you left open;
 - **speaks** in a low, echoing voice, and on request **retells** any memory as a campfire ghost
-  story, building slowly to your own twist, with a few emojis to set the mood 🔥🌙 (always labelled as a retelling; the original is
-  never touched).
+  story, building slowly to your own twist (always labelled as a retelling; the original is never
+  touched).
 
 The rule that makes it work is a story mechanic as much as a technical one: **the ghost can only
 remember what it was given.** Ask it about something you never told it, and instead of inventing an
@@ -48,13 +46,11 @@ answer it says:
 > *"That memory was never given to me."*
 
 It is spooky on the surface and sentimental underneath. And all of it runs on my laptop, with open
-models, with the Wi-Fi switched off.
+models: it keeps working with the Wi-Fi switched off.
 
 ## Demo
 
-[PLACEHOLDER: demo video embed, e.g. `{% embed https://www.youtube.com/watch?v=VIDEO_ID %}`]
-
-In the video I switch the Wi-Fi off in a dark room, tell the ghost a story, and let it write.
+{% embed https://youtu.be/PruqnPZd_hM %}
 
 ![The candle wall: each story is a candle whose shape and flame colour show its mood](https://theghostwriter.tech/screenshots/candle-wall.png)
 
@@ -64,9 +60,7 @@ In the video I switch the Wi-Fi off in a dark room, tell the ghost a story, and 
 
 ![An unclear recording: the words came to me as fog](https://theghostwriter.tech/screenshots/unclear.png)
 
-**The moment that made it worth it:** [PLACEHOLDER: what happened when someone heard their own story
-read back by the ghost. Describe only what really happened. If you didn't get to do this, delete this
-paragraph.]
+![Writing a story down on a page of ruled paper, with autocorrect fixing a typo](https://theghostwriter.tech/screenshots/writing.png)
 
 Project page: [theghostwriter.tech](https://theghostwriter.tech)
 
@@ -74,8 +68,8 @@ Project page: [theghostwriter.tech](https://theghostwriter.tech)
 
 {% github Aayush657/Ghostwriter %}
 
-MIT licensed. The README has one-command setup for Windows, and the repo includes four clearly
-fictional sample stories, so you can try the ghost without recording anything.
+MIT licensed. The README has one-command setup for Windows, and the repo includes two clearly
+fictional campfire stories, so you can try the ghost without recording anything.
 
 ## How I Built It
 
@@ -244,9 +238,13 @@ the CPU.
 
 ### Built with AI assistance
 
-I built Ghostwriter with Claude Code as a pair programmer. [PLACEHOLDER: describe honestly how you
-split the work, e.g. which product decisions, testing and writing were yours.] Every number in this
-post was measured on my machine during the build; the logs are in `PROGRESS.md` in the repo.
+I built Ghostwriter with Claude Code as a pair programmer. The name and the decisions about what it
+should be were mine: English only after Hindi came out too garbled, a way to write stories down for
+anyone without a good microphone, a female voice I picked by ear in a little voice lab of ten, and the
+campfire feel. I tested it myself, recording and writing stories into it, and sent rounds of review
+findings back. Claude Code wrote most of the code, the tests and the docs, and ran the measurements.
+Every number in this post was measured on my machine during the build; the logs are in `PROGRESS.md`
+in the repo.
 
 ## Why Does Open Innovation Matter?
 
@@ -256,8 +254,8 @@ Because this project would be a bad idea in the cloud.
   are no longer here. I don't want a grandmother's voice to be someone's training data, or to depend
   on a privacy policy I didn't write. Here the recordings, transcripts and stories are a folder and a
   SQLite file on my own disk.
-- **It works with the lights and the internet off.** I recorded the demo with the Wi-Fi switched
-  off. Fonts, scripts and models are all local, and every request the page makes goes to `127.0.0.1`.
+- **It works with the lights and the internet off.** Turn the Wi-Fi off and nothing changes.
+  Fonts, scripts and models are all local, and every request the page makes goes to `127.0.0.1`.
 - **There's no API bill.** I'm a student. Every transcription, every séance question and every
   retelling costs me nothing but electricity, so I can ask the ghost as many questions as I like.
 - **The archive outlives any company.** If Ghostwriter stopped existing tomorrow, the stories
@@ -302,10 +300,6 @@ comes back when someone does.
   so the séance finds stories by what they mean, not just the words they share.
 - **Best Use of a .tech Domain:** the project page lives at [theghostwriter.tech](https://theghostwriter.tech).
 
-## My Agent Session
-
-[PLACEHOLDER: DevRelay link, or delete this section.]
-
 ## Credits
 
 Gemma 4 by Google DeepMind (Apache 2.0) · EmbeddingGemma by Google DeepMind (Gemma Terms of Use) ·
@@ -317,18 +311,3 @@ English fonts (SIL Open Font License). The sample stories in the repo are fictio
 this project. Full details are in the README.
 
 If you build your own, tell it something true. It's listening.
-
-<!-- ======================= NOT PART OF THE POST: notes for you ======================= -->
-<!--
-Before publishing:
-1. Search this file for "PLACEHOLDER" and fill or delete every one. Never invent the "real moment".
-   The post says the demo was recorded with the Wi-Fi off: keep that only if the video shows it.
-2. The four image links point to https://theghostwriter.tech/screenshots/. Open one before publishing: if the domain
-   isn't working yet, use https://aayush657.github.io/Ghostwriter/screenshots/ instead, or upload the
-   PNGs from docs/screenshots/ with DEV's image button.
-3. The front matter must stay the very first thing in the post. DEV allows up to 4 tags; the two
-   required ones are there. You may add e.g. "ai" and "opensource".
-4. Re-read it aloud once in your own voice and change anything that doesn't sound like you.
-5. Delete this comment block before publishing.
-6. Prize Categories: keep both only if the .tech page is actually live.
--->

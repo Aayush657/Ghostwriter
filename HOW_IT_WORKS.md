@@ -285,7 +285,7 @@ story is instant. The retelling has its own column, so the original can never be
   land, end on a chilling line) followed by a numbered checklist, because a 4B model keeps rules best
   when they come last and are short: tell it to the storyteller as "you", never as "I"; never change
   or contradict an event; keep spoken lines word for word; mood but no new events; 300-450 words;
-  three to five emojis, each at the end of a sentence. Measured on the way: a looser prompt at
+  no emojis (an earlier version asked for three to five; they were dropped after review). Measured on the way: a looser prompt at
   temperature 0.9 had the ghost tell the story as if it happened to it, and once reversed the very
   thing the storyteller found; with the checklist at 0.7 the retellings kept every event and line. `tts.clean()` strips the emojis, so the voice never reads them out.
 
